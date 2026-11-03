@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import * as dciConfigApi from '@/api/dciConfigApi'
 import * as objectsApi from '@/api/objectsApi'
 import { dciSource, resolveDciSourceRoot } from '@/utils/dciSource'
-import { MODERATE_TIER } from './config'
+import { MODERATE_TIER, NO_RETRY_STATUSES, STATIC_TIER } from './config'
 
 export const dciConfigKeys = {
   all: (objectId) => ['dci-config', objectId],
@@ -18,6 +18,7 @@ export const dciConfigKeys = {
     templateItemId,
   ],
   otlpMetrics: (objectId) => ['dci-config', objectId, 'otlp-metrics'],
+  availableMetrics: (objectId, source) => ['dci-config', objectId, 'available-metrics', source],
 }
 
 /**
@@ -31,6 +32,25 @@ export function useOtlpMetrics(objectId, enabled = true) {
     queryFn: () => dciConfigApi.getOtlpMetrics(toValue(objectId)),
     enabled: computed(() => !!toValue(objectId) && toValue(enabled)),
     ...MODERATE_TIER,
+  })
+}
+
+/**
+ * For the DCI metric picker's agent and device driver lists. They change only at a configuration
+ * poll, and a template's merges every node, hence the static tier.
+ * @param {import('vue').MaybeRefOrGetter<number|null>} objectId
+ * @param {import('vue').MaybeRefOrGetter<'agent'|'device-driver'|null|undefined>} source
+ * @param {import('vue').MaybeRefOrGetter<boolean>} [enabled]
+ */
+export function useAvailableMetrics(objectId, source, enabled = true) {
+  return useQuery({
+    queryKey: computed(() => dciConfigKeys.availableMetrics(toValue(objectId), toValue(source))),
+    queryFn: () => dciConfigApi.getAvailableMetrics(toValue(objectId), toValue(source)),
+    enabled: computed(() => !!toValue(objectId) && !!toValue(source) && toValue(enabled)),
+    // A 400 is the object's class having no lists, which no retry changes.
+    retry: (failureCount, error) =>
+      error?.status !== 400 && !NO_RETRY_STATUSES.has(error?.status) && failureCount < 2,
+    ...STATIC_TIER,
   })
 }
 

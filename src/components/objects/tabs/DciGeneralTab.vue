@@ -146,8 +146,6 @@ const pollable = computed(() => !['push', 'otlp', 'computed'].includes(props.for
 
 // Legacy reads these lists from the node over NXCP; the WebAPI has no route for them yet.
 const NODE_LIST_ORIGINS = {
-  agent: { label: 'Agent metric list', tables: true },
-  driver: { label: 'Device driver metric list', tables: true },
   trafficobserver: { label: 'Traffic observer metric list', tables: true },
   winperf: { label: 'Windows performance counter list', tables: false },
   smclp: { label: 'SM-CLP target list', tables: false },
@@ -158,6 +156,9 @@ const isTable = computed(() => props.dciType === 'table')
 const metricPicker = computed(() => {
   const origin = props.form.origin
   if (origin === 'internal') return isTable.value ? 'internalTable' : 'internalMetric'
+  if (origin === 'agent') return isTable.value ? 'agentTable' : 'agentMetric'
+  // The server cannot collect a table from a device driver; legacy lists agent tables here.
+  if (origin === 'driver') return isTable.value ? null : 'driverMetric'
   if (origin === 'script') return 'script'
   if (origin === 'websvc') return isTable.value ? null : 'webService'
   if (origin === 'otlp') return isTable.value ? null : 'otlp'
@@ -175,6 +176,11 @@ const { data: sourceNodeObject } = useObject(() =>
 )
 const pickerObject = computed(() =>
   pollable.value && props.form.sourceNode ? (sourceNodeObject.value ?? null) : props.ownerObject,
+)
+// Separate from the object, which stays null for a source node the user cannot read: the list's
+// own 403 then says why.
+const pickerObjectId = computed(() =>
+  pollable.value && props.form.sourceNode ? props.form.sourceNode : props.objectId,
 )
 
 function openMetricPicker() {
@@ -553,6 +559,7 @@ const useCustomSnmpVersion = computed({
       v-model:visible="listPickerVisible"
       :kind="metricPicker"
       :object="pickerObject"
+      :object-id="pickerObjectId"
       @select="onMetricPicked"
     />
     <MibOidPickerDialog

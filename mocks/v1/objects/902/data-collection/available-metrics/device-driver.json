@@ -1,0 +1,9 @@
+{
+  "metrics": [
+    { "name": "HostMib.Memory.Swap.Free", "description": "Free swap area", "dataType": "uint64" },
+    { "name": "HostMib.Memory.Swap.FreePerc", "description": "Percentage of free swap area", "dataType": "float" },
+    { "name": "HostMib.Memory.Swap.Total", "description": "Total swap area", "dataType": "uint64" },
+    { "name": "HostMib.Memory.Virtual.Free", "description": "Free virtual memory", "dataType": "uint64" },
+    { "name": "HostMib.Memory.Virtual.Total", "description": "Total virtual memory", "dataType": "uint64" }
+  ]
+}

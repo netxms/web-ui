@@ -9,7 +9,6 @@ import NxslScriptEditor from '@/components/common/NxslScriptEditor.vue'
 import MibOidPickerDialog from '@/components/mibs/MibOidPickerDialog.vue'
 import DciMetricPickerDialog from '../DciMetricPickerDialog.vue'
 import OtlpAttributeKeysDialog from '../OtlpAttributeKeysDialog.vue'
-import { notifyNotImplemented } from '@/utils/notImplemented'
 import {
   TABLE_DISCOVERY_METHODS,
   parseTableDiscoveryData,
@@ -116,26 +115,20 @@ const otlpNameFormat = computed({
   set: (format) => updateOtlpDiscovery({ format }),
 })
 
-// Legacy reads these lists from the node over NXCP; no WebAPI route yet.
-const PENDING_DISCOVERY_PICKERS = {
-  agentList: 'Agent list selection',
-  agentTable: 'Agent table selection',
-}
+// These methods share their name with a DciMetricPickerDialog kind.
+const LIST_PICKER_METHODS = ['agentList', 'agentTable', 'internalTable', 'script', 'webService', 'otlp']
 
 const discoveryPicker = computed(() => {
   const method = props.form.instanceDiscoveryMethod
-  if (['internalTable', 'script', 'webService', 'otlp'].includes(method)) return method
-  if (method === 'snmpWalkValues' || method === 'snmpWalkOids') return 'mib'
-  return PENDING_DISCOVERY_PICKERS[method] ? 'pending' : null
+  if (LIST_PICKER_METHODS.includes(method)) return method
+  return method === 'snmpWalkValues' || method === 'snmpWalkOids' ? 'mib' : null
 })
 
 const discoveryListPickerVisible = ref(false)
 const discoveryMibPickerVisible = ref(false)
 
 function openDiscoveryPicker() {
-  if (discoveryPicker.value === 'pending') {
-    notifyNotImplemented(PENDING_DISCOVERY_PICKERS[props.form.instanceDiscoveryMethod])
-  } else if (discoveryPicker.value === 'mib') {
+  if (discoveryPicker.value === 'mib') {
     discoveryMibPickerVisible.value = true
   } else {
     discoveryListPickerVisible.value = true
@@ -275,7 +268,7 @@ function setInstanceRetentionMode(mode) {
     </div>
 
     <DciMetricPickerDialog
-      v-if="discoveryPicker && discoveryPicker !== 'mib' && discoveryPicker !== 'pending'"
+      v-if="discoveryPicker && discoveryPicker !== 'mib'"
       v-model:visible="discoveryListPickerVisible"
       :kind="discoveryPicker"
       :object="ownerObject"

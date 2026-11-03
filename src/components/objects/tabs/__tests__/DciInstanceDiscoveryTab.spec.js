@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import { reactive } from 'vue'
 import PrimeVue from 'primevue/config'
 import DciInstanceDiscoveryTab from '../DciInstanceDiscoveryTab.vue'
+import DciMetricPickerDialog from '../../DciMetricPickerDialog.vue'
 import DciProcessingTab from '../DciProcessingTab.vue'
 
 // PrimeVue's Select binds a matchMedia listener on mount; jsdom does not provide one.
@@ -85,6 +86,39 @@ describe('DciInstanceDiscoveryTab', () => {
     const wrapper = mountTab(dciForm({ instanceDiscoveryMethod: 'script' }))
 
     expect(wrapper.find('.p-inputnumber').exists()).toBe(false)
+  })
+
+  it('offers no picker for a method legacy has none for', () => {
+    const wrapper = mountTab(dciForm({ instanceDiscoveryMethod: 'winperf' }))
+
+    expect(wrapper.text()).not.toContain('Select...')
+    expect(wrapper.findComponent(DciMetricPickerDialog).exists()).toBe(false)
+  })
+
+  it('picks an agent list by name', async () => {
+    const form = dciForm({ instanceDiscoveryMethod: 'agentList' })
+    const wrapper = mountTab(form)
+
+    await wrapper.find('button').trigger('click')
+    const dialog = wrapper.findComponent(DciMetricPickerDialog)
+    expect(dialog.props('kind')).toBe('agentList')
+    expect(dialog.props('visible')).toBe(true)
+
+    dialog.vm.$emit('select', { name: 'Net.InterfaceList', instanceColumn: '' })
+    expect(form.instanceDiscoveryData).toBe('Net.InterfaceList')
+  })
+
+  it('picks an agent table with its instance column', async () => {
+    const form = dciForm({ instanceDiscoveryMethod: 'agentTable' })
+    const wrapper = mountTab(form)
+
+    await wrapper.find('button').trigger('click')
+    const dialog = wrapper.findComponent(DciMetricPickerDialog)
+    expect(dialog.props('kind')).toBe('agentTable')
+    expect(dialog.props('visible')).toBe(true)
+
+    dialog.vm.$emit('select', { name: 'FileSystem.Volumes', instanceColumn: 'MOUNTPOINT' })
+    expect(form.instanceDiscoveryData).toBe('FileSystem.Volumes:MOUNTPOINT')
   })
 })
 

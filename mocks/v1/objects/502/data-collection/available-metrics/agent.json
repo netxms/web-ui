@@ -1,0 +1,28 @@
+{
+  "metrics": [
+    { "name": "Agent.Uptime", "description": "Agent's uptime", "dataType": "uint32" },
+    { "name": "Agent.Version", "description": "Agent's version", "dataType": "string" },
+    { "name": "FileSystem.Free(*)", "description": "Free space on file system {instance}", "dataType": "uint64" },
+    { "name": "FileSystem.Used(*)", "description": "Used space on file system {instance}", "dataType": "uint64" },
+    { "name": "FileSystem.UsedPerc(*)", "description": "Percentage of used space on file system {instance}", "dataType": "float" },
+    { "name": "Net.Interface.BytesIn(*)", "description": "Number of input bytes on interface {instance}", "dataType": "counter32" },
+    { "name": "System.CPU.Usage", "description": "Average CPU utilization for last minute", "dataType": "float" },
+    { "name": "System.Hostname", "description": "Host name", "dataType": "string" },
+    { "name": "System.Memory.Physical.FreePerc", "description": "Percentage of free physical memory", "dataType": "float" },
+    { "name": "System.ProcessCount", "description": "Total number of processes", "dataType": "uint32" },
+    { "name": "System.Uptime", "description": "System uptime", "dataType": "uint32" }
+  ],
+  "tables": [
+    { "name": "FileSystem.Volumes", "description": "File system volumes", "instanceColumns": ["MOUNTPOINT"] },
+    { "name": "Hardware.StorageDevices", "description": "Storage devices", "instanceColumns": ["NUMBER"] },
+    { "name": "Net.Interfaces", "description": "Network interfaces", "instanceColumns": ["INDEX"] },
+    { "name": "System.OpenFiles", "description": "Open files", "instanceColumns": ["PID", "HANDLE"] },
+    { "name": "System.Processes", "description": "Processes", "instanceColumns": ["PID"] }
+  ],
+  "lists": [
+    { "name": "FileSystem.MountPoints", "description": "List of file system mount points" },
+    { "name": "Net.InterfaceList", "description": "List of network interfaces" },
+    { "name": "Net.IP.RoutingTable", "description": "IP routing table" },
+    { "name": "System.ProcessList", "description": "List of processes" }
+  ]
+}

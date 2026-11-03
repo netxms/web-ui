@@ -42,3 +42,12 @@ export function deleteDci(objectId, dciId) {
 export function getOtlpMetrics(objectId) {
   return get(`/v1/objects/${objectId}/otlp-metrics`)
 }
+
+/**
+ * What a node reported at its last configuration poll, empty before one. `source` is `agent` for
+ * `{ metrics, tables, lists }` or `device-driver` for `{ metrics }`. Templates and clusters get
+ * the merged lists of all nodes; an object class without lists answers 400.
+ */
+export function getAvailableMetrics(objectId, source) {
+  return get(`/v1/objects/${objectId}/data-collection/available-metrics/${source}`)
+}

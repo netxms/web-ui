@@ -13,12 +13,21 @@ vi.mock('@/stores/authStore', () => ({
   useAuthStore: () => ({ sessionGuid: 'test-session', logout: vi.fn() }),
 }))
 
-const { listDciConfig, getDciConfig, createDci, updateDci } = await import('../dciConfigApi')
+const { listDciConfig, getDciConfig, createDci, updateDci, getAvailableMetrics } =
+  await import('../dciConfigApi')
 
 beforeEach(() => {
   get.mockReset()
   post.mockReset()
   patch.mockReset()
+})
+
+describe('getAvailableMetrics', () => {
+  it.each(['agent', 'device-driver'])('reads the %s lists of an object', async (source) => {
+    get.mockResolvedValueOnce({ metrics: [] })
+    expect(await getAvailableMetrics(7, source)).toEqual({ metrics: [] })
+    expect(get).toHaveBeenCalledWith(`/v1/objects/7/data-collection/available-metrics/${source}`)
+  })
 })
 
 // DS_NATIVE_AGENT is "nxagent" on servers before netxms bafe8323da and "agent" after; each

@@ -8,7 +8,7 @@ import InputIcon from 'primevue/inputicon'
 import AppTable from '@/components/common/AppTable.vue'
 import { useScriptLibrary } from '@/queries/useScriptQueries'
 import { useWebServiceDefinitions } from '@/queries/useWebServiceQueries'
-import { useOtlpMetrics } from '@/queries/useDciConfigQueries'
+import { useAvailableMetrics, useOtlpMetrics } from '@/queries/useDciConfigQueries'
 import { internalMetricsFor, internalTablesFor } from '@/utils/internalDciMetrics'
 import { getDciDataTypeLabel } from '@/utils/objectUtils'
 
@@ -16,32 +16,57 @@ import { getDciDataTypeLabel } from '@/utils/objectUtils'
 // for OTLP); `dataType` is null where the source has none.
 const props = defineProps({
   visible: { type: Boolean, required: true },
-  /** @type {'internalMetric'|'internalTable'|'script'|'webService'|'otlp'} */
+  /** @type {'internalMetric'|'internalTable'|'agentMetric'|'agentTable'|'agentList'|'driverMetric'|'script'|'webService'|'otlp'} */
   kind: { type: String, required: true },
   /** DCI owner or overriding source node; null lists everything. */
   object: { type: Object, default: null },
+  /** Whose agent and driver lists to read, when it is not `object`. */
+  objectId: { type: Number, default: null },
 })
 
 const emit = defineEmits(['update:visible', 'select'])
 
+const METRIC_COLUMNS = [
+  { id: 'description', field: 'description', label: 'Description', sortable: true, width: 300 },
+  { id: 'name', field: 'name', label: 'Name', sortable: true, width: 280 },
+  { id: 'dataType', field: 'dataTypeLabel', label: 'Data Type', sortable: true, width: 160 },
+]
+
+const TABLE_COLUMNS = [
+  { id: 'description', field: 'description', label: 'Description', sortable: true, width: 260 },
+  { id: 'name', field: 'name', label: 'Name', sortable: true, width: 260 },
+  { id: 'instanceColumn', field: 'instanceColumn', label: 'Instance Column', width: 180 },
+]
+
 const KINDS = {
-  internalMetric: {
-    header: 'Select Internal Metric',
+  internalMetric: { header: 'Select Internal Metric', noun: 'metric', columns: METRIC_COLUMNS },
+  internalTable: { header: 'Select Internal Table', noun: 'table', columns: TABLE_COLUMNS },
+  agentMetric: {
+    header: 'Select Agent Metric',
     noun: 'metric',
-    columns: [
-      { id: 'description', field: 'description', label: 'Description', sortable: true, width: 300 },
-      { id: 'name', field: 'name', label: 'Name', sortable: true, width: 280 },
-      { id: 'dataType', field: 'dataTypeLabel', label: 'Data Type', sortable: true, width: 160 },
-    ],
+    columns: METRIC_COLUMNS,
+    source: 'agent',
   },
-  internalTable: {
-    header: 'Select Internal Table',
+  agentTable: {
+    header: 'Select Agent Table',
     noun: 'table',
+    columns: TABLE_COLUMNS,
+    source: 'agent',
+  },
+  agentList: {
+    header: 'Select Agent List',
+    noun: 'list',
     columns: [
-      { id: 'description', field: 'description', label: 'Description', sortable: true, width: 260 },
-      { id: 'name', field: 'name', label: 'Name', sortable: true, width: 260 },
-      { id: 'instanceColumn', field: 'instanceColumn', label: 'Instance Column', width: 180 },
+      { id: 'description', field: 'description', label: 'Description', sortable: true, width: 400 },
+      { id: 'name', field: 'name', label: 'Name', sortable: true, width: 340 },
     ],
+    source: 'agent',
+  },
+  driverMetric: {
+    header: 'Select Device Driver Metric',
+    noun: 'metric',
+    columns: METRIC_COLUMNS,
+    source: 'device-driver',
   },
   script: {
     header: 'Select Script',
@@ -79,10 +104,17 @@ const webServices = useWebServiceDefinitions(() => props.visible && props.kind =
 const otlpNodeId = computed(() => (props.object?.class === 'Node' ? props.object.id : null))
 const otlpMetrics = useOtlpMetrics(otlpNodeId, () => props.visible && props.kind === 'otlp')
 
+const availableMetrics = useAvailableMetrics(
+  () => props.objectId ?? props.object?.id ?? null,
+  () => config.value.source,
+  () => props.visible,
+)
+
 const remote = computed(() => {
   if (props.kind === 'script') return scripts
   if (props.kind === 'webService') return webServices
   if (props.kind === 'otlp') return otlpMetrics
+  if (config.value.source) return availableMetrics
   return null
 })
 
@@ -91,38 +123,77 @@ const otlpUnavailable = computed(
   () => props.kind === 'otlp' && otlpMetrics.error.value?.status === 404,
 )
 
+// 400 is an object class without lists, 404 a server older than these routes.
+const availableRefusal = computed(() => {
+  const status = config.value.source ? availableMetrics.error.value?.status : null
+  return status === 400 || status === 404 ? status : null
+})
+
 const isLoading = computed(() => remote.value?.isLoading.value ?? false)
 const loadError = computed(() =>
-  remote.value?.isError.value && !otlpUnavailable.value ? remote.value.error.value : null,
+  remote.value?.isError.value && !otlpUnavailable.value && !availableRefusal.value
+    ? remote.value.error.value
+    : null,
 )
 
 const emptyText = computed(() => {
-  if (search.value) return `No matching ${config.value.noun}s`
+  const { noun, source } = config.value
+  if (search.value) return `No matching ${noun}s`
   if (props.kind === 'otlp') {
     if (otlpUnavailable.value) return 'This server does not list OTLP metrics (no OTLP module)'
     if (!otlpNodeId.value) return 'OTLP metrics are recorded per node; this owner has none'
     return 'No OTLP metrics received from this node yet'
   }
-  return `No ${config.value.noun}s available`
+  if (source) {
+    if (availableRefusal.value === 400) return 'This object does not provide metric lists'
+    if (availableRefusal.value === 404) return `This server does not list these ${noun}s`
+    return `No ${noun}s reported yet. The server reads them during a configuration poll.`
+  }
+  return `No ${noun}s available`
 })
 
 function retry() {
   remote.value?.refetch()
 }
 
+function metricRow(m) {
+  return {
+    id: m.name,
+    name: m.name,
+    description: m.description,
+    dataTypeLabel: getDciDataTypeLabel(m.dataType),
+    result: { name: m.name, description: m.description, dataType: m.dataType },
+  }
+}
+
+function tableRow(t) {
+  const instanceColumn = (t.instanceColumns ?? []).join(', ')
+  return {
+    id: t.name,
+    name: t.name,
+    description: t.description,
+    instanceColumn,
+    result: { name: t.name, description: t.description, dataType: null, instanceColumn },
+  }
+}
+
 const rows = computed(() => {
+  const available = availableMetrics.data.value
   switch (props.kind) {
     case 'internalTable':
-      return internalTablesFor(props.object).map((t) => {
-        const instanceColumn = t.instanceColumns.join(', ')
-        return {
-          id: t.name,
-          name: t.name,
-          description: t.description,
-          instanceColumn,
-          result: { name: t.name, description: t.description, dataType: null, instanceColumn },
-        }
-      })
+      return internalTablesFor(props.object).map(tableRow)
+    case 'agentMetric':
+    case 'driverMetric':
+      return (available?.metrics ?? []).map(metricRow)
+    case 'agentTable':
+      return (available?.tables ?? []).map(tableRow)
+    case 'agentList':
+      return (available?.lists ?? []).map((l) => ({
+        id: l.name,
+        name: l.name,
+        description: l.description,
+        result: { name: l.name, description: l.description, dataType: null, instanceColumn: '' },
+      }))
     case 'script':
       return (scripts.data.value ?? []).map((s) => ({
         id: s.id,
@@ -153,13 +224,7 @@ const rows = computed(() => {
         },
       }))
     default:
-      return internalMetricsFor(props.object).map((m) => ({
-        id: m.name,
-        name: m.name,
-        description: m.description,
-        dataTypeLabel: getDciDataTypeLabel(m.dataType),
-        result: { name: m.name, description: m.description, dataType: m.dataType },
-      }))
+      return internalMetricsFor(props.object).map(metricRow)
   }
 })
 
