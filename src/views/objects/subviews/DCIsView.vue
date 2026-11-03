@@ -1124,7 +1124,9 @@ function sourceDciTarget(row) {
   flex-shrink: 0;
 }
 
-.row-action-btn {
+/* Past PrimeVue's own small rounded icon button, which is loaded later and at 2rem would set the
+   height of every row. */
+.p-button.p-button-sm.row-action-btn {
   width: 1.5rem;
   height: 1.5rem;
 }

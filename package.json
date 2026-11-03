@@ -11,6 +11,8 @@
     "preview": "vite preview",
     "test:unit": "vitest",
     "test:parity": "vitest run src/__tests__/dashboardParity.live.spec.js src/__tests__/networkMapParity.live.spec.js",
+    "test:e2e": "playwright test --grep-invert @gallery",
+    "test:e2e:gallery": "playwright test --grep @gallery",
     "lint": "run-s lint:oxlint lint:eslint",
     "lint:oxlint": "oxlint . --fix && node scripts/lint-modules.mjs --fix",
     "lint:eslint": "eslint . --fix --cache",
@@ -59,6 +61,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.1",
     "@vitejs/plugin-vue": "^6.0.3",
     "@vitest/eslint-plugin": "^1.6.28",
     "@vue/test-utils": "^2.5.1",

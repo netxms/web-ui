@@ -490,6 +490,8 @@ describe('DCIsView hide template items', () => {
 })
 
 describe('DCIsView coming back from the editor', () => {
+  afterEach(() => vi.useRealTimers())
+
   it('keeps the list mounted while the editor is open', async () => {
     const wrapper = mountView()
     await flushPromises()
@@ -504,6 +506,8 @@ describe('DCIsView coming back from the editor', () => {
   })
 
   it('brings the edited DCI back into view', async () => {
+    // Holds the flash open: on a loaded machine its 1.6 s can run out before the assertion.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
     const wrapper = mountView()
     await flushPromises()
 

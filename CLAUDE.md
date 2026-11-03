@@ -13,6 +13,8 @@ yarn build              # Release build, no demo content
 yarn build --mode demo  # Demo maps/dashboards (.env.demo)
 yarn test:unit          # Vitest (jsdom)
 yarn test:parity        # Live parity specs; needs NETXMS_URL/USER/PASSWORD
+yarn test:e2e           # Playwright, headless Chromium; NETXMS_USER/PASSWORD in .env.local, or VITE_USE_MOCKS=true
+yarn test:e2e:gallery   # Same setup; every main screen, light/dark/narrow, in e2e/.gallery/index.html
 yarn lint               # oxlint + ESLint with --fix (rewrites files); must pass
 yarn lint:ci            # Same, no fixing
 yarn format             # oxfmt over src/
@@ -28,8 +30,12 @@ Check these instead of working from memory when touching an endpoint or mirrorin
 ## Verification
 
 - Run targeted `yarn test:unit` when logic changed (not for styling/layout).
-- No e2e/snapshot suite; UI is verified against a real server. Check empty, error and long-name
-  states, light and dark theme.
+- `yarn test:e2e` (`e2e/`) covers behavior a jsdom spec cannot see: real layout, navigation,
+  drag, several accounts. On a real server `e2e/fixtures.js` refuses every write except to `e2e-`
+  items the test created itself, and keeps preferences in the browser. New specs import `test` from
+  there, never from `@playwright/test`.
+- No pixel baselines. The rest of the UI is verified against a real server. Check empty, error
+  and long-name states, light and dark theme.
 
 ## UI conventions
 

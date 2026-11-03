@@ -35,6 +35,12 @@ coverage
 # Vitest
 __screenshots__/
 
+# Playwright: results, the signed-in session, and screenshots of whatever server it ran on
+/test-results/
+/playwright-report/
+/e2e/.auth/
+/e2e/.gallery/
+
 # Vite
 *.timestamp-*-*.mjs
 

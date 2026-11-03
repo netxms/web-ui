@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { ref } from 'vue'
 import PrimeVue from 'primevue/config'
@@ -23,8 +23,16 @@ const XML = `<parser name="Main">
 
 const mutate = vi.fn()
 
+const parserQuery = {
+  data: ref({ content: XML }),
+  isLoading: ref(false),
+  isError: ref(false),
+  error: ref(null),
+  refetch: vi.fn(),
+}
+
 vi.mock('@/queries/useLogParserQueries', () => ({
-  useLogParser: () => ({ data: ref({ content: XML }), isLoading: ref(false) }),
+  useLogParser: () => parserQuery,
   useUpdateLogParser: () => ({ mutate, isPending: ref(false) }),
 }))
 vi.mock('@/queries/useEventTemplateQueries', () => ({
@@ -51,6 +59,53 @@ const nameInput = (wrapper) =>
 
 const buttonLabels = (root) =>
   [...root.querySelectorAll('.parser-toolbar button.p-button')].map((b) => b.textContent.trim())
+
+describe('LogParserView when the parser cannot be read', () => {
+  beforeEach(() => {
+    parserQuery.data.value = undefined
+    parserQuery.isError.value = true
+    parserQuery.error.value = new Error('Request failed: 403')
+    parserQuery.refetch.mockReset()
+  })
+
+  afterEach(() => {
+    parserQuery.data.value = { content: XML }
+    parserQuery.isError.value = false
+    parserQuery.error.value = null
+  })
+
+  it('says so and offers a retry', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Request failed: 403')
+    await wrapper.findAll('button').find((b) => b.text() === 'Retry').trigger('click')
+    expect(parserQuery.refetch).toHaveBeenCalledTimes(1)
+  })
+
+  // Saving from an editor that never held the real parser would overwrite it on the server.
+  it('leaves nothing to type into', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.find('log-parser-xml-editor-stub').exists()).toBe(false)
+    expect(wrapper.find('.detail-field').exists()).toBe(false)
+  })
+
+  it('keeps an open editor when a later refresh fails', async () => {
+    parserQuery.data.value = { content: XML }
+    parserQuery.isError.value = false
+    const wrapper = mountView()
+    await flushPromises()
+    await nameInput(wrapper).setValue('Renamed')
+
+    parserQuery.isError.value = true
+    await flushPromises()
+
+    expect(nameInput(wrapper).element.value).toBe('Renamed')
+    expect(wrapper.text()).not.toContain('Request failed: 403')
+  })
+})
 
 describe('LogParserView toolbar', () => {
   beforeEach(() => mutate.mockReset())

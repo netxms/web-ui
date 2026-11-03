@@ -5,6 +5,9 @@
 dist
 docs
 coverage
+e2e
+test-results
+playwright-report
 
 # Machine-local settings must never reach an image: Vite applies .env.local to builds too.
 **/*.local

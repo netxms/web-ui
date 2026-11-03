@@ -4,6 +4,7 @@ import Button from 'primevue/button'
 import SelectButton from 'primevue/selectbutton'
 import { useToast } from 'primevue/usetoast'
 import { useLogParser, useUpdateLogParser } from '@/queries/useLogParserQueries'
+import QueryErrorState from '@/components/common/QueryErrorState.vue'
 import LogParserEditor from './LogParserEditor.vue'
 import LogParserXmlEditor from './LogParserXmlEditor.vue'
 
@@ -16,7 +17,13 @@ const props = defineProps({
 
 const toast = useToast()
 
-const { data: parserData, isLoading } = useLogParser(computed(() => props.parserType))
+const {
+  data: parserData,
+  isLoading,
+  isError,
+  error,
+  refetch,
+} = useLogParser(computed(() => props.parserType))
 const { mutate: updateParser, isPending: isSaving } = useUpdateLogParser()
 
 const modeOptions = [
@@ -140,7 +147,15 @@ function save() {
       </div>
     </Teleport>
 
-    <div class="parser-content">
+    <!-- No editor without the parser: saving what was typed into an empty one would overwrite it.
+         Once loaded, a failed refresh leaves the open editor alone. -->
+    <QueryErrorState
+      v-if="isError && !initialized"
+      :error="error"
+      class="parser-error"
+      @retry="refetch"
+    />
+    <div v-else class="parser-content">
       <div v-show="activeTab === 'editor'" class="content-panel">
         <div v-if="isLoading" class="panel-loading">
           <i class="pi pi-spin pi-spinner" />
@@ -173,6 +188,11 @@ function save() {
   align-items: center;
   gap: 0.5rem;
   flex-shrink: 0;
+}
+
+.parser-error {
+  justify-content: center;
+  padding: 4rem 2rem;
 }
 
 .parser-content {

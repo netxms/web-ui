@@ -313,6 +313,12 @@ body {
   }
 }
 
+/* A disabled fieldset stops a toggle, whose input is native, but its look follows the component's
+   own `disabled` prop. */
+fieldset:disabled .p-toggleswitch {
+  opacity: 0.6;
+}
+
 /* Reduce motion: submenus still appear and disappear, just without the fade and scale. */
 @media (prefers-reduced-motion: reduce) {
   .p-contextmenu-submenu.p-anchored-overlay-enter-active,

@@ -4,6 +4,7 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import ToggleSwitch from 'primevue/toggleswitch'
+import Message from 'primevue/message'
 import MutationErrorState from '@/components/common/MutationErrorState.vue'
 import EntityDetailHeader from '@/components/layout/EntityDetailHeader.vue'
 import DetailCard from '@/components/layout/DetailCard.vue'
@@ -20,6 +21,11 @@ const props = defineProps({
   action: {
     type: Object,
     default: null,
+  },
+  /** The account may read actions but not change them: shown in full, with no way to save. */
+  readonly: {
+    type: Boolean,
+    default: false,
   },
 })
 
@@ -201,7 +207,7 @@ const title = computed(() => (isNew.value ? 'New Action' : (props.action?.name ?
 <template>
   <div class="server-action-detail">
     <EntityDetailHeader :title="title" subtitle="Server Action" @back="emit('close')">
-      <template #actions>
+      <template v-if="!readonly" #actions>
         <Button
           label="Discard"
           icon="pi pi-times"
@@ -225,85 +231,103 @@ const title = computed(() => (isNew.value ? 'New Action' : (props.action?.name ?
     <div class="detail-content">
       <MutationErrorState :error="mutationError" class="error-message" />
 
-      <div class="detail-cards-grid">
-        <DetailCard title="General" :wide="!typeConfig.dynamicLabel && !typeConfig.showChannel">
-          <FormField class="detail-field" label="Name" v-slot="{ id }">
-            <InputText :id="id" v-model="form.name" placeholder="Action name" class="field-input" />
-          </FormField>
-          <FormField class="detail-field" label="Type" v-slot="{ id }">
-            <Select
-              :input-id="id"
-              id="action-type"
-              v-model="form.type"
-              :options="ACTION_TYPES"
-              option-label="label"
-              option-value="value"
-              class="field-input"
-            />
-          </FormField>
-          <FormField class="detail-field" label="Options" group>
-            <div class="toggle-field">
-              <ToggleSwitch v-model="form.isDisabled" input-id="action-disabled" />
-              <label for="action-disabled" class="toggle-label">Action is disabled</label>
+      <Message v-if="readonly" severity="secondary" :closable="false" class="readonly-banner">
+        You have read-only access to actions, so this action cannot be changed here.
+      </Message>
+
+      <!-- As in EppRuleDetailView: one disabled fieldset instead of a binding on each control. -->
+      <fieldset class="detail-form" :disabled="readonly">
+        <div class="detail-cards-grid">
+          <DetailCard title="General" :wide="!typeConfig.dynamicLabel && !typeConfig.showChannel">
+            <FormField class="detail-field" label="Name" v-slot="{ id }">
+              <InputText
+                :id="id"
+                v-model="form.name"
+                placeholder="Action name"
+                class="field-input"
+              />
+            </FormField>
+            <FormField class="detail-field" label="Type" v-slot="{ id }">
+              <Select
+                :input-id="id"
+                id="action-type"
+                v-model="form.type"
+                :disabled="readonly"
+                :options="ACTION_TYPES"
+                option-label="label"
+                option-value="value"
+                class="field-input"
+              />
+            </FormField>
+            <FormField class="detail-field" label="Options" group>
+              <div class="toggle-field">
+                <ToggleSwitch v-model="form.isDisabled" input-id="action-disabled" />
+                <label for="action-disabled" class="toggle-label">Action is disabled</label>
+              </div>
+            </FormField>
+          </DetailCard>
+
+          <DetailCard v-if="typeConfig.dynamicLabel || typeConfig.showChannel" title="Destination">
+            <FormField
+              v-if="typeConfig.showChannel"
+              class="detail-field"
+              :label="`${channelLabel}`"
+              v-slot="{ id }"
+            >
+              <Select
+                :input-id="id"
+                id="action-channel"
+                v-model="form.notificationChannelName"
+                :disabled="readonly"
+                :options="channelOptions"
+                option-label="name"
+                option-value="name"
+                show-clear
+                :placeholder="channelPlaceholder"
+                class="field-input"
+              />
+            </FormField>
+            <FormField
+              v-if="showDynamicField"
+              class="detail-field"
+              :label="`${typeConfig.dynamicLabel}`"
+              v-slot="{ id }"
+            >
+              <InputText
+                :id="id"
+                v-model="form[typeConfig.dynamicField]"
+                :placeholder="typeConfig.dynamicLabel"
+                class="field-input"
+              />
+            </FormField>
+            <FormField v-if="showSubject" class="detail-field" label="Subject" group>
+              <MacroInputField
+                id="action-subject"
+                v-model="form.emailSubject"
+                :macros="GLOBAL_MACROS"
+                placeholder="Subject (supports macros)"
+                class="field-input"
+              />
+            </FormField>
+          </DetailCard>
+
+          <DetailCard
+            v-if="typeConfig.textareaLabel"
+            :title="typeConfig.textareaLabel"
+            :wide="true"
+          >
+            <div class="detail-field detail-field-block">
+              <MacroTextareaField
+                v-model="form.data"
+                :macros="GLOBAL_MACROS"
+                :placeholder="typeConfig.textareaLabel"
+                :rows="6"
+                class="field-textarea"
+              />
             </div>
-          </FormField>
-        </DetailCard>
-
-        <DetailCard v-if="typeConfig.dynamicLabel || typeConfig.showChannel" title="Destination">
-          <FormField
-            v-if="typeConfig.showChannel"
-            class="detail-field"
-            :label="`${channelLabel}`"
-            v-slot="{ id }"
-          >
-            <Select
-              :input-id="id"
-              id="action-channel"
-              v-model="form.notificationChannelName"
-              :options="channelOptions"
-              option-label="name"
-              option-value="name"
-              show-clear
-              :placeholder="channelPlaceholder"
-              class="field-input"
-            />
-          </FormField>
-          <FormField
-            v-if="showDynamicField"
-            class="detail-field"
-            :label="`${typeConfig.dynamicLabel}`"
-            v-slot="{ id }"
-          >
-            <InputText
-              :id="id"
-              v-model="form[typeConfig.dynamicField]"
-              :placeholder="typeConfig.dynamicLabel"
-              class="field-input"
-            />
-          </FormField>
-          <FormField v-if="showSubject" class="detail-field" label="Subject" group>
-            <MacroInputField
-              id="action-subject"
-              v-model="form.emailSubject"
-              :macros="GLOBAL_MACROS"
-              placeholder="Subject (supports macros)"
-              class="field-input"
-            />
-          </FormField>
-        </DetailCard>
-
-        <DetailCard v-if="typeConfig.textareaLabel" :title="typeConfig.textareaLabel" :wide="true">
-          <div class="detail-field detail-field-block">
-            <MacroTextareaField
-              v-model="form.data"
-              :macros="GLOBAL_MACROS"
-              :placeholder="typeConfig.textareaLabel"
-              :rows="6"
-              class="field-textarea"
-            />
-          </div>
-        </DetailCard>
-      </div>
+          </DetailCard>
+        </div>
+      </fieldset>
     </div>
   </div>
 </template>
@@ -320,6 +344,19 @@ const title = computed(() => (isNew.value ? 'New Action' : (props.action?.name ?
   flex: 1;
   overflow-y: auto;
   background: var(--p-surface-ground);
+}
+
+.readonly-banner {
+  margin: 1.5rem 1.5rem 0;
+}
+
+/* Carries the disabled state, not layout. `min-width: 0` because a fieldset's default is
+   `min-content`. */
+.detail-form {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
 }
 
 .error-message {

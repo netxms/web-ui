@@ -17,9 +17,9 @@ export default defineConfig({
     alias: [
       { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
       // Without a dev server, a root-absolute public/ asset URL in a template fails the whole
-      // spec file; point it back at public/.
+      // spec file; point it back at public/. A relative import arrives as /src/..., a real file.
       {
-        find: /^\/([^/].*\.(?:png|jpe?g|gif|svg|webp|ico))$/,
+        find: /^\/(?!src\/)([^/].*\.(?:png|jpe?g|gif|svg|webp|ico))$/,
         replacement: `${fileURLToPath(new URL('./public', import.meta.url))}/$1`,
       },
     ],

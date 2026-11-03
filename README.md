@@ -48,6 +48,19 @@ a live server. They are skipped unless connection details are supplied:
 NETXMS_URL=http://your-server:8000 NETXMS_USER=admin NETXMS_PASSWORD=... yarn test:parity
 ```
 
+`yarn test:e2e` runs the browser tests in `e2e/` (Playwright, headless Chromium) against a
+production build, and `yarn test:e2e:gallery` screenshots every main screen in light, dark and a
+narrow window into `e2e/.gallery/index.html`. Install the browser once with
+`yarn playwright install chromium`. They use the fixtures with `VITE_USE_MOCKS=true`:
+
+```sh
+VITE_USE_MOCKS=true yarn test:e2e
+```
+
+Without it they sign in to the server in `VITE_API_TARGET` as `NETXMS_USER` / `NETXMS_PASSWORD`,
+both read from `.env.local`. Such a run leaves the server as it found it: it can only create items
+named `e2e-`, removes them again, and fails if any remain. Preferences stay in the browser.
+
 ### Running without a server
 
 Set `VITE_USE_MOCKS=true` to serve `/api` from the static fixtures in `mocks/` instead of a

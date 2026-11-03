@@ -208,6 +208,12 @@ function onTriggerClick() {
   color: var(--p-inputtext-placeholder-color, var(--p-text-muted-color));
 }
 
+/* In a disabled fieldset: a read-only form has to look like one. */
+.macro-textarea:disabled {
+  background: var(--p-inputtext-disabled-background);
+  color: var(--p-inputtext-disabled-color);
+}
+
 /* Passes clicks through in transparent areas */
 .editor-overlay {
   position: absolute;

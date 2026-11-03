@@ -15,7 +15,7 @@ function fullHit(overrides = {}) {
     interfaceIndex: 6,
     node: {
       id: 301,
-      name: 'sw-san.office.example.com',
+      name: 'sw-02.dc-alpha.example.com',
       class: 'Node',
       status: 0,
       ipAddress: { address: '10.0.11.3' },
@@ -32,7 +32,7 @@ describe('describeMacHit', () => {
 
     expect(row.ownerName).toBe('core-sw-01')
     expect(row.ifaceName).toBe('ens160')
-    expect(row.switchName).toBe('sw-san.office.example.com')
+    expect(row.switchName).toBe('sw-02.dc-alpha.example.com')
     expect(row.portName).toBe('ether6')
     expect(row.mac).toBe('00:50:56:A5:F7:08')
     expect(row.ip).toBe('10.0.10.43')

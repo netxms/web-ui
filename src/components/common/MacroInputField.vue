@@ -290,6 +290,17 @@ function onTriggerClick() {
   color: var(--p-inputtext-placeholder-color, var(--p-text-muted-color));
 }
 
+/* In a disabled fieldset: a read-only form has to look like one. */
+.macro-native:disabled {
+  background: var(--p-inputtext-disabled-background);
+  color: var(--p-inputtext-disabled-color);
+}
+
+.macro-trigger-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .macro-native--textarea {
   resize: vertical;
   line-height: 1.5;

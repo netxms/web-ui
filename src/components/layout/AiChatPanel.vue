@@ -68,6 +68,7 @@ const { isResizing, handleBindings: resizeBindings } = useResizeHandle({
     class="ai-chat-panel"
     :class="{ 'is-open': isAiChatOpen, 'is-resizing': isResizing }"
     :style="{ width: `${panelWidth}px` }"
+    :inert="!isAiChatOpen"
   >
     <div class="ai-resize-handle" v-bind="resizeBindings" />
 

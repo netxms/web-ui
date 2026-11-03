@@ -7,7 +7,9 @@ import Button from 'primevue/button'
 import Skeleton from 'primevue/skeleton'
 import RefetchIndicator from '@/components/common/RefetchIndicator.vue'
 import QueryErrorState from '@/components/common/QueryErrorState.vue'
+import RestrictedState from '@/components/common/RestrictedState.vue'
 import SectionHeader from '@/components/layout/SectionHeader.vue'
+import EntityDetailHeader from '@/components/layout/EntityDetailHeader.vue'
 import SmartFilterInput from '@/components/common/SmartFilterInput.vue'
 import EntityContextMenu from '@/components/common/EntityContextMenu.vue'
 import ObjectToolDetailView from '@/components/object-tools/ObjectToolDetailView.vue'
@@ -22,6 +24,7 @@ import {
   useDisableObjectTool,
 } from '@/queries/useObjectToolQueries'
 import { useEntityDetail } from '@/composables/useEntityDetail'
+import { usePermissions } from '@/composables/usePermissions'
 import { useWorkingState } from '@/composables/useWorkingState'
 import { TOOL_TYPE_LABELS } from '@/utils/objectToolUtils'
 
@@ -29,6 +32,10 @@ const route = useRoute()
 const router = useRouter()
 const confirm = useConfirm()
 const toast = useToast()
+
+// Anyone may read the tools their access list allows; only changing them takes this right
+// (`objtools.cpp`).
+const { can } = usePermissions()
 
 const { entityId, isDetailView, detailTarget, openDetail, closeDetail } = useEntityDetail()
 
@@ -129,22 +136,25 @@ function toggleEnabled(tool) {
 
 const contextMenuItems = computed(() => {
   const tool = contextMenu.value?.contextData
+  const canManage = can.value.manageTools
   return [
     {
-      label: 'Edit',
-      icon: 'pi pi-pencil',
+      label: canManage ? 'Edit' : 'View',
+      icon: canManage ? 'pi pi-pencil' : 'pi pi-eye',
       command: () => openDetail(tool?.id),
     },
     {
       label: tool?.flags?.disabled ? 'Enable' : 'Disable',
       icon: tool?.flags?.disabled ? 'pi pi-play' : 'pi pi-pause',
+      visible: canManage,
       command: () => toggleEnabled(tool),
     },
-    { separator: true },
+    { separator: true, visible: canManage },
     {
       label: 'Delete',
       icon: 'pi pi-trash',
       class: 'p-menuitem-danger',
+      visible: canManage,
       command: () => confirmDelete(tool),
     },
   ]
@@ -189,7 +199,11 @@ const detailTool = computed(() => {
 
 <template>
   <div v-if="isDetailView" class="object-tools-detail">
-    <div v-if="!isNewTool && isDetailLoading" class="detail-loading">
+    <template v-if="isNewTool && !can.manageTools">
+      <EntityDetailHeader title="New Object Tool" subtitle="Object Tool" @back="closeDetail" />
+      <RestrictedState right="manageTools" />
+    </template>
+    <div v-else-if="!isNewTool && isDetailLoading" class="detail-loading">
       <Skeleton height="2rem" width="40%" class="mb-3" />
       <Skeleton height="1rem" width="60%" class="mb-2" />
       <Skeleton height="1rem" width="55%" class="mb-2" />
@@ -198,6 +212,7 @@ const detailTool = computed(() => {
     <ObjectToolDetailView
       v-else-if="isNewTool || toolDetail"
       :tool="detailTool"
+      :readonly="!can.manageTools"
       @close="closeDetail"
     />
     <QueryErrorState v-else-if="isDetailError" :error="detailError" @retry="refetchDetail" />
@@ -218,6 +233,7 @@ const detailTool = computed(() => {
           @click="refetch"
         />
         <Button
+          v-if="can.manageTools"
           label="New Tool"
           icon="pi pi-plus"
           size="small"
@@ -279,6 +295,7 @@ const detailTool = computed(() => {
         <ToggleSwitch
           v-else-if="col.id === 'toggle'"
           :model-value="!row.flags?.disabled"
+          :disabled="!can.manageTools"
           @update:model-value="toggleEnabled(row)"
           @click.stop
         />

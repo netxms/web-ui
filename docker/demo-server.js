@@ -10,7 +10,7 @@ import { parseModuleList } from '../src/modules/parseModuleList.js'
 import { createMockHandler } from '../vite-plugin-mock-api.js'
 
 const DIST_DIR = fileURLToPath(new URL('../dist', import.meta.url))
-const PORT = 80
+const PORT = Number(process.env.PORT) || 80
 
 const CONTENT_TYPES = {
   '.html': 'text/html; charset=utf-8',

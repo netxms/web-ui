@@ -5,6 +5,7 @@ import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Textarea from 'primevue/textarea'
+import Message from 'primevue/message'
 import MutationErrorState from '@/components/common/MutationErrorState.vue'
 import EntityDetailHeader from '@/components/layout/EntityDetailHeader.vue'
 import DetailCard from '@/components/layout/DetailCard.vue'
@@ -16,6 +17,11 @@ const props = defineProps({
   template: {
     type: Object,
     default: null,
+  },
+  /** The account may read templates but not change them: shown in full, with no way to save. */
+  readonly: {
+    type: Boolean,
+    default: false,
   },
 })
 
@@ -108,7 +114,7 @@ const title = computed(() =>
 <template>
   <div class="event-template-detail">
     <EntityDetailHeader :title="title" subtitle="Event Template" @back="emit('close')">
-      <template #actions>
+      <template v-if="!readonly" #actions>
         <Button
           label="Discard"
           icon="pi pi-times"
@@ -132,81 +138,94 @@ const title = computed(() =>
     <div class="detail-content">
       <MutationErrorState :error="mutationError" class="error-message" />
 
-      <div class="detail-cards-grid">
-        <DetailCard v-if="!isNew" title="Identification">
-          <FormField class="detail-field" label="Event code" v-slot="{ id }">
-            <InputText :id="id" :model-value="String(template.code)" disabled class="field-input" />
-          </FormField>
-          <FormField class="detail-field" label="GUID" v-slot="{ id }">
-            <InputText :id="id" :model-value="template.guid" disabled class="field-input" />
-          </FormField>
-        </DetailCard>
+      <Message v-if="readonly" severity="secondary" :closable="false" class="readonly-banner">
+        You have read-only access to event templates, so this template cannot be changed here.
+      </Message>
 
-        <DetailCard title="General" :wide="isNew">
-          <FormField class="detail-field" label="Name" v-slot="{ id }">
-            <InputText
-              :id="id"
-              v-model="form.name"
-              placeholder="Event name (e.g. MY_CUSTOM_EVENT)"
-              class="field-input"
-            />
-          </FormField>
-          <FormField class="detail-field" label="Severity" v-slot="{ id }">
-            <Select
-              :input-id="id"
-              id="template-severity"
-              v-model="form.severity"
-              :options="SEVERITIES"
-              option-label="label"
-              option-value="value"
-              class="field-input"
-            />
-          </FormField>
-          <FormField class="detail-field" label="Logging" group>
-            <div class="toggle-field">
-              <ToggleSwitch v-model="form.writeToLog" input-id="template-write-log" />
-              <label for="template-write-log" class="toggle-label">Write to event log</label>
-            </div>
-          </FormField>
-          <FormField class="detail-field" label="Visibility" group>
-            <div class="toggle-field">
-              <ToggleSwitch v-model="form.doNotMonitor" input-id="template-do-not-monitor" />
-              <label for="template-do-not-monitor" class="toggle-label"
-                >Hide from event monitor</label
-              >
-            </div>
-          </FormField>
-        </DetailCard>
+      <!-- As in EppRuleDetailView: one disabled fieldset instead of a binding on each control. -->
+      <fieldset class="detail-form" :disabled="readonly">
+        <div class="detail-cards-grid">
+          <DetailCard v-if="!isNew" title="Identification">
+            <FormField class="detail-field" label="Event code" v-slot="{ id }">
+              <InputText
+                :id="id"
+                :model-value="String(template.code)"
+                disabled
+                class="field-input"
+              />
+            </FormField>
+            <FormField class="detail-field" label="GUID" v-slot="{ id }">
+              <InputText :id="id" :model-value="template.guid" disabled class="field-input" />
+            </FormField>
+          </DetailCard>
 
-        <DetailCard title="Content" :wide="true">
-          <FormField class="detail-field" label="Message" v-slot="{ id }">
-            <InputText
-              :id="id"
-              v-model="form.message"
-              placeholder="Message template (supports %1..%n macros)"
-              class="field-input"
-            />
-          </FormField>
-          <FormField class="detail-field" label="Tags" v-slot="{ id }">
-            <InputText
-              :id="id"
-              v-model="form.tags"
-              placeholder="Comma-separated tags"
-              class="field-input"
-            />
-          </FormField>
-          <FormField class="detail-field detail-field-block" label="Description" v-slot="{ id }">
-            <Textarea
-              :id="id"
-              v-model="form.description"
-              placeholder="Detailed event description"
-              rows="5"
-              class="field-textarea"
-              auto-resize
-            />
-          </FormField>
-        </DetailCard>
-      </div>
+          <DetailCard title="General" :wide="isNew">
+            <FormField class="detail-field" label="Name" v-slot="{ id }">
+              <InputText
+                :id="id"
+                v-model="form.name"
+                placeholder="Event name (e.g. MY_CUSTOM_EVENT)"
+                class="field-input"
+              />
+            </FormField>
+            <FormField class="detail-field" label="Severity" v-slot="{ id }">
+              <Select
+                :input-id="id"
+                id="template-severity"
+                v-model="form.severity"
+                :disabled="readonly"
+                :options="SEVERITIES"
+                option-label="label"
+                option-value="value"
+                class="field-input"
+              />
+            </FormField>
+            <FormField class="detail-field" label="Logging" group>
+              <div class="toggle-field">
+                <ToggleSwitch v-model="form.writeToLog" input-id="template-write-log" />
+                <label for="template-write-log" class="toggle-label">Write to event log</label>
+              </div>
+            </FormField>
+            <FormField class="detail-field" label="Visibility" group>
+              <div class="toggle-field">
+                <ToggleSwitch v-model="form.doNotMonitor" input-id="template-do-not-monitor" />
+                <label for="template-do-not-monitor" class="toggle-label"
+                  >Hide from event monitor</label
+                >
+              </div>
+            </FormField>
+          </DetailCard>
+
+          <DetailCard title="Content" :wide="true">
+            <FormField class="detail-field" label="Message" v-slot="{ id }">
+              <InputText
+                :id="id"
+                v-model="form.message"
+                placeholder="Message template (supports %1..%n macros)"
+                class="field-input"
+              />
+            </FormField>
+            <FormField class="detail-field" label="Tags" v-slot="{ id }">
+              <InputText
+                :id="id"
+                v-model="form.tags"
+                placeholder="Comma-separated tags"
+                class="field-input"
+              />
+            </FormField>
+            <FormField class="detail-field detail-field-block" label="Description" v-slot="{ id }">
+              <Textarea
+                :id="id"
+                v-model="form.description"
+                placeholder="Detailed event description"
+                rows="5"
+                class="field-textarea"
+                auto-resize
+              />
+            </FormField>
+          </DetailCard>
+        </div>
+      </fieldset>
     </div>
   </div>
 </template>
@@ -223,6 +242,19 @@ const title = computed(() =>
   flex: 1;
   overflow-y: auto;
   background: var(--p-surface-ground);
+}
+
+.readonly-banner {
+  margin: 1.5rem 1.5rem 0;
+}
+
+/* Carries the disabled state, not layout. `min-width: 0` because a fieldset's default is
+   `min-content`. */
+.detail-form {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
 }
 
 .error-message {

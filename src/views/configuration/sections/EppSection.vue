@@ -147,8 +147,13 @@ const chainLabels = computed(
 /**
  * The WebAPI enforces per-chain access lists, so a chain the user can open is not necessarily
  * one they can save; everything that writes rules is gated on this, not on the global right.
+ *
+ * No chain on screen is a no: `canEditChain` allows a chain that carries no rights, for older
+ * servers, and the list of chains being refused must not read as one of those.
  */
-const canEditActiveChain = computed(() => canEditChain(activeChain.value))
+const canEditActiveChain = computed(
+  () => activeChain.value !== null && canEditChain(activeChain.value),
+)
 
 /** Opening a chain from the flow means leaving the flow for the tabs. */
 function onFlowSelectChain(chainId) {

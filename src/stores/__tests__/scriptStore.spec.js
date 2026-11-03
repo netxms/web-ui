@@ -113,9 +113,13 @@ describe('scriptStore streamed execution', () => {
 
   it('opens a new output block when the last one was cleared mid-run', async () => {
     const ws = await startRun()
+    vi.useFakeTimers()
     ws.frame({ type: 'output', data: 'before\n' })
     store.clearOutput()
     ws.frame({ type: 'output', data: 'after\n' })
+    // The stream hands over a burst merged, once per interval.
+    vi.advanceTimersByTime(100)
+    vi.useRealTimers()
 
     expect(store.output).toEqual([{ type: 'output', text: 'after\n' }])
   })

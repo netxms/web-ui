@@ -44,7 +44,15 @@ export default defineConfig([
     files: ['**/*.{vue,js,mjs,jsx}'],
   },
 
-  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**', '.claude/**']),
+  globalIgnores([
+    '**/dist/**',
+    '**/dist-ssr/**',
+    '**/coverage/**',
+    '.claude/**',
+    // Playwright's output: a failed run's report carries a bundled trace viewer.
+    'playwright-report/**',
+    'test-results/**',
+  ]),
 
   {
     languageOptions: {

@@ -9,6 +9,7 @@ import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import RefetchIndicator from '@/components/common/RefetchIndicator.vue'
 import QueryErrorState from '@/components/common/QueryErrorState.vue'
+import RestrictedState from '@/components/common/RestrictedState.vue'
 import SectionHeader from '@/components/layout/SectionHeader.vue'
 import EntityDetailHeader from '@/components/layout/EntityDetailHeader.vue'
 import EntityContextMenu from '@/components/common/EntityContextMenu.vue'
@@ -19,6 +20,7 @@ import {
   useDeleteEventTemplate,
 } from '@/queries/useEventTemplateQueries'
 import { useEntityDetail } from '@/composables/useEntityDetail'
+import { usePermissions } from '@/composables/usePermissions'
 import { useWorkingState } from '@/composables/useWorkingState'
 import { getStatusInfo } from '@/utils/objectUtils'
 
@@ -26,6 +28,9 @@ const route = useRoute()
 const router = useRouter()
 const confirm = useConfirm()
 const toast = useToast()
+
+// Reading takes any of three rights; changing takes this one (`events.cpp`).
+const { can } = usePermissions()
 
 const { entityId, isDetailView, detailTarget, openDetail, closeDetail } = useEntityDetail()
 
@@ -91,17 +96,19 @@ const { mutate: deleteTemplate } = useDeleteEventTemplate()
 
 const contextMenuItems = computed(() => {
   const data = contextMenu.value?.contextData
+  const canEdit = can.value.editEventDb
   return [
     {
-      label: 'Edit',
-      icon: 'pi pi-pencil',
+      label: canEdit ? 'Edit' : 'View',
+      icon: canEdit ? 'pi pi-pencil' : 'pi pi-eye',
       command: () => openDetail(data.code),
     },
-    { separator: true },
+    { separator: true, visible: canEdit },
     {
       label: 'Delete',
       icon: 'pi pi-trash',
       class: 'p-menuitem-danger',
+      visible: canEdit,
       disabled: data ? !isUserDefined(data) : true,
       command: () => confirmDelete(data),
     },
@@ -160,12 +167,22 @@ const {
 
 <template>
   <div v-if="isDetailView" class="event-templates-detail">
-    <EventTemplateDetailView v-if="isNewTemplate" :template="null" @close="closeDetail" />
+    <template v-if="isNewTemplate && !can.editEventDb">
+      <EntityDetailHeader
+        title="New Event Template"
+        subtitle="Event Template"
+        @back="closeDetail"
+      />
+      <RestrictedState right="editEventDb" />
+    </template>
+
+    <EventTemplateDetailView v-else-if="isNewTemplate" :template="null" @close="closeDetail" />
 
     <template v-else>
       <EventTemplateDetailView
         v-if="templateDetail"
         :template="templateDetail"
+        :readonly="!can.editEventDb"
         @close="closeDetail"
         @saved="() => {}"
       />
@@ -211,6 +228,7 @@ const {
           @click="refetch"
         />
         <Button
+          v-if="can.editEventDb"
           label="Add Event Template"
           icon="pi pi-plus"
           size="small"

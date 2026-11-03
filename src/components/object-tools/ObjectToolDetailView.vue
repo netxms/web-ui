@@ -10,6 +10,7 @@ import RadioButton from 'primevue/radiobutton'
 import Checkbox from 'primevue/checkbox'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
+import Message from 'primevue/message'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
 import Tab from 'primevue/tab'
@@ -59,6 +60,11 @@ const props = defineProps({
   tool: {
     type: Object,
     default: null,
+  },
+  /** The account may read tools but not change them: shown in full, with no way to save. */
+  readonly: {
+    type: Boolean,
+    default: false,
   },
 })
 
@@ -333,7 +339,7 @@ const dataFieldLabel = computed(() => {
 <template>
   <div class="object-tool-detail">
     <EntityDetailHeader :title="headerTitle" subtitle="Object Tool" @back="emit('close')">
-      <template #actions>
+      <template v-if="!readonly" #actions>
         <Button
           label="Discard"
           icon="pi pi-times"
@@ -355,6 +361,10 @@ const dataFieldLabel = computed(() => {
       </template>
     </EntityDetailHeader>
 
+    <Message v-if="readonly" severity="secondary" :closable="false" class="readonly-banner">
+      You have read-only access to object tools, so this tool cannot be changed here.
+    </Message>
+
     <Tabs v-model:value="activeTab" class="detail-tabs">
       <TabList>
         <Tab value="general">General</Tab>
@@ -364,553 +374,570 @@ const dataFieldLabel = computed(() => {
         <Tab v-if="hasColumns" value="columns">Columns</Tab>
       </TabList>
 
-      <TabPanels>
-        <TabPanel value="general">
-          <div class="detail-cards-grid">
-            <DetailCard title="General" :wide="true">
-              <div class="general-grid">
-                <div class="fields-top">
-                  <div class="form-field">
-                    <label for="t-name">Name <span class="required">*</span></label>
-                    <InputText id="t-name" v-model="form.name" class="form-input" />
+      <!-- As in EppRuleDetailView: one disabled fieldset, and the tab strip outside it so the tool
+           can still be read through. -->
+      <fieldset class="detail-form" :disabled="readonly">
+        <TabPanels>
+          <TabPanel value="general">
+            <div class="detail-cards-grid">
+              <DetailCard title="General" :wide="true">
+                <div class="general-grid">
+                  <div class="fields-top">
+                    <div class="form-field">
+                      <label for="t-name">Name <span class="required">*</span></label>
+                      <InputText id="t-name" v-model="form.name" class="form-input" />
+                    </div>
+                    <div class="form-field">
+                      <label for="t-desc">Description</label>
+                      <Textarea
+                        id="t-desc"
+                        v-model="form.description"
+                        class="form-input"
+                        rows="2"
+                        auto-resize
+                      />
+                    </div>
                   </div>
+
+                  <div
+                    class="icon-cell"
+                    :class="{ 'icon-cell--empty': !iconComponent && !iconImage }"
+                  >
+                    <span class="icon-cell-label">Icon</span>
+                    <button
+                      class="icon-cell-picker"
+                      type="button"
+                      v-tooltip.bottom="form.icon ? 'Click to change icon' : 'Click to select icon'"
+                      :aria-label="form.icon ? 'Change icon' : 'Select icon'"
+                      @click="showIconPicker = true"
+                    >
+                      <component
+                        v-if="iconComponent"
+                        :is="iconComponent"
+                        :size="32"
+                        stroke-width="1.5"
+                        class="icon-lucide"
+                      />
+                      <img
+                        v-else-if="iconImage?.dataUrl"
+                        :src="iconImage.dataUrl"
+                        alt="Tool icon"
+                        class="icon-img"
+                      />
+                      <i v-else class="pi pi-image icon-empty-glyph" />
+                    </button>
+                    <button
+                      v-if="form.icon"
+                      class="icon-clear-btn"
+                      type="button"
+                      v-tooltip.top="'Remove icon'"
+                      @click.stop="form.icon = null"
+                    >
+                      <i class="pi pi-trash" />
+                    </button>
+                  </div>
+
                   <div class="form-field">
-                    <label for="t-desc">Description</label>
-                    <Textarea
-                      id="t-desc"
-                      v-model="form.description"
+                    <label for="t-type">Type</label>
+                    <Select
+                      id="t-type"
+                      v-model="form.type"
+                      :disabled="readonly"
+                      :options="TOOL_TYPES"
+                      option-label="label"
+                      option-value="value"
                       class="form-input"
-                      rows="2"
-                      auto-resize
+                      @update:model-value="onTypeChange"
                     />
                   </div>
-                </div>
 
-                <div
-                  class="icon-cell"
-                  :class="{ 'icon-cell--empty': !iconComponent && !iconImage }"
-                >
-                  <span class="icon-cell-label">Icon</span>
-                  <button
-                    class="icon-cell-picker"
-                    type="button"
-                    v-tooltip.bottom="form.icon ? 'Click to change icon' : 'Click to select icon'"
-                    :aria-label="form.icon ? 'Change icon' : 'Select icon'"
-                    @click="showIconPicker = true"
+                  <div
+                    v-if="
+                      !['agent-list', 'agent-table', 'snmp-table', 'file-download'].includes(
+                        toolType,
+                      )
+                    "
+                    class="form-field"
                   >
-                    <component
-                      v-if="iconComponent"
-                      :is="iconComponent"
-                      :size="32"
-                      stroke-width="1.5"
-                      class="icon-lucide"
-                    />
-                    <img
-                      v-else-if="iconImage?.dataUrl"
-                      :src="iconImage.dataUrl"
-                      alt="Tool icon"
-                      class="icon-img"
-                    />
-                    <i v-else class="pi pi-image icon-empty-glyph" />
-                  </button>
-                  <button
-                    v-if="form.icon"
-                    class="icon-clear-btn"
-                    type="button"
-                    v-tooltip.top="'Remove icon'"
-                    @click.stop="form.icon = null"
-                  >
-                    <i class="pi pi-trash" />
-                  </button>
-                </div>
-
-                <div class="form-field">
-                  <label for="t-type">Type</label>
-                  <Select
-                    id="t-type"
-                    v-model="form.type"
-                    :options="TOOL_TYPES"
-                    option-label="label"
-                    option-value="value"
-                    class="form-input"
-                    @update:model-value="onTypeChange"
-                  />
-                </div>
-
-                <div
-                  v-if="
-                    !['agent-list', 'agent-table', 'snmp-table', 'file-download'].includes(toolType)
-                  "
-                  class="form-field"
-                >
-                  <label :for="'t-data'">{{ dataFieldLabel }}</label>
-                  <MacroInputField
-                    id="t-data"
-                    v-model="form.dataFields.data"
-                    :macros="fullMacros"
-                    class="form-input"
-                  />
-                </div>
-
-                <div v-if="toolType === 'snmp-table'" class="form-field">
-                  <label for="t-title-snmp">Title</label>
-                  <InputText id="t-title-snmp" v-model="form.dataFields.title" class="form-input" />
-                </div>
-
-                <div v-if="toolType === 'file-download'" class="form-field">
-                  <label for="t-remotefile">Remote file name</label>
-                  <MacroInputField
-                    id="t-remotefile"
-                    v-model="form.dataFields.remoteFileName"
-                    :macros="fullMacros"
-                    class="form-input"
-                  />
-                </div>
-
-                <template v-if="toolType === 'agent-list' || toolType === 'agent-table'">
-                  <div class="form-field">
-                    <label for="t-title">Title</label>
+                    <label :for="'t-data'">{{ dataFieldLabel }}</label>
                     <MacroInputField
-                      id="t-title"
+                      id="t-data"
+                      v-model="form.dataFields.data"
+                      :macros="fullMacros"
+                      class="form-input"
+                    />
+                  </div>
+
+                  <div v-if="toolType === 'snmp-table'" class="form-field">
+                    <label for="t-title-snmp">Title</label>
+                    <InputText
+                      id="t-title-snmp"
                       v-model="form.dataFields.title"
-                      :macros="fullMacros"
                       class="form-input"
                     />
                   </div>
-                  <div class="form-field">
-                    <label for="t-param">Parameter</label>
+
+                  <div v-if="toolType === 'file-download'" class="form-field">
+                    <label for="t-remotefile">Remote file name</label>
                     <MacroInputField
-                      id="t-param"
-                      v-model="form.dataFields.parameter"
+                      id="t-remotefile"
+                      v-model="form.dataFields.remoteFileName"
                       :macros="fullMacros"
                       class="form-input"
                     />
                   </div>
-                </template>
 
-                <div v-if="toolType === 'agent-list'" class="form-field">
-                  <label for="t-regexp">Regular expression</label>
-                  <InputText id="t-regexp" v-model="form.dataFields.regexp" class="form-input" />
+                  <template v-if="toolType === 'agent-list' || toolType === 'agent-table'">
+                    <div class="form-field">
+                      <label for="t-title">Title</label>
+                      <MacroInputField
+                        id="t-title"
+                        v-model="form.dataFields.title"
+                        :macros="fullMacros"
+                        class="form-input"
+                      />
+                    </div>
+                    <div class="form-field">
+                      <label for="t-param">Parameter</label>
+                      <MacroInputField
+                        id="t-param"
+                        v-model="form.dataFields.parameter"
+                        :macros="fullMacros"
+                        class="form-input"
+                      />
+                    </div>
+                  </template>
+
+                  <div v-if="toolType === 'agent-list'" class="form-field">
+                    <label for="t-regexp">Regular expression</label>
+                    <InputText id="t-regexp" v-model="form.dataFields.regexp" class="form-input" />
+                  </div>
                 </div>
-              </div>
-            </DetailCard>
+              </DetailCard>
 
-            <DetailCard v-if="toolType === 'snmp-table'" title="SNMP List Options">
-              <div class="card-opts">
-                <div class="option-group">
-                  <p class="option-group-label">Use as index for second and subsequent columns:</p>
-                  <label class="radio-row">
-                    <RadioButton
-                      v-model="form.flags.snmpIndexedByValue"
-                      :value="false"
-                      input-id="snmp-index-oid"
-                    />
-                    <span>OID suffix of first column</span>
-                  </label>
-                  <label class="radio-row">
-                    <RadioButton
-                      v-model="form.flags.snmpIndexedByValue"
-                      :value="true"
-                      input-id="snmp-index-value"
-                    />
-                    <span>Value of first column</span>
-                  </label>
+              <DetailCard v-if="toolType === 'snmp-table'" title="SNMP List Options">
+                <div class="card-opts">
+                  <div class="option-group">
+                    <p class="option-group-label">
+                      Use as index for second and subsequent columns:
+                    </p>
+                    <label class="radio-row">
+                      <RadioButton
+                        v-model="form.flags.snmpIndexedByValue"
+                        :value="false"
+                        input-id="snmp-index-oid"
+                      />
+                      <span>OID suffix of first column</span>
+                    </label>
+                    <label class="radio-row">
+                      <RadioButton
+                        v-model="form.flags.snmpIndexedByValue"
+                        :value="true"
+                        input-id="snmp-index-value"
+                      />
+                      <span>Value of first column</span>
+                    </label>
+                  </div>
                 </div>
-              </div>
-            </DetailCard>
+              </DetailCard>
 
-            <DetailCard v-if="toolType === 'file-download'" title="File Options">
-              <div class="card-opts">
-                <div class="form-field">
-                  <label for="t-maxsize">Max download size (bytes, 0 = unlimited)</label>
-                  <InputNumber
-                    id="t-maxsize"
-                    v-model="form.dataFields.maxSize"
-                    :min="0"
-                    class="form-input"
-                  />
-                </div>
-                <label class="option-row">
-                  <ToggleSwitch v-model="form.dataFields.followChanges" />
-                  <span>Follow file changes</span>
-                </label>
-              </div>
-            </DetailCard>
-
-            <DetailCard v-if="hasExecutionOptions" title="Execution Options">
-              <div class="card-opts">
-                <label class="option-row">
-                  <ToggleSwitch v-model="form.flags.generatesOutput" />
-                  <span>Command generates output</span>
-                </label>
-                <label class="option-row">
-                  <ToggleSwitch v-model="form.flags.suppressSuccessMessage" />
-                  <span>Suppress notification of successful execution</span>
-                </label>
-              </div>
-            </DetailCard>
-
-            <DetailCard v-if="hasTcpTunnel" title="TCP Tunnel">
-              <div class="card-opts">
-                <label class="option-row">
-                  <ToggleSwitch v-model="form.flags.setupTcpTunnel" />
-                  <span>Setup TCP tunnel to remote port</span>
-                </label>
-                <template v-if="form.flags.setupTcpTunnel">
+              <DetailCard v-if="toolType === 'file-download'" title="File Options">
+                <div class="card-opts">
                   <div class="form-field">
-                    <label for="t-remoteport">Remote port</label>
+                    <label for="t-maxsize">Max download size (bytes, 0 = unlimited)</label>
                     <InputNumber
-                      id="t-remoteport"
-                      v-model="form.remotePort"
-                      :min="1"
-                      :max="65535"
+                      id="t-maxsize"
+                      v-model="form.dataFields.maxSize"
+                      :min="0"
                       class="form-input"
                     />
                   </div>
-                  <div class="form-field">
-                    <label for="t-remotehost">Remote host</label>
-                    <InputText id="t-remotehost" v-model="form.remoteHost" class="form-input" />
+                  <label class="option-row">
+                    <ToggleSwitch v-model="form.dataFields.followChanges" />
+                    <span>Follow file changes</span>
+                  </label>
+                </div>
+              </DetailCard>
+
+              <DetailCard v-if="hasExecutionOptions" title="Execution Options">
+                <div class="card-opts">
+                  <label class="option-row">
+                    <ToggleSwitch v-model="form.flags.generatesOutput" />
+                    <span>Command generates output</span>
+                  </label>
+                  <label class="option-row">
+                    <ToggleSwitch v-model="form.flags.suppressSuccessMessage" />
+                    <span>Suppress notification of successful execution</span>
+                  </label>
+                </div>
+              </DetailCard>
+
+              <DetailCard v-if="hasTcpTunnel" title="TCP Tunnel">
+                <div class="card-opts">
+                  <label class="option-row">
+                    <ToggleSwitch v-model="form.flags.setupTcpTunnel" />
+                    <span>Setup TCP tunnel to remote port</span>
+                  </label>
+                  <template v-if="form.flags.setupTcpTunnel">
+                    <div class="form-field">
+                      <label for="t-remoteport">Remote port</label>
+                      <InputNumber
+                        id="t-remoteport"
+                        v-model="form.remotePort"
+                        :min="1"
+                        :max="65535"
+                        class="form-input"
+                      />
+                    </div>
+                    <div class="form-field">
+                      <label for="t-remotehost">Remote host</label>
+                      <InputText id="t-remotehost" v-model="form.remoteHost" class="form-input" />
+                    </div>
+                  </template>
+                </div>
+              </DetailCard>
+
+              <DetailCard title="Confirmation">
+                <div class="card-opts">
+                  <label class="option-row">
+                    <ToggleSwitch v-model="form.flags.askConfirmation" />
+                    <span>Require confirmation before execution</span>
+                  </label>
+                  <div v-if="form.flags.askConfirmation" class="form-field">
+                    <label for="t-confirm-msg">Confirmation message</label>
+                    <MacroInputField
+                      id="t-confirm-msg"
+                      v-model="form.confirmationMessage"
+                      :macros="confirmMacros"
+                      class="form-input"
+                    />
                   </div>
-                </template>
-              </div>
-            </DetailCard>
-
-            <DetailCard title="Confirmation">
-              <div class="card-opts">
-                <label class="option-row">
-                  <ToggleSwitch v-model="form.flags.askConfirmation" />
-                  <span>Require confirmation before execution</span>
-                </label>
-                <div v-if="form.flags.askConfirmation" class="form-field">
-                  <label for="t-confirm-msg">Confirmation message</label>
-                  <MacroInputField
-                    id="t-confirm-msg"
-                    v-model="form.confirmationMessage"
-                    :macros="confirmMacros"
-                    class="form-input"
-                  />
                 </div>
-              </div>
-            </DetailCard>
+              </DetailCard>
 
-            <DetailCard title="Show in Commands">
-              <div class="card-opts">
-                <label class="option-row">
-                  <ToggleSwitch v-model="form.flags.showInCommands" />
-                  <span>Show this tool in node commands</span>
-                </label>
-                <template v-if="form.flags.showInCommands">
-                  <div class="form-field">
-                    <label for="t-cmdname">Command name</label>
-                    <InputText id="t-cmdname" v-model="form.commandName" class="form-input" />
-                  </div>
-                  <div class="form-field">
-                    <label for="t-cmdshort">Short name</label>
-                    <InputText id="t-cmdshort" v-model="form.commandShortName" class="form-input" />
-                  </div>
-                </template>
-              </div>
-            </DetailCard>
-
-            <DetailCard title="Other Options">
-              <div class="card-opts">
-                <label class="option-row">
-                  <ToggleSwitch v-model="form.flags.disabled" />
-                  <span>Disabled</span>
-                </label>
-                <label v-if="hasRunInContainer" class="option-row">
-                  <ToggleSwitch v-model="form.flags.runInContainerContext" />
-                  <span>Run in container context</span>
-                </label>
-              </div>
-            </DetailCard>
-          </div>
-        </TabPanel>
-
-        <TabPanel value="filter">
-          <div class="detail-cards-grid">
-            <DetailCard title="Applicable Object Types">
-              <div class="applicable-types-row">
-                <label class="option-row">
-                  <Checkbox
-                    :model-value="getApplicableClass(APPLICABLE_NODE)"
-                    :disabled="true"
-                    binary
-                    @update:model-value="setApplicableClass(APPLICABLE_NODE, $event)"
-                  />
-                  <span>Node</span>
-                </label>
-                <label class="option-row">
-                  <Checkbox
-                    :model-value="getApplicableClass(APPLICABLE_INTERFACE)"
-                    :disabled="!isMultiClass"
-                    binary
-                    @update:model-value="setApplicableClass(APPLICABLE_INTERFACE, $event)"
-                  />
-                  <span>Interface</span>
-                </label>
-                <label class="option-row">
-                  <Checkbox
-                    :model-value="getApplicableClass(APPLICABLE_SENSOR)"
-                    :disabled="!isMultiClass"
-                    binary
-                    @update:model-value="setApplicableClass(APPLICABLE_SENSOR, $event)"
-                  />
-                  <span>Sensor</span>
-                </label>
-                <label class="option-row">
-                  <Checkbox
-                    :model-value="getApplicableClass(APPLICABLE_ACCESS_POINT)"
-                    :disabled="!isMultiClass"
-                    binary
-                    @update:model-value="setApplicableClass(APPLICABLE_ACCESS_POINT, $event)"
-                  />
-                  <span>Access Point</span>
-                </label>
-              </div>
-              <p v-if="!isMultiClass" class="help-text">
-                Only Node is selectable for this tool type. Interface, Sensor, and Access Point are
-                available for Server Script, URL, and SSH Command tools.
-              </p>
-            </DetailCard>
-
-            <DetailCard title="Filter Conditions" :wide="true">
-              <div class="filter-grid">
-                <label class="option-row">
-                  <ToggleSwitch
-                    :model-value="getFilterFlag(FILTER_REQUIRES_AGENT)"
-                    @update:model-value="setFilterFlag(FILTER_REQUIRES_AGENT, $event)"
-                  />
-                  <span>NetXMS agent available</span>
-                </label>
-                <label class="option-row">
-                  <ToggleSwitch
-                    :model-value="getFilterFlag(FILTER_REQUIRES_SNMP)"
-                    @update:model-value="setFilterFlag(FILTER_REQUIRES_SNMP, $event)"
-                  />
-                  <span>Node supports SNMP</span>
-                </label>
-                <label class="option-row">
-                  <ToggleSwitch
-                    :model-value="getFilterFlag(FILTER_REQUIRES_SSH)"
-                    @update:model-value="setFilterFlag(FILTER_REQUIRES_SSH, $event)"
-                  />
-                  <span>Node supports SSH</span>
-                </label>
-                <label class="option-row">
-                  <ToggleSwitch
-                    :model-value="getFilterFlag(FILTER_REQUIRES_ETHERNET_IP)"
-                    @update:model-value="setFilterFlag(FILTER_REQUIRES_ETHERNET_IP, $event)"
-                  />
-                  <span>Node supports EtherNet/IP</span>
-                </label>
-                <label class="option-row">
-                  <ToggleSwitch
-                    :model-value="getFilterFlag(FILTER_REQUIRES_MODBUS_TCP)"
-                    @update:model-value="setFilterFlag(FILTER_REQUIRES_MODBUS_TCP, $event)"
-                  />
-                  <span>Node supports Modbus TCP</span>
-                </label>
-
-                <div class="filter-pattern-row">
+              <DetailCard title="Show in Commands">
+                <div class="card-opts">
                   <label class="option-row">
-                    <ToggleSwitch
-                      :model-value="getFilterFlag(FILTER_REQUIRES_OID_MATCH)"
-                      @update:model-value="setFilterFlag(FILTER_REQUIRES_OID_MATCH, $event)"
-                    />
-                    <span>SNMP OID should match</span>
+                    <ToggleSwitch v-model="form.flags.showInCommands" />
+                    <span>Show this tool in node commands</span>
                   </label>
-                  <InputText
-                    v-if="getFilterFlag(FILTER_REQUIRES_OID_MATCH)"
-                    v-model="form.filter.snmpOid"
-                    placeholder="OID pattern"
-                    class="pattern-input"
-                  />
+                  <template v-if="form.flags.showInCommands">
+                    <div class="form-field">
+                      <label for="t-cmdname">Command name</label>
+                      <InputText id="t-cmdname" v-model="form.commandName" class="form-input" />
+                    </div>
+                    <div class="form-field">
+                      <label for="t-cmdshort">Short name</label>
+                      <InputText
+                        id="t-cmdshort"
+                        v-model="form.commandShortName"
+                        class="form-input"
+                      />
+                    </div>
+                  </template>
                 </div>
+              </DetailCard>
 
-                <div class="filter-pattern-row">
+              <DetailCard title="Other Options">
+                <div class="card-opts">
                   <label class="option-row">
-                    <ToggleSwitch
-                      :model-value="getFilterFlag(FILTER_REQUIRES_NODE_OS_MATCH)"
-                      @update:model-value="setFilterFlag(FILTER_REQUIRES_NODE_OS_MATCH, $event)"
-                    />
-                    <span>Node platform name should match</span>
+                    <ToggleSwitch v-model="form.flags.disabled" />
+                    <span>Disabled</span>
                   </label>
-                  <InputText
-                    v-if="getFilterFlag(FILTER_REQUIRES_NODE_OS_MATCH)"
-                    v-model="form.filter.toolOS"
-                    placeholder="Comma-separated regular expressions"
-                    class="pattern-input"
-                  />
-                </div>
-
-                <div class="filter-pattern-row">
-                  <label class="option-row">
-                    <ToggleSwitch
-                      :model-value="getFilterFlag(FILTER_REQUIRES_TEMPLATE_MATCH)"
-                      @update:model-value="setFilterFlag(FILTER_REQUIRES_TEMPLATE_MATCH, $event)"
-                    />
-                    <span>Template name should match</span>
+                  <label v-if="hasRunInContainer" class="option-row">
+                    <ToggleSwitch v-model="form.flags.runInContainerContext" />
+                    <span>Run in container context</span>
                   </label>
-                  <InputText
-                    v-if="getFilterFlag(FILTER_REQUIRES_TEMPLATE_MATCH)"
-                    v-model="form.filter.toolTemplate"
-                    placeholder="Comma-separated patterns"
-                    class="pattern-input"
-                  />
                 </div>
-
-                <div class="filter-pattern-row">
-                  <label class="option-row">
-                    <ToggleSwitch
-                      :model-value="getFilterFlag(FILTER_REQUIRES_CUSTOM_ATTRIBUTE_MATCH)"
-                      @update:model-value="
-                        setFilterFlag(FILTER_REQUIRES_CUSTOM_ATTRIBUTE_MATCH, $event)
-                      "
-                    />
-                    <span>Custom attribute should match</span>
-                  </label>
-                  <InputText
-                    v-if="getFilterFlag(FILTER_REQUIRES_CUSTOM_ATTRIBUTE_MATCH)"
-                    v-model="form.filter.toolCustomAttributes"
-                    placeholder="Comma-separated patterns"
-                    class="pattern-input"
-                  />
-                </div>
-              </div>
-            </DetailCard>
-          </div>
-        </TabPanel>
-
-        <TabPanel value="acl">
-          <div class="acl-tab-content">
-            <AclPicker v-model="form.acl" />
-          </div>
-        </TabPanel>
-
-        <TabPanel value="inputFields">
-          <div class="tab-content tab-content--table">
-            <div class="tab-toolbar">
-              <span class="tab-toolbar-title">
-                Input Fields
-                <span class="count">({{ form.inputFields.length }})</span>
-              </span>
-              <div class="tab-toolbar-actions">
-                <Button
-                  label="Add Field"
-                  icon="pi pi-plus"
-                  size="small"
-                  severity="primary"
-                  @click="openAddInputField"
-                />
-                <Button
-                  label="Remove"
-                  icon="pi pi-minus"
-                  size="small"
-                  severity="danger"
-                  text
-                  :disabled="!selectedInputField"
-                  @click="deleteInputField(selectedInputField)"
-                />
-              </div>
+              </DetailCard>
             </div>
-            <DataTable
-              v-model:selection="selectedInputField"
-              :value="form.inputFields"
-              selection-mode="single"
-              data-key="name"
-              class="list-table"
-            >
-              <template #empty>
-                <div class="table-empty">No input fields defined.</div>
-              </template>
-              <Column field="name" header="Name" :sortable="true" style="width: 160px" />
-              <Column header="Type" style="width: 120px">
-                <template #body="{ data }">{{ inputTypeLabel(data.type) }}</template>
-              </Column>
-              <Column field="displayName" header="Display Name" :sortable="true" />
-              <Column field="defaultValue" header="Default Value">
-                <template #body="{ data }">
-                  <span :class="{ 'text-muted': !data.defaultValue }">
-                    {{ data.defaultValue || '-' }}
-                  </span>
-                </template>
-              </Column>
-              <Column style="width: 60px">
-                <template #body="{ data }">
-                  <Button
-                    :aria-label="`Edit input field ${data.name}`"
-                    icon="pi pi-pencil"
-                    text
-                    rounded
-                    size="small"
-                    severity="secondary"
-                    @click.stop="openEditInputField(data)"
-                  />
-                </template>
-              </Column>
-            </DataTable>
-          </div>
-        </TabPanel>
+          </TabPanel>
 
-        <TabPanel v-if="hasColumns" value="columns">
-          <div class="tab-content tab-content--table">
-            <div class="tab-toolbar">
-              <span class="tab-toolbar-title">
-                Columns
-                <span class="count">({{ form.columns.length }})</span>
-              </span>
-              <div class="tab-toolbar-actions">
-                <Button
-                  label="Add Column"
-                  icon="pi pi-plus"
-                  size="small"
-                  severity="primary"
-                  @click="openAddColumn"
-                />
-                <Button
-                  label="Remove"
-                  icon="pi pi-minus"
-                  size="small"
-                  severity="danger"
-                  text
-                  :disabled="!selectedColumn"
-                  @click="deleteColumn(selectedColumn)"
-                />
-              </div>
+          <TabPanel value="filter">
+            <div class="detail-cards-grid">
+              <DetailCard title="Applicable Object Types">
+                <div class="applicable-types-row">
+                  <label class="option-row">
+                    <Checkbox
+                      :model-value="getApplicableClass(APPLICABLE_NODE)"
+                      :disabled="true"
+                      binary
+                      @update:model-value="setApplicableClass(APPLICABLE_NODE, $event)"
+                    />
+                    <span>Node</span>
+                  </label>
+                  <label class="option-row">
+                    <Checkbox
+                      :model-value="getApplicableClass(APPLICABLE_INTERFACE)"
+                      :disabled="!isMultiClass"
+                      binary
+                      @update:model-value="setApplicableClass(APPLICABLE_INTERFACE, $event)"
+                    />
+                    <span>Interface</span>
+                  </label>
+                  <label class="option-row">
+                    <Checkbox
+                      :model-value="getApplicableClass(APPLICABLE_SENSOR)"
+                      :disabled="!isMultiClass"
+                      binary
+                      @update:model-value="setApplicableClass(APPLICABLE_SENSOR, $event)"
+                    />
+                    <span>Sensor</span>
+                  </label>
+                  <label class="option-row">
+                    <Checkbox
+                      :model-value="getApplicableClass(APPLICABLE_ACCESS_POINT)"
+                      :disabled="!isMultiClass"
+                      binary
+                      @update:model-value="setApplicableClass(APPLICABLE_ACCESS_POINT, $event)"
+                    />
+                    <span>Access Point</span>
+                  </label>
+                </div>
+                <p v-if="!isMultiClass" class="help-text">
+                  Only Node is selectable for this tool type. Interface, Sensor, and Access Point
+                  are available for Server Script, URL, and SSH Command tools.
+                </p>
+              </DetailCard>
+
+              <DetailCard title="Filter Conditions" :wide="true">
+                <div class="filter-grid">
+                  <label class="option-row">
+                    <ToggleSwitch
+                      :model-value="getFilterFlag(FILTER_REQUIRES_AGENT)"
+                      @update:model-value="setFilterFlag(FILTER_REQUIRES_AGENT, $event)"
+                    />
+                    <span>NetXMS agent available</span>
+                  </label>
+                  <label class="option-row">
+                    <ToggleSwitch
+                      :model-value="getFilterFlag(FILTER_REQUIRES_SNMP)"
+                      @update:model-value="setFilterFlag(FILTER_REQUIRES_SNMP, $event)"
+                    />
+                    <span>Node supports SNMP</span>
+                  </label>
+                  <label class="option-row">
+                    <ToggleSwitch
+                      :model-value="getFilterFlag(FILTER_REQUIRES_SSH)"
+                      @update:model-value="setFilterFlag(FILTER_REQUIRES_SSH, $event)"
+                    />
+                    <span>Node supports SSH</span>
+                  </label>
+                  <label class="option-row">
+                    <ToggleSwitch
+                      :model-value="getFilterFlag(FILTER_REQUIRES_ETHERNET_IP)"
+                      @update:model-value="setFilterFlag(FILTER_REQUIRES_ETHERNET_IP, $event)"
+                    />
+                    <span>Node supports EtherNet/IP</span>
+                  </label>
+                  <label class="option-row">
+                    <ToggleSwitch
+                      :model-value="getFilterFlag(FILTER_REQUIRES_MODBUS_TCP)"
+                      @update:model-value="setFilterFlag(FILTER_REQUIRES_MODBUS_TCP, $event)"
+                    />
+                    <span>Node supports Modbus TCP</span>
+                  </label>
+
+                  <div class="filter-pattern-row">
+                    <label class="option-row">
+                      <ToggleSwitch
+                        :model-value="getFilterFlag(FILTER_REQUIRES_OID_MATCH)"
+                        @update:model-value="setFilterFlag(FILTER_REQUIRES_OID_MATCH, $event)"
+                      />
+                      <span>SNMP OID should match</span>
+                    </label>
+                    <InputText
+                      v-if="getFilterFlag(FILTER_REQUIRES_OID_MATCH)"
+                      v-model="form.filter.snmpOid"
+                      placeholder="OID pattern"
+                      class="pattern-input"
+                    />
+                  </div>
+
+                  <div class="filter-pattern-row">
+                    <label class="option-row">
+                      <ToggleSwitch
+                        :model-value="getFilterFlag(FILTER_REQUIRES_NODE_OS_MATCH)"
+                        @update:model-value="setFilterFlag(FILTER_REQUIRES_NODE_OS_MATCH, $event)"
+                      />
+                      <span>Node platform name should match</span>
+                    </label>
+                    <InputText
+                      v-if="getFilterFlag(FILTER_REQUIRES_NODE_OS_MATCH)"
+                      v-model="form.filter.toolOS"
+                      placeholder="Comma-separated regular expressions"
+                      class="pattern-input"
+                    />
+                  </div>
+
+                  <div class="filter-pattern-row">
+                    <label class="option-row">
+                      <ToggleSwitch
+                        :model-value="getFilterFlag(FILTER_REQUIRES_TEMPLATE_MATCH)"
+                        @update:model-value="setFilterFlag(FILTER_REQUIRES_TEMPLATE_MATCH, $event)"
+                      />
+                      <span>Template name should match</span>
+                    </label>
+                    <InputText
+                      v-if="getFilterFlag(FILTER_REQUIRES_TEMPLATE_MATCH)"
+                      v-model="form.filter.toolTemplate"
+                      placeholder="Comma-separated patterns"
+                      class="pattern-input"
+                    />
+                  </div>
+
+                  <div class="filter-pattern-row">
+                    <label class="option-row">
+                      <ToggleSwitch
+                        :model-value="getFilterFlag(FILTER_REQUIRES_CUSTOM_ATTRIBUTE_MATCH)"
+                        @update:model-value="
+                          setFilterFlag(FILTER_REQUIRES_CUSTOM_ATTRIBUTE_MATCH, $event)
+                        "
+                      />
+                      <span>Custom attribute should match</span>
+                    </label>
+                    <InputText
+                      v-if="getFilterFlag(FILTER_REQUIRES_CUSTOM_ATTRIBUTE_MATCH)"
+                      v-model="form.filter.toolCustomAttributes"
+                      placeholder="Comma-separated patterns"
+                      class="pattern-input"
+                    />
+                  </div>
+                </div>
+              </DetailCard>
             </div>
-            <DataTable
-              v-model:selection="selectedColumn"
-              :value="form.columns"
-              selection-mode="single"
-              data-key="name"
-              class="list-table"
-            >
-              <template #empty>
-                <div class="table-empty">No columns defined.</div>
-              </template>
-              <Column field="name" header="Name" :sortable="true" style="width: 160px" />
-              <Column v-if="toolType === 'snmp-table'" field="oid" header="OID" />
-              <Column header="Format" style="width: 120px">
-                <template #body="{ data }">{{ columnFormatLabel(data.format) }}</template>
-              </Column>
-              <Column style="width: 60px">
-                <template #body="{ data }">
+          </TabPanel>
+
+          <TabPanel value="acl">
+            <div class="acl-tab-content">
+              <AclPicker v-model="form.acl" />
+            </div>
+          </TabPanel>
+
+          <TabPanel value="inputFields">
+            <div class="tab-content tab-content--table">
+              <div class="tab-toolbar">
+                <span class="tab-toolbar-title">
+                  Input Fields
+                  <span class="count">({{ form.inputFields.length }})</span>
+                </span>
+                <div class="tab-toolbar-actions">
                   <Button
-                    :aria-label="`Edit column ${data.name}`"
-                    icon="pi pi-pencil"
-                    text
-                    rounded
+                    label="Add Field"
+                    icon="pi pi-plus"
                     size="small"
-                    severity="secondary"
-                    @click.stop="openEditColumn(data)"
+                    severity="primary"
+                    @click="openAddInputField"
                   />
+                  <Button
+                    label="Remove"
+                    icon="pi pi-minus"
+                    size="small"
+                    severity="danger"
+                    text
+                    :disabled="!selectedInputField"
+                    @click="deleteInputField(selectedInputField)"
+                  />
+                </div>
+              </div>
+              <DataTable
+                v-model:selection="selectedInputField"
+                :value="form.inputFields"
+                selection-mode="single"
+                data-key="name"
+                class="list-table"
+              >
+                <template #empty>
+                  <div class="table-empty">No input fields defined.</div>
                 </template>
-              </Column>
-            </DataTable>
-          </div>
-        </TabPanel>
-      </TabPanels>
+                <Column field="name" header="Name" :sortable="true" style="width: 160px" />
+                <Column header="Type" style="width: 120px">
+                  <template #body="{ data }">{{ inputTypeLabel(data.type) }}</template>
+                </Column>
+                <Column field="displayName" header="Display Name" :sortable="true" />
+                <Column field="defaultValue" header="Default Value">
+                  <template #body="{ data }">
+                    <span :class="{ 'text-muted': !data.defaultValue }">
+                      {{ data.defaultValue || '-' }}
+                    </span>
+                  </template>
+                </Column>
+                <Column style="width: 60px">
+                  <template #body="{ data }">
+                    <Button
+                      :aria-label="`Edit input field ${data.name}`"
+                      icon="pi pi-pencil"
+                      text
+                      rounded
+                      size="small"
+                      severity="secondary"
+                      @click.stop="openEditInputField(data)"
+                    />
+                  </template>
+                </Column>
+              </DataTable>
+            </div>
+          </TabPanel>
+
+          <TabPanel v-if="hasColumns" value="columns">
+            <div class="tab-content tab-content--table">
+              <div class="tab-toolbar">
+                <span class="tab-toolbar-title">
+                  Columns
+                  <span class="count">({{ form.columns.length }})</span>
+                </span>
+                <div class="tab-toolbar-actions">
+                  <Button
+                    label="Add Column"
+                    icon="pi pi-plus"
+                    size="small"
+                    severity="primary"
+                    @click="openAddColumn"
+                  />
+                  <Button
+                    label="Remove"
+                    icon="pi pi-minus"
+                    size="small"
+                    severity="danger"
+                    text
+                    :disabled="!selectedColumn"
+                    @click="deleteColumn(selectedColumn)"
+                  />
+                </div>
+              </div>
+              <DataTable
+                v-model:selection="selectedColumn"
+                :value="form.columns"
+                selection-mode="single"
+                data-key="name"
+                class="list-table"
+              >
+                <template #empty>
+                  <div class="table-empty">No columns defined.</div>
+                </template>
+                <Column field="name" header="Name" :sortable="true" style="width: 160px" />
+                <Column v-if="toolType === 'snmp-table'" field="oid" header="OID" />
+                <Column header="Format" style="width: 120px">
+                  <template #body="{ data }">{{ columnFormatLabel(data.format) }}</template>
+                </Column>
+                <Column style="width: 60px">
+                  <template #body="{ data }">
+                    <Button
+                      :aria-label="`Edit column ${data.name}`"
+                      icon="pi pi-pencil"
+                      text
+                      rounded
+                      size="small"
+                      severity="secondary"
+                      @click.stop="openEditColumn(data)"
+                    />
+                  </template>
+                </Column>
+              </DataTable>
+            </div>
+          </TabPanel>
+        </TabPanels>
+      </fieldset>
     </Tabs>
 
     <IconPickerDialog
@@ -943,6 +970,23 @@ const dataFieldLabel = computed(() => {
   flex-direction: column;
   height: 100%;
   min-height: 0;
+}
+
+.readonly-banner {
+  margin: 0.75rem 1.5rem 0;
+}
+
+/* Carries the disabled state, not layout: it has to disappear from the flex chain between the tabs
+   and their panels. `min-width: 0` because a fieldset's default is `min-content`. */
+.detail-form {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .detail-tabs {

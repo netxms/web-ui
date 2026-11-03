@@ -10,6 +10,8 @@
  * stops the execution.
  */
 
+const OUTPUT_INTERVAL_MS = 100
+
 /**
  * The path already carries auth (a token embedded by the server). Handles both absolute and
  * relative VITE_API_BASE_URL.
@@ -35,6 +37,11 @@ export function buildWsUrl(wsPath) {
  * The browser fires `close` after `error` as well, so `onClose` is the one place that sees
  * every way a stream can end without a final frame.
  *
+ * Output is handed over merged, at most once per `OUTPUT_INTERVAL_MS`: a script printing in a loop
+ * sends thousands of frames a second, and a render and layout for each would freeze the page. A
+ * chunk after a quiet spell goes out at once, and any other frame or the close sends what is
+ * waiting ahead of it.
+ *
  * @param {string} wsPath - `wsUrl` from the 202 answer
  * @param {object} handlers
  * @param {(frame: {type: string, data?: any, message?: string, diagnostic?: object}) => void} handlers.onFrame
@@ -44,6 +51,19 @@ export function buildWsUrl(wsPath) {
  */
 export function openOutputStream(wsPath, { onFrame, onClose, onError }) {
   const ws = new WebSocket(buildWsUrl(wsPath))
+  let pendingOutput = ''
+  let flushTimer = null
+  let lastFlush = 0
+
+  function flushOutput() {
+    clearTimeout(flushTimer)
+    flushTimer = null
+    if (!pendingOutput) return
+    const data = pendingOutput
+    pendingOutput = ''
+    lastFlush = Date.now()
+    onFrame({ type: 'output', data })
+  }
 
   ws.addEventListener('message', (event) => {
     let frame
@@ -53,9 +73,23 @@ export function openOutputStream(wsPath, { onFrame, onClose, onError }) {
       frame = null
     }
     if (frame === null || typeof frame !== 'object') frame = { type: 'output', data: event.data }
+
+    if (frame.type === 'output' && typeof frame.data === 'string') {
+      pendingOutput += frame.data
+      if (flushTimer === null) {
+        const wait = lastFlush + OUTPUT_INTERVAL_MS - Date.now()
+        if (wait <= 0) flushOutput()
+        else flushTimer = setTimeout(flushOutput, wait)
+      }
+      return
+    }
+    flushOutput()
     onFrame(frame)
   })
-  if (onClose) ws.addEventListener('close', onClose)
+  ws.addEventListener('close', (event) => {
+    flushOutput()
+    onClose?.(event)
+  })
   if (onError) ws.addEventListener('error', onError)
 
   return ws

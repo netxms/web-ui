@@ -11,8 +11,12 @@ import AppTable from '@/components/common/AppTable.vue'
 import RefetchIndicator from '@/components/common/RefetchIndicator.vue'
 import QueryErrorState from '@/components/common/QueryErrorState.vue'
 import { useAiSkillsAndFunctions, useDisableAiItem, useEnableAiItem } from '@/queries/useAiQueries'
+import { usePermissions } from '@/composables/usePermissions'
 
 const toast = useToast()
+
+// Listing also takes the right to use the assistant; the stop list takes this one (`ai.cpp`).
+const { can } = usePermissions()
 
 const { data, isLoading, isFetching, isError, error, refetch } = useAiSkillsAndFunctions()
 const { mutate: disableItem, isPending: isDisabling } = useDisableAiItem()
@@ -235,42 +239,44 @@ function futureRowClass(row) {
           aria-label="Refresh"
           @click="refetch"
         />
-        <Button
-          label="Add"
-          icon="pi pi-plus"
-          size="small"
-          severity="primary"
-          @click="openDisableDialog"
-        />
-        <Button
-          label="Disable"
-          icon="pi pi-ban"
-          size="small"
-          text
-          :disabled="!canDisable"
-          :loading="isDisabling"
-          @click="disableSelected"
-        />
-        <Button
-          label="Enable"
-          icon="pi pi-check"
-          size="small"
-          severity="success"
-          text
-          :disabled="!canEnable"
-          :loading="isEnabling && selectedItem?.registered && selectedItem?.disabled"
-          @click="enableSelected"
-        />
-        <Button
-          label="Remove"
-          icon="pi pi-trash"
-          size="small"
-          severity="danger"
-          text
-          :disabled="!canRemove"
-          :loading="isEnabling && selectedItem != null && !selectedItem.registered"
-          @click="removeSelected"
-        />
+        <template v-if="can.manageAiSkills">
+          <Button
+            label="Add"
+            icon="pi pi-plus"
+            size="small"
+            severity="primary"
+            @click="openDisableDialog"
+          />
+          <Button
+            label="Disable"
+            icon="pi pi-ban"
+            size="small"
+            text
+            :disabled="!canDisable"
+            :loading="isDisabling"
+            @click="disableSelected"
+          />
+          <Button
+            label="Enable"
+            icon="pi pi-check"
+            size="small"
+            severity="success"
+            text
+            :disabled="!canEnable"
+            :loading="isEnabling && selectedItem?.registered && selectedItem?.disabled"
+            @click="enableSelected"
+          />
+          <Button
+            label="Remove"
+            icon="pi pi-trash"
+            size="small"
+            severity="danger"
+            text
+            :disabled="!canRemove"
+            :loading="isEnabling && selectedItem != null && !selectedItem.registered"
+            @click="removeSelected"
+          />
+        </template>
       </div>
     </div>
 

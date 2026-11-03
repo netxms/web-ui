@@ -10,6 +10,7 @@ import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import RefetchIndicator from '@/components/common/RefetchIndicator.vue'
 import QueryErrorState from '@/components/common/QueryErrorState.vue'
+import RestrictedState from '@/components/common/RestrictedState.vue'
 import SectionHeader from '@/components/layout/SectionHeader.vue'
 import EntityDetailHeader from '@/components/layout/EntityDetailHeader.vue'
 import EntityContextMenu from '@/components/common/EntityContextMenu.vue'
@@ -20,12 +21,16 @@ import {
   useDeleteServerAction,
 } from '@/queries/useServerActionQueries'
 import { useEntityDetail } from '@/composables/useEntityDetail'
+import { usePermissions } from '@/composables/usePermissions'
 import { useWorkingState } from '@/composables/useWorkingState'
 
 const route = useRoute()
 const router = useRouter()
 const confirm = useConfirm()
 const toast = useToast()
+
+// Reading takes this right or the EPP right; changing takes this one (`actions.cpp`).
+const { can } = usePermissions()
 
 const { entityId, isDetailView, detailTarget, openDetail, closeDetail } = useEntityDetail()
 
@@ -79,15 +84,16 @@ const { mutate: deleteAction } = useDeleteServerAction()
 
 const contextMenuItems = computed(() => [
   {
-    label: 'Edit',
-    icon: 'pi pi-pencil',
+    label: can.value.manageActions ? 'Edit' : 'View',
+    icon: can.value.manageActions ? 'pi pi-pencil' : 'pi pi-eye',
     command: () => openDetail(contextMenu.value.contextData.id),
   },
-  { separator: true },
+  { separator: true, visible: can.value.manageActions },
   {
     label: 'Delete',
     icon: 'pi pi-trash',
     class: 'p-menuitem-danger',
+    visible: can.value.manageActions,
     command: () => confirmDelete(contextMenu.value.contextData),
   },
 ])
@@ -166,12 +172,18 @@ const {
 
 <template>
   <div v-if="isDetailView" class="actions-detail">
-    <ServerActionDetailView v-if="isNewAction" :action="null" @close="closeDetail" />
+    <template v-if="isNewAction && !can.manageActions">
+      <EntityDetailHeader title="New Action" subtitle="Server Action" @back="closeDetail" />
+      <RestrictedState right="manageActions" />
+    </template>
+
+    <ServerActionDetailView v-else-if="isNewAction" :action="null" @close="closeDetail" />
 
     <template v-else>
       <ServerActionDetailView
         v-if="actionDetail"
         :action="actionDetail"
+        :readonly="!can.manageActions"
         @close="closeDetail"
         @saved="() => {}"
       />
@@ -217,6 +229,7 @@ const {
           @click="refetch"
         />
         <Button
+          v-if="can.manageActions"
           label="Add Action"
           icon="pi pi-plus"
           size="small"
