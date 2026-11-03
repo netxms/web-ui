@@ -1,0 +1,21 @@
+{
+  "id": 6,
+  "name": "Restart Agent Service",
+  "type": "server-command",
+  "commandName": "nxagentd -R",
+  "commandShortName": "Restart Agent",
+  "disabled": false,
+  "description": "Restart the NetXMS agent service on the target node.",
+  "askConfirmation": true,
+  "confirmationMessage": "Are you sure you want to restart the NetXMS agent on {node.name}?",
+  "generatesOutput": false,
+  "showInCommands": true,
+  "runInContainerContext": false,
+  "suppressSuccessMessage": false,
+  "setupTcpTunnel": false,
+  "remotePort": 0,
+  "snmpIndexedByValue": false,
+  "filter": "",
+  "data": "nxagentd -R",
+  "inputFields": []
+}

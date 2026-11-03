@@ -1,0 +1,21 @@
+{
+  "id": 4,
+  "name": "Interface List",
+  "type": "agent-list",
+  "commandName": "Net.InterfaceList",
+  "commandShortName": "Interfaces",
+  "disabled": false,
+  "description": "Retrieve the list of network interfaces from the NetXMS agent.",
+  "askConfirmation": false,
+  "confirmationMessage": "",
+  "generatesOutput": true,
+  "showInCommands": true,
+  "runInContainerContext": false,
+  "suppressSuccessMessage": false,
+  "setupTcpTunnel": false,
+  "remotePort": 0,
+  "snmpIndexedByValue": false,
+  "filter": "",
+  "data": "Net.InterfaceList",
+  "inputFields": []
+}

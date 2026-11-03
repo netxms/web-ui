@@ -1,0 +1,14 @@
+[
+  {
+    "object": { "id": 501, "name": "web-cluster", "class": "Container", "status": 0 },
+    "fields": { "type": "container", "status": "Normal" }
+  },
+  {
+    "object": { "id": 508, "name": "db-cluster", "class": "Container", "status": 3 },
+    "fields": { "type": "container", "status": "Major" }
+  },
+  {
+    "object": { "id": 502, "name": "web-01", "class": "Node", "status": 0 },
+    "fields": { "type": "node", "status": "Normal" }
+  }
+]

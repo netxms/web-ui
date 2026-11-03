@@ -1,0 +1,21 @@
+{
+  "id": 3,
+  "name": "SNMP Walk",
+  "type": "snmp-table",
+  "commandName": "SNMP MIB Walk",
+  "commandShortName": "SNMP Walk",
+  "disabled": false,
+  "description": "Walk the SNMP MIB tree of the target device.",
+  "askConfirmation": false,
+  "confirmationMessage": "",
+  "generatesOutput": true,
+  "showInCommands": true,
+  "runInContainerContext": false,
+  "suppressSuccessMessage": false,
+  "setupTcpTunnel": false,
+  "remotePort": 0,
+  "snmpIndexedByValue": true,
+  "filter": "^(node\\.snmpAgentType == 1)",
+  "data": ".1.3.6.1.2.1",
+  "inputFields": []
+}

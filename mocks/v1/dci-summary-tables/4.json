@@ -1,0 +1,24 @@
+{
+  "id": 4,
+  "title": "Agent Version Report",
+  "menuPath": "Inventory",
+  "flags": 0,
+  "nodeFilter": "node.isAgent",
+  "tableDciName": "",
+  "columns": [
+    {
+      "name": "agentVersion",
+      "displayName": "Agent Version",
+      "dataType": "string",
+      "func": "last",
+      "dciName": "Agent.Version"
+    },
+    {
+      "name": "agentPlatform",
+      "displayName": "Platform",
+      "dataType": "string",
+      "func": "last",
+      "dciName": "System.PlatformName"
+    }
+  ]
+}

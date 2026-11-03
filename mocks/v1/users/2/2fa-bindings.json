@@ -1,0 +1,8 @@
+[
+  {
+    "methodName": "TOTP Authenticator",
+    "driver": "TOTP",
+    "status": "enabled",
+    "enabled": true
+  }
+]

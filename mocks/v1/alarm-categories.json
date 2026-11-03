@@ -1,0 +1,8 @@
+[
+  { "id": 1, "name": "Network", "description": "Network connectivity and infrastructure issues" },
+  { "id": 2, "name": "Security", "description": "Security incidents and policy violations" },
+  { "id": 3, "name": "Performance", "description": "Performance degradation and capacity issues" },
+  { "id": 4, "name": "Hardware", "description": "Hardware failures and component errors" },
+  { "id": 5, "name": "Application", "description": "Application errors and service failures" },
+  { "id": 6, "name": "Backup", "description": "Backup and recovery related alerts" }
+]

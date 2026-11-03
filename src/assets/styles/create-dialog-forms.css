@@ -1,0 +1,84 @@
+/*
+ * Global layout classes for object-creation dialog forms. Labelled fields are `FormField`
+ * (forms.css); `.form-row` is a plain stacked block for markup that is not a labelled field
+ * (checkbox rows, composite blocks), not a label style.
+ */
+
+/*
+ * Dialogs use a tighter gap and a smaller, muted label than forms.css. Keyed on
+ * `.p-dialog-content` so its specificity (0,2,0) beats the bare `.form-field` rules regardless
+ * of import order.
+ */
+.p-dialog-content .form-field {
+  gap: 0.25rem;
+}
+
+.p-dialog-content .form-field__label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--p-text-muted-color);
+}
+
+/* Stacked block for dialog markup that is not a labelled field (checkbox rows, composites). */
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+/* Two or more fields sharing a row. */
+.form-row-inline {
+  display: flex;
+  gap: 0.875rem;
+}
+
+.form-row-inline > .form-field,
+.form-row-inline > .form-row {
+  flex: 1;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+}
+
+/*
+ * Label styling for hand-written `<label class="form-label">` markup not yet converted to
+ * `FormField`, which renders this class too so the two stay in step.
+ */
+.form-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--p-text-muted-color);
+}
+
+/* The asterisk on a mandatory field's label, from FormField or hand-written label markup. */
+.required {
+  color: var(--p-red-500);
+  margin-left: 0.125rem;
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+/* A checkbox and its label read as one line rather than a stacked field. */
+.checkbox-row {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checkbox-row label {
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+/*
+ * A mandatory field that is still blank, so it is obvious which one is holding up the
+ * Create button. Targets the control rather than the whole field, and steps over the
+ * hint/error line so a field with one keeps the edge on its input.
+ */
+.form-field--required-empty > :last-child:not(.form-field__hint):not(.form-field__error) {
+  border-left: 6px solid var(--p-red-400);
+}

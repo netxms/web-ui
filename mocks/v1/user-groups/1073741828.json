@@ -1,0 +1,7 @@
+{
+  "id": 1073741828,
+  "name": "Read-Only",
+  "description": "View-only access for reporting and auditing purposes.",
+  "members": [3],
+  "systemRights": 1024
+}

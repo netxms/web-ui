@@ -1,0 +1,11 @@
+{
+  "id": 2,
+  "name": "Execute Remediation Script",
+  "type": 0,
+  "isDisabled": false,
+  "recipientAddress": "",
+  "notificationChannelName": "",
+  "subject": "",
+  "data": "/opt/netxms/scripts/auto-remediate.sh %node.ipAddr% %alarm.id%",
+  "description": "Run the auto-remediation script on the management server."
+}

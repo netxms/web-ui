@@ -1,0 +1,7 @@
+{
+  "id": 1073741825,
+  "name": "Everyone",
+  "description": "Built-in group containing all users.",
+  "members": [1, 2, 3, 4, 5],
+  "systemRights": 0
+}

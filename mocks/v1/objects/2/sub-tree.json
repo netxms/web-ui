@@ -1,0 +1,631 @@
+[
+  {
+    "id": 108,
+    "guid": "dada9a39-80b8-4aea-9a75-3e519fbeffdd",
+    "class": "Node",
+    "name": "netxms",
+    "alias": "",
+    "category": 0,
+    "timestamp": "2026-02-06T16:52:10Z",
+    "status": 3,
+    "isInMaintenanceMode": false,
+    "isMaintenanceApplicable": true,
+    "children": [
+      {
+        "id": 111,
+        "guid": "4aa543d4-2c37-4669-8887-e7912ce9d0ca",
+        "class": "Interface",
+        "name": "eth0",
+        "alias": "",
+        "category": 0,
+        "timestamp": "2024-12-18T13:34:27Z",
+        "status": 0,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": false
+      },
+      {
+        "id": 35372,
+        "guid": "5a6043b3-0429-4012-a28b-b936de0af526",
+        "class": "Interface",
+        "name": "lo",
+        "alias": "",
+        "category": 0,
+        "timestamp": "2024-06-11T09:35:01Z",
+        "status": 0,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": false
+      }
+    ]
+  },
+  {
+    "id": 112,
+    "guid": "c90bab61-15e9-4469-aa6c-b510d443501d",
+    "class": "Container",
+    "name": "Office",
+    "alias": "",
+    "category": 0,
+    "timestamp": "2026-02-06T16:18:19Z",
+    "status": 4,
+    "isInMaintenanceMode": false,
+    "isMaintenanceApplicable": false,
+    "children": [
+      {
+        "id": 329,
+        "guid": "9bbb3007-5c2e-4367-a563-561436ca8d74",
+        "class": "Container",
+        "name": "Network",
+        "alias": "",
+        "category": 0,
+        "timestamp": "2026-02-06T16:18:19Z",
+        "status": 4,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": false,
+        "children": [
+          {
+            "id": 385,
+            "guid": "8e1b9dd0-7f5c-42cb-bed2-43b1c51f8d34",
+            "class": "Node",
+            "name": "wifi-1.office.example.com",
+            "alias": "",
+            "category": 0,
+            "timestamp": "2026-02-06T16:48:46Z",
+            "status": 0,
+            "isInMaintenanceMode": false,
+            "isMaintenanceApplicable": true,
+            "children": [
+              {
+                "id": 386,
+                "guid": "5dc394aa-3cba-4c7a-b1ff-ed2ccab268a8",
+                "class": "Interface",
+                "name": "wlan1",
+                "alias": "",
+                "category": 0,
+                "timestamp": "2026-02-06T16:23:59Z",
+                "status": 0,
+                "isInMaintenanceMode": false,
+                "isMaintenanceApplicable": false
+              },
+              {
+                "id": 389,
+                "guid": "a05219f0-f640-4c77-a59c-37873a2680a3",
+                "class": "Interface",
+                "name": "wlan2",
+                "alias": "",
+                "category": 0,
+                "timestamp": "2022-12-08T14:53:25Z",
+                "status": 0,
+                "isInMaintenanceMode": false,
+                "isMaintenanceApplicable": false
+              },
+              {
+                "id": 390,
+                "guid": "e95470fd-2934-4ca9-bf99-c8f2b098f4fc",
+                "class": "Interface",
+                "name": "ether1",
+                "alias": "",
+                "category": 0,
+                "timestamp": "2026-02-06T16:49:26Z",
+                "status": 0,
+                "isInMaintenanceMode": false,
+                "isMaintenanceApplicable": false
+              },
+              {
+                "id": 391,
+                "guid": "0baf7344-dc96-4303-99af-1a46cbd49c58",
+                "class": "Interface",
+                "name": "bridge-vlan100",
+                "alias": "",
+                "category": 0,
+                "timestamp": "2021-07-01T11:42:17Z",
+                "status": 0,
+                "isInMaintenanceMode": false,
+                "isMaintenanceApplicable": false
+              },
+              {
+                "id": 392,
+                "guid": "1e2367c0-2138-4123-8a22-a6327ddd3437",
+                "class": "Interface",
+                "name": "ether1.1",
+                "alias": "",
+                "category": 0,
+                "timestamp": "2026-01-12T18:05:43Z",
+                "status": 0,
+                "isInMaintenanceMode": false,
+                "isMaintenanceApplicable": false
+              },
+              {
+                "id": 393,
+                "guid": "be51b157-8daa-4e2d-9942-664e2757d9fc",
+                "class": "Interface",
+                "name": "ether1.4",
+                "alias": "",
+                "category": 0,
+                "timestamp": "2026-02-04T23:26:09Z",
+                "status": 0,
+                "isInMaintenanceMode": false,
+                "isMaintenanceApplicable": false
+              },
+              {
+                "id": 36097,
+                "guid": "b3792342-dd48-4c1d-b7b2-b167289686ef",
+                "class": "Interface",
+                "name": "lo",
+                "alias": "",
+                "category": 0,
+                "timestamp": "2024-07-15T16:24:45Z",
+                "status": 0,
+                "isInMaintenanceMode": false,
+                "isMaintenanceApplicable": false
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": 500,
+    "guid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "class": "Container",
+    "name": "DataCenter-Alpha",
+    "alias": "DC-Alpha",
+    "category": 0,
+    "timestamp": "2026-02-15T08:00:00Z",
+    "status": 3,
+    "isInMaintenanceMode": false,
+    "isMaintenanceApplicable": false,
+    "children": [
+      {
+        "id": 501,
+        "guid": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+        "class": "Cluster",
+        "name": "web-cluster",
+        "alias": "",
+        "category": 0,
+        "timestamp": "2026-02-15T08:00:00Z",
+        "status": 0,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": true,
+        "children": [
+          {
+            "id": 502,
+            "guid": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+            "class": "Node",
+            "name": "web-01.dc-alpha.example.com",
+            "alias": "web-01",
+            "category": 0,
+            "timestamp": "2026-02-26T10:00:00Z",
+            "status": 0,
+            "isInMaintenanceMode": true,
+            "isMaintenanceApplicable": true,
+            "children": [
+              {
+                "id": 503,
+                "guid": "d4e5f6a7-b8c9-0123-def0-234567890123",
+                "class": "Interface",
+                "name": "eth0",
+                "alias": "",
+                "category": 0,
+                "timestamp": "2026-02-26T10:00:00Z",
+                "status": 0,
+                "isInMaintenanceMode": false,
+                "isMaintenanceApplicable": false
+              },
+              {
+                "id": 504,
+                "guid": "e5f6a7b8-c9d0-1234-ef01-345678901234",
+                "class": "Interface",
+                "name": "eth1",
+                "alias": "",
+                "category": 0,
+                "timestamp": "2026-02-26T10:00:00Z",
+                "status": 0,
+                "isInMaintenanceMode": false,
+                "isMaintenanceApplicable": false
+              }
+            ]
+          },
+          {
+            "id": 505,
+            "guid": "f6a7b8c9-d0e1-2345-f012-456789012345",
+            "class": "Node",
+            "name": "web-02.dc-alpha.example.com",
+            "alias": "web-02",
+            "category": 0,
+            "timestamp": "2026-02-26T10:00:00Z",
+            "status": 1,
+            "isInMaintenanceMode": false,
+            "isMaintenanceApplicable": true,
+            "children": [
+              {
+                "id": 506,
+                "guid": "a7b8c9d0-e1f2-3456-0123-567890123456",
+                "class": "Interface",
+                "name": "eth0",
+                "alias": "",
+                "category": 0,
+                "timestamp": "2026-02-26T10:00:00Z",
+                "status": 0,
+                "isInMaintenanceMode": false,
+                "isMaintenanceApplicable": false
+              },
+              {
+                "id": 507,
+                "guid": "b8c9d0e1-f2a3-4567-1234-678901234567",
+                "class": "Interface",
+                "name": "eth1",
+                "alias": "",
+                "category": 0,
+                "timestamp": "2026-02-26T10:00:00Z",
+                "status": 0,
+                "isInMaintenanceMode": false,
+                "isMaintenanceApplicable": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 508,
+        "guid": "c9d0e1f2-a3b4-5678-2345-789012345678",
+        "class": "Cluster",
+        "name": "db-cluster",
+        "alias": "",
+        "category": 0,
+        "timestamp": "2026-02-15T08:00:00Z",
+        "status": 2,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": true,
+        "children": [
+          {
+            "id": 509,
+            "guid": "d0e1f2a3-b4c5-6789-3456-890123456789",
+            "class": "Node",
+            "name": "db-primary.dc-alpha.example.com",
+            "alias": "db-primary",
+            "category": 0,
+            "timestamp": "2026-02-26T10:00:00Z",
+            "status": 2,
+            "isInMaintenanceMode": false,
+            "isMaintenanceApplicable": true,
+            "children": [
+              {
+                "id": 510,
+                "guid": "e1f2a3b4-c5d6-7890-4567-901234567890",
+                "class": "Interface",
+                "name": "eth0",
+                "alias": "",
+                "category": 0,
+                "timestamp": "2026-02-26T10:00:00Z",
+                "status": 0,
+                "isInMaintenanceMode": false,
+                "isMaintenanceApplicable": false
+              },
+              {
+                "id": 511,
+                "guid": "f2a3b4c5-d6e7-8901-5678-012345678901",
+                "class": "Interface",
+                "name": "bond0",
+                "alias": "Storage Bond",
+                "category": 0,
+                "timestamp": "2026-02-26T10:00:00Z",
+                "status": 0,
+                "isInMaintenanceMode": false,
+                "isMaintenanceApplicable": false
+              }
+            ]
+          },
+          {
+            "id": 512,
+            "guid": "a3b4c5d6-e7f8-9012-6789-123456789012",
+            "class": "Node",
+            "name": "db-replica.dc-alpha.example.com",
+            "alias": "db-replica",
+            "category": 0,
+            "timestamp": "2026-02-26T10:00:00Z",
+            "status": 0,
+            "isInMaintenanceMode": false,
+            "isMaintenanceApplicable": true,
+            "children": [
+              {
+                "id": 513,
+                "guid": "b4c5d6e7-f8a9-0123-7890-234567890123",
+                "class": "Interface",
+                "name": "eth0",
+                "alias": "",
+                "category": 0,
+                "timestamp": "2026-02-26T10:00:00Z",
+                "status": 0,
+                "isInMaintenanceMode": false,
+                "isMaintenanceApplicable": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 514,
+        "guid": "c5d6e7f8-a9b0-1234-8901-345678901234",
+        "class": "Rack",
+        "name": "Rack-DC-A-01",
+        "alias": "",
+        "category": 0,
+        "timestamp": "2026-02-15T08:00:00Z",
+        "status": 4,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": false,
+        "children": [
+          {
+            "id": 515,
+            "guid": "d6e7f8a9-b0c1-2345-9012-456789012345",
+            "class": "Chassis",
+            "name": "BladeCenter-1",
+            "alias": "",
+            "category": 0,
+            "timestamp": "2026-02-15T08:00:00Z",
+            "status": 0,
+            "isInMaintenanceMode": false,
+            "isMaintenanceApplicable": true,
+            "children": [
+              {
+                "id": 516,
+                "guid": "e7f8a9b0-c1d2-3456-0123-567890123456",
+                "class": "Node",
+                "name": "blade-01.dc-alpha.example.com",
+                "alias": "blade-01",
+                "category": 0,
+                "timestamp": "2026-02-26T10:00:00Z",
+                "status": 0,
+                "isInMaintenanceMode": false,
+                "isMaintenanceApplicable": true,
+                "children": [
+                  {
+                    "id": 517,
+                    "guid": "f8a9b0c1-d2e3-4567-1234-678901234567",
+                    "class": "Interface",
+                    "name": "eth0",
+                    "alias": "",
+                    "category": 0,
+                    "timestamp": "2026-02-26T10:00:00Z",
+                    "status": 0,
+                    "isInMaintenanceMode": false,
+                    "isMaintenanceApplicable": false
+                  }
+                ]
+              },
+              {
+                "id": 518,
+                "guid": "a9b0c1d2-e3f4-5678-2345-789012345678",
+                "class": "Node",
+                "name": "blade-02.dc-alpha.example.com",
+                "alias": "blade-02",
+                "category": 0,
+                "timestamp": "2026-02-26T10:00:00Z",
+                "status": 4,
+                "isInMaintenanceMode": false,
+                "isMaintenanceApplicable": true,
+                "children": [
+                  {
+                    "id": 519,
+                    "guid": "b0c1d2e3-f4a5-6789-3456-890123456789",
+                    "class": "Interface",
+                    "name": "eth0",
+                    "alias": "",
+                    "category": 0,
+                    "timestamp": "2026-02-26T10:00:00Z",
+                    "status": 4,
+                    "isInMaintenanceMode": false,
+                    "isMaintenanceApplicable": false
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 520,
+        "guid": "c1d2e3f4-a5b6-7890-4567-901234567890",
+        "class": "Zone",
+        "name": "DMZ",
+        "alias": "",
+        "category": 0,
+        "timestamp": "2026-02-15T08:00:00Z",
+        "status": 0,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": false,
+        "children": [
+          {
+            "id": 521,
+            "guid": "d2e3f4a5-b6c7-8901-5678-012345678901",
+            "class": "Subnet",
+            "name": "192.168.200.0/24",
+            "alias": "",
+            "category": 0,
+            "timestamp": "2026-02-15T08:00:00Z",
+            "status": 0,
+            "isInMaintenanceMode": false,
+            "isMaintenanceApplicable": false,
+            "children": []
+          },
+          {
+            "id": 522,
+            "guid": "e3f4a5b6-c7d8-9012-6789-123456789012",
+            "class": "Node",
+            "name": "fw-dmz-01.dc-alpha.example.com",
+            "alias": "fw-dmz-01",
+            "category": 0,
+            "timestamp": "2026-02-26T10:00:00Z",
+            "status": 0,
+            "isInMaintenanceMode": false,
+            "isMaintenanceApplicable": true,
+            "children": [
+              {
+                "id": 523,
+                "guid": "f4a5b6c7-d8e9-0123-7890-234567890123",
+                "class": "Interface",
+                "name": "eth0",
+                "alias": "WAN",
+                "category": 0,
+                "timestamp": "2026-02-26T10:00:00Z",
+                "status": 0,
+                "isInMaintenanceMode": false,
+                "isMaintenanceApplicable": false
+              },
+              {
+                "id": 524,
+                "guid": "a5b6c7d8-e9f0-1234-8901-345678901234",
+                "class": "Interface",
+                "name": "eth1",
+                "alias": "LAN",
+                "category": 0,
+                "timestamp": "2026-02-26T10:00:00Z",
+                "status": 0,
+                "isInMaintenanceMode": false,
+                "isMaintenanceApplicable": false
+              },
+              {
+                "id": 525,
+                "guid": "b6c7d8e9-f0a1-2345-9012-456789012345",
+                "class": "VPNConnector",
+                "name": "VPN-Branch-HQ",
+                "alias": "",
+                "category": 0,
+                "timestamp": "2026-02-26T10:00:00Z",
+                "status": 0,
+                "isInMaintenanceMode": false,
+                "isMaintenanceApplicable": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 526,
+        "guid": "c7d8e9f0-a1b2-3456-0123-567890123456",
+        "class": "Subnet",
+        "name": "10.10.1.0/24",
+        "alias": "Internal LAN",
+        "category": 0,
+        "timestamp": "2026-02-15T08:00:00Z",
+        "status": 0,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": false
+      },
+      {
+        "id": 527,
+        "guid": "d8e9f0a1-b2c3-4567-1234-678901234567",
+        "class": "AccessPoint",
+        "name": "AP-DC-Floor1-01",
+        "alias": "",
+        "category": 0,
+        "timestamp": "2026-02-26T10:00:00Z",
+        "status": 0,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": true,
+        "children": [
+          {
+            "id": 528,
+            "guid": "e9f0a1b2-c3d4-5678-2345-789012345678",
+            "class": "Interface",
+            "name": "wlan0",
+            "alias": "",
+            "category": 0,
+            "timestamp": "2026-02-26T10:00:00Z",
+            "status": 0,
+            "isInMaintenanceMode": false,
+            "isMaintenanceApplicable": false
+          }
+        ]
+      },
+      {
+        "id": 529,
+        "guid": "f0a1b2c3-d4e5-6789-3456-890123456789",
+        "class": "MobileDevice",
+        "name": "iPad-Admin-01",
+        "alias": "",
+        "category": 0,
+        "timestamp": "2026-02-20T09:00:00Z",
+        "status": 5,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": true
+      },
+      {
+        "id": 530,
+        "guid": "a1b2c3d4-e5f6-7890-4567-901234567890",
+        "class": "Sensor",
+        "name": "Temp-Rack-A-01",
+        "alias": "",
+        "category": 0,
+        "timestamp": "2026-02-26T10:00:00Z",
+        "status": 0,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": true
+      },
+      {
+        "id": 531,
+        "guid": "b2c3d4e5-f6a7-8901-5678-012345678901",
+        "class": "NetworkService",
+        "name": "HTTP-Web-Monitor",
+        "alias": "",
+        "category": 0,
+        "timestamp": "2026-02-26T10:00:00Z",
+        "status": 0,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": false
+      },
+      {
+        "id": 700,
+        "guid": "c3d4e5f6-a7b8-9012-cdef-123456789abc",
+        "class": "Rack",
+        "name": "Server Room - Rack A",
+        "alias": "",
+        "category": 0,
+        "timestamp": "2026-04-01T10:00:00Z",
+        "status": 0,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": false,
+        "children": []
+      },
+      {
+        "id": 701,
+        "guid": "d4e5f6a7-b8c9-0123-defa-23456789abcd",
+        "class": "Rack",
+        "name": "Server Room - Rack B",
+        "alias": "",
+        "category": 0,
+        "timestamp": "2026-04-01T10:00:00Z",
+        "status": 0,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": false,
+        "children": []
+      },
+      {
+        "id": 800,
+        "guid": "b8c9d0e1-f2a3-4567-bcde-f89012345678",
+        "class": "Rack",
+        "name": "Rack-DC1-A01",
+        "alias": "DC1-A01",
+        "category": 0,
+        "timestamp": "2026-03-10T09:00:00Z",
+        "status": 3,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": false,
+        "children": []
+      },
+      {
+        "id": 801,
+        "guid": "c9d0e1f2-a3b4-5678-cdef-012345678901",
+        "class": "Chassis",
+        "name": "Chassis-DC1-A02",
+        "alias": "DC1-A02",
+        "category": 0,
+        "timestamp": "2026-03-10T09:00:00Z",
+        "status": 1,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": true,
+        "children": []
+      }
+    ]
+  }
+]

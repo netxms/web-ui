@@ -1,0 +1,9 @@
+{
+  "id": 2,
+  "title": "Interface Traffic Summary",
+  "menuPath": "Network/Interfaces",
+  "flags": 1,
+  "nodeFilter": "node.isAgent",
+  "tableDciName": "Net.InterfaceTraffic",
+  "columns": []
+}

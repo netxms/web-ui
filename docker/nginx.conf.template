@@ -1,0 +1,15 @@
+# Site config of the Docker image. The nginx image substitutes ${NETXMS_WEBAPI} at start.
+
+include snippets/netxms-console-http.conf;
+
+upstream netxms_webapi {
+    server ${NETXMS_WEBAPI};
+}
+
+server {
+    # No IPv6 listen: it fails the start in containers with IPv6 disabled.
+    listen 80;
+    root /usr/share/nginx/html;
+
+    include snippets/netxms-console-app.conf;
+}

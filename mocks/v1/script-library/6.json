@@ -1,0 +1,5 @@
+{
+  "id": 6,
+  "name": "ReportGenerator",
+  "code": "/**\n * ReportGenerator - Produces a summary report for a container of nodes.\n * Returns a formatted text report with status overview.\n */\n\nlocal container = $node;\nlocal report = CreateArray();\n\nlocal total = 0;\nlocal up = 0;\nlocal down = 0;\nlocal unknown = 0;\n\nforeach (child : GetChildObjects(container))\n{\n  if (child.class != 'Node') continue;\n  total++;\n  if (child.status == 0) up++;\n  else if (child.status >= 4) down++;\n  else unknown++;\n}\n\nreport->append('=== Status Report: ' + container.name + ' ===');\nreport->append('Generated: ' + FormatDate(time(), '%Y-%m-%d %H:%M:%S UTC'));\nreport->append('');\nreport->append('Total nodes:   ' + total);\nreport->append('Normal:        ' + up);\nreport->append('Problem:       ' + (total - up - unknown));\nreport->append('Unknown:       ' + unknown);\nreport->append('Down/Critical: ' + down);\nreport->append('');\n\nlocal pct = (total > 0) ? (up * 100 / total) : 0;\nreport->append('Availability:  ' + pct + '%');\n\nreturn ArrayToString(report, '\\n');\n"
+}

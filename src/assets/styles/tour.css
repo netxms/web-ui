@@ -1,0 +1,122 @@
+/*
+ * Guided tour popovers (driver.js). driver.js loads its light-only stylesheet lazily, after this
+ * file, so every rule is qualified with `.nx-tour` (useGuidedTour's popoverClass) to win on
+ * specificity. Colours are PrimeVue tokens, so dark mode needs no separate block.
+ */
+
+.driver-popover.nx-tour {
+  background: var(--p-surface-overlay);
+  color: var(--p-text-color);
+  border: 1px solid var(--p-surface-border);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  padding: 1rem 1.125rem 0.875rem;
+  max-width: 22rem;
+  font-family: var(--app-font-family);
+  font-size: var(--app-font-size);
+}
+
+.driver-popover.nx-tour .driver-popover-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--p-text-color);
+  margin-bottom: 0.375rem;
+}
+
+.driver-popover.nx-tour .driver-popover-description {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--p-text-muted-color);
+  margin-bottom: 0.875rem;
+}
+
+.driver-popover.nx-tour .driver-popover-progress-text {
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+}
+
+.driver-popover.nx-tour .driver-popover-footer {
+  gap: 0.5rem;
+}
+
+.driver-popover.nx-tour .driver-popover-footer button {
+  all: unset;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1;
+  padding: 0.4375rem 0.75rem;
+  border-radius: 6px;
+  text-shadow: none;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.driver-popover.nx-tour .driver-popover-prev-btn {
+  color: var(--p-text-muted-color);
+  border: 1px solid var(--p-surface-border);
+}
+
+.driver-popover.nx-tour .driver-popover-prev-btn:hover {
+  background: var(--p-surface-hover);
+  color: var(--p-text-color);
+}
+
+.driver-popover.nx-tour .driver-popover-next-btn {
+  background: var(--p-primary-color);
+  color: var(--p-primary-contrast-color);
+}
+
+.driver-popover.nx-tour .driver-popover-next-btn:hover {
+  filter: brightness(1.08);
+}
+
+.driver-popover.nx-tour .driver-popover-prev-btn.driver-popover-btn-disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.driver-popover.nx-tour .driver-popover-close-btn {
+  color: var(--p-text-muted-color);
+  font-size: 1rem;
+  padding: 0.25rem;
+}
+
+.driver-popover.nx-tour .driver-popover-close-btn:hover {
+  color: var(--p-text-color);
+}
+
+/* The arrow is a bordered pseudo-triangle, so its colour lives on one border side per
+   placement and has to be restated for each. */
+.driver-popover.nx-tour .driver-popover-arrow-side-left {
+  border-left-color: var(--p-surface-overlay);
+}
+
+.driver-popover.nx-tour .driver-popover-arrow-side-right {
+  border-right-color: var(--p-surface-overlay);
+}
+
+.driver-popover.nx-tour .driver-popover-arrow-side-top {
+  border-top-color: var(--p-surface-overlay);
+}
+
+.driver-popover.nx-tour .driver-popover-arrow-side-bottom {
+  border-bottom-color: var(--p-surface-overlay);
+}
+
+/* driver.js positions the popover with inline pixel offsets, which are direction-agnostic,
+   but its footer is a plain flex row — so in RTL the Back/Next pair reads backwards. Written
+   out here because postcss-rtlcss only processes our own CSS, never node_modules. */
+[dir='rtl'] .driver-popover.nx-tour .driver-popover-navigation-btns {
+  flex-direction: row-reverse;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .driver-popover.nx-tour,
+  .driver-popover.nx-tour * {
+    transition: none;
+  }
+}

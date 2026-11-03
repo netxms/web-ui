@@ -1,0 +1,21 @@
+{
+  "id": 5,
+  "name": "Open Web Console",
+  "type": "url",
+  "commandName": "https://{node.ipAddr}/admin",
+  "commandShortName": "Web Console",
+  "disabled": false,
+  "description": "Open the device web management console.",
+  "askConfirmation": false,
+  "confirmationMessage": "",
+  "generatesOutput": false,
+  "showInCommands": true,
+  "runInContainerContext": false,
+  "suppressSuccessMessage": true,
+  "setupTcpTunnel": false,
+  "remotePort": 0,
+  "snmpIndexedByValue": false,
+  "filter": "",
+  "data": "https://{node.ipAddr}/admin",
+  "inputFields": []
+}

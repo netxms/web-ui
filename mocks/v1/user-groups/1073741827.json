@@ -1,0 +1,7 @@
+{
+  "id": 1073741827,
+  "name": "NOC Operators",
+  "description": "Network operations center staff with monitoring and alarm management rights.",
+  "members": [2],
+  "systemRights": 3072
+}

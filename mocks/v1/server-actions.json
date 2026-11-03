@@ -1,0 +1,68 @@
+[
+  {
+    "id": 1,
+    "name": "Send Critical Alarm Email",
+    "type": 3,
+    "isDisabled": false,
+    "recipientAddress": "%alarm.owner%",
+    "notificationChannelName": "SMTP Email",
+    "subject": "CRITICAL: %alarm.message% on %node.name%",
+    "data": "A critical alarm has been triggered.\n\nNode: %node.name%\nSeverity: %alarm.severity%\nMessage: %alarm.message%\nTime: %alarm.timestamp%",
+    "description": "Send an email notification for critical alarms."
+  },
+  {
+    "id": 2,
+    "name": "Execute Remediation Script",
+    "type": 0,
+    "isDisabled": false,
+    "recipientAddress": "",
+    "notificationChannelName": "",
+    "subject": "",
+    "data": "/opt/netxms/scripts/auto-remediate.sh %node.ipAddr% %alarm.id%",
+    "description": "Run the auto-remediation script on the management server."
+  },
+  {
+    "id": 3,
+    "name": "Restart Agent on Node",
+    "type": 1,
+    "isDisabled": false,
+    "recipientAddress": "%node.ipAddr%",
+    "notificationChannelName": "",
+    "subject": "",
+    "data": "Agent.Restart",
+    "description": "Instruct the remote agent to restart itself."
+  },
+  {
+    "id": 4,
+    "name": "Check Health via NXSL",
+    "type": 5,
+    "isDisabled": false,
+    "recipientAddress": "",
+    "notificationChannelName": "",
+    "subject": "",
+    "data": "HealthCheck",
+    "description": "Execute the HealthCheck NXSL script for automated diagnostics."
+  },
+  {
+    "id": 5,
+    "name": "Forward to Ops Server",
+    "type": 4,
+    "isDisabled": false,
+    "recipientAddress": "ops-server.company.com:4701",
+    "notificationChannelName": "",
+    "subject": "",
+    "data": "",
+    "description": "Forward the event to the secondary NetXMS operations server."
+  },
+  {
+    "id": 6,
+    "name": "SMS Alert (Legacy)",
+    "type": 3,
+    "isDisabled": true,
+    "recipientAddress": "+15550001234",
+    "notificationChannelName": "Twilio SMS",
+    "subject": "",
+    "data": "ALERT: %alarm.message% [%node.name%]",
+    "description": "Disabled - replaced by the PagerDuty integration."
+  }
+]

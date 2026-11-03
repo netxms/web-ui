@@ -1,0 +1,21 @@
+{
+  "id": 8,
+  "name": "Download Agent Log",
+  "type": "file-download",
+  "commandName": "/var/log/nxagentd.log",
+  "commandShortName": "Agent Log",
+  "disabled": false,
+  "description": "Download the NetXMS agent log file from the target node.",
+  "askConfirmation": false,
+  "confirmationMessage": "",
+  "generatesOutput": false,
+  "showInCommands": true,
+  "runInContainerContext": false,
+  "suppressSuccessMessage": false,
+  "setupTcpTunnel": false,
+  "remotePort": 0,
+  "snmpIndexedByValue": false,
+  "filter": "",
+  "data": "/var/log/nxagentd.log",
+  "inputFields": []
+}

@@ -1,0 +1,30 @@
+[
+  {
+    "id": 4,
+    "title": "Find every view of an object",
+    "date": "2026-10-28",
+    "summary": "Nodes now open with an Interfaces tab and containers with Status Map. The button after the view tabs shows how many more views the selected object has, and lists just those. Views added later appear on their own; the ones you removed stay removed.",
+    "hidden": true
+  },
+  {
+    "id": 1,
+    "title": "How to Waste a Free Proof of Concept",
+    "date": "2026-08-27",
+    "summary": "A three-month monitoring PoC met every signed success criterion and still proved almost nothing. The failure modes to check yourself against before accepting a free pilot from any vendor.",
+    "link": "https://netxms.com/blog/how-to-waste-a-free-proof-of-concept-an-anonymised-post-mortem/"
+  },
+  {
+    "id": 2,
+    "title": "Why Not Every ATM Monitoring System Requires PCI DSS Certification",
+    "date": "2026-03-20",
+    "summary": "PCI DSS 4.0 sets many requirements for ATMs, but the monitoring system itself may fall outside the certification scope. Understanding data scope and compliance.",
+    "link": "https://netxms.com/blog/pci-dss-certification-for-atm-monitoring/"
+  },
+  {
+    "id": 3,
+    "title": "Asset Management in NetXMS: Built for ISO Compliance",
+    "date": "2026-02-24",
+    "summary": "Monitoring performance is only part of the puzzle. Organizations also need to know what they actually have, and that is where asset management comes in.",
+    "link": "https://netxms.com/blog/asset-management-in-netxms-built-for-iso-compliance/"
+  }
+]

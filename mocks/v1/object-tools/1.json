@@ -1,0 +1,21 @@
+{
+  "id": 1,
+  "name": "Ping",
+  "type": "internal",
+  "commandName": "Ping (ICMP)",
+  "commandShortName": "Ping",
+  "disabled": false,
+  "description": "Send ICMP echo request to the target node.",
+  "askConfirmation": false,
+  "confirmationMessage": "",
+  "generatesOutput": true,
+  "showInCommands": true,
+  "runInContainerContext": false,
+  "suppressSuccessMessage": false,
+  "setupTcpTunnel": false,
+  "remotePort": 0,
+  "snmpIndexedByValue": false,
+  "filter": "",
+  "data": "",
+  "inputFields": []
+}

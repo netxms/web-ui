@@ -1,0 +1,88 @@
+{
+  "id": 2,
+  "guid": "a0f110d2-0077-49e0-9033-b48b33f9db07",
+  "class": "ServiceRoot",
+  "timestamp": "2026-02-06T14:18:10Z",
+  "name": "Infrastructure Services",
+  "alias": "",
+  "commentsSource": "{}",
+  "comments": "{}",
+  "status": 4,
+  "statusText": "Critical",
+  "statusCalcAlg": 0,
+  "statusPropAlg": 0,
+  "fixedStatus": 1,
+  "statusShift": 0,
+  "statusTranslation": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "statusSingleThreshold": 75,
+  "statusThresholds": [
+    80,
+    60,
+    40,
+    20
+  ],
+  "maintenanceEventId": 0,
+  "maintenanceInitiator": 0,
+  "mapImage": "00000000-0000-0000-0000-000000000000",
+  "geoLocation": {
+    "type": 0,
+    "latitude": 0,
+    "longitude": 0,
+    "accuracy": 0,
+    "timestamp": 0
+  },
+  "postalAddress": {
+    "country": null,
+    "region": null,
+    "city": null,
+    "district": null,
+    "streetAddress": null,
+    "postcode": null
+  },
+  "drilldownObjectId": 0,
+  "dashboards": [],
+  "urls": [],
+  "accessList": [
+    {
+      "userId": 1073741826,
+      "access": 4113
+    },
+    {
+      "userId": 1073741827,
+      "access": 523103
+    },
+    {
+      "userId": 20,
+      "access": 8388608
+    },
+    {
+      "userId": 1073741825,
+      "access": 18874367
+    }
+  ],
+  "inheritAccessRights": false,
+  "trustedObjects": [],
+  "creationTime": null,
+  "categoryId": 0,
+  "aiHint": "",
+  "customAttributes": [
+    {
+      "name": "Template.InterfaceTraffic",
+      "value": "yes",
+      "flags": 1,
+      "sourceObject": 0
+    }
+  ],
+  "children": [
+    108,
+    112,
+    500
+  ],
+  "parents": [],
+  "responsibleUsers": []
+}

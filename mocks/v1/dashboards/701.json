@@ -1,0 +1,72 @@
+{
+  "id": 701,
+  "name": "Infrastructure Health",
+  "numColumns": 12,
+  "rowHeight": 80,
+  "scrollable": false,
+  "elements": [
+    {
+      "guid": "701-alarms",
+      "type": 11,
+      "data": { "title": "All Alarms", "objectId": 0, "severityFilter": 31, "stateFilter": 15 },
+      "layout": { "horizontalSpan": 6, "verticalSpan": 4, "gridX": 0, "gridY": 0 }
+    },
+    {
+      "guid": "701-netmap",
+      "type": 8,
+      "data": { "title": "DC-Alpha Core Topology", "objectId": 600 },
+      "layout": { "horizontalSpan": 6, "verticalSpan": 4, "gridX": 6, "gridY": 0 }
+    },
+    {
+      "guid": "701-si-infra",
+      "type": 6,
+      "data": {
+        "title": "Infrastructure Services",
+        "objectId": 2,
+        "objectName": "Infrastructure Services"
+      },
+      "layout": { "horizontalSpan": 3, "verticalSpan": 2, "gridX": 0, "gridY": 4 }
+    },
+    {
+      "guid": "701-si-dc",
+      "type": 6,
+      "data": { "title": "DataCenter-Alpha", "objectId": 500, "objectName": "DataCenter-Alpha" },
+      "layout": { "horizontalSpan": 3, "verticalSpan": 2, "gridX": 3, "gridY": 4 }
+    },
+    {
+      "guid": "701-scripted-bar",
+      "type": 30,
+      "data": {
+        "title": "Resource Utilization",
+        "objectId": 0,
+        "script": "",
+        "transposed": true,
+        "showLegend": false
+      },
+      "layout": { "horizontalSpan": 3, "verticalSpan": 2, "gridX": 6, "gridY": 4 }
+    },
+    {
+      "guid": "701-scripted-pie",
+      "type": 31,
+      "data": {
+        "title": "Node Health",
+        "objectId": 0,
+        "script": "",
+        "doughnutRendering": true,
+        "showLegend": false,
+        "showTotal": true
+      },
+      "layout": { "horizontalSpan": 3, "verticalSpan": 2, "gridX": 9, "gridY": 4 }
+    },
+    {
+      "guid": "701-label-footer",
+      "type": 0,
+      "data": {
+        "title": "Infrastructure Health Dashboard — Updated every 30 seconds",
+        "align": "center",
+        "fontSize": "sm"
+      },
+      "layout": { "horizontalSpan": 12, "verticalSpan": 1, "gridX": 0, "gridY": 6 }
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "id": 1,
+  "name": "HealthCheck",
+  "code": "/**\n * HealthCheck - Performs a comprehensive health check on the target node.\n * Returns a map with health status details.\n */\n\nfunction checkConnectivity(node)\n{\n  local result = {};\n  result['pingStatus'] = node.icmpAverageRTT < 100 ? 'OK' : 'DEGRADED';\n  result['pingRTT'] = node.icmpAverageRTT;\n  return result;\n}\n\nfunction checkAgent(node)\n{\n  local result = {};\n  result['agentStatus'] = node.isAgent ? 'CONNECTED' : 'N/A';\n  if (node.isAgent)\n  {\n    result['agentVersion'] = AgentGetParameterValue(node, 'Agent.Version');\n    result['cpuUsage'] = AgentGetParameterValue(node, 'System.CPU.Usage');\n    result['memFree'] = AgentGetParameterValue(node, 'System.Memory.Physical.FreePerc');\n  }\n  return result;\n}\n\nlocal node = $node;\nlocal report = {};\n\nreport['node'] = node.name;\nreport['timestamp'] = FormatDate(time(), '%Y-%m-%d %H:%M:%S');\nreport['connectivity'] = checkConnectivity(node);\nreport['agent'] = checkAgent(node);\nreport['overallStatus'] = (report['connectivity']['pingStatus'] == 'OK') ? 'HEALTHY' : 'DEGRADED';\n\nreturn report;\n"
+}

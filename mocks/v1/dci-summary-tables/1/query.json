@@ -1,0 +1,13 @@
+{
+  "title": "CPU & Memory Usage",
+  "columns": [
+    { "name": "cpuUsage", "displayName": "CPU Usage (%)", "dataType": 2, "unitName": "%" },
+    { "name": "memUsed", "displayName": "Memory Used (MB)", "dataType": 1, "unitName": "MB" },
+    { "name": "memTotal", "displayName": "Memory Total (MB)", "dataType": 1, "unitName": "MB" }
+  ],
+  "data": [
+    { "objectId": 501, "values": [{ "value": "42.5" }, { "value": "6144" }, { "value": "16384" }] },
+    { "objectId": 508, "values": [{ "value": "78.2" }, { "value": "24576" }, { "value": "32768" }] },
+    { "objectId": 502, "values": [{ "value": "12.0" }, { "value": "2048" }, { "value": "8192" }] }
+  ]
+}

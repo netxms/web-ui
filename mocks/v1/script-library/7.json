@@ -1,0 +1,5 @@
+{
+  "id": 7,
+  "name": "ThresholdEvaluator",
+  "code": "/**\n * ThresholdEvaluator - Dynamically evaluates thresholds based on time-of-day.\n * Applies tighter thresholds during business hours (08:00–20:00 local time).\n *\n * Parameters:\n *   $1 - DCI name to check\n *   $2 - business hours threshold (e.g., '80')\n *   $3 - off-hours threshold (e.g., '95')\n */\n\nlocal node = $node;\nlocal dciName = $1;\nlocal bizThreshold = ($2 != null) ? toInt($2) : 80;\nlocal offThreshold = ($3 != null) ? toInt($3) : 95;\n\n// Determine if we are in business hours (simple UTC hour check)\nlocal hour = toInt(FormatDate(time(), '%H'));\nlocal isBusinessHours = (hour >= 8 && hour < 20);\nlocal threshold = isBusinessHours ? bizThreshold : offThreshold;\n\nlocal currentValue = toFloat(GetDCIValue(node, dciName));\n\nif (currentValue == null)\n  return 'DCI_NOT_FOUND';\n\nif (currentValue >= threshold)\n{\n  return 'THRESHOLD_EXCEEDED:' + currentValue + '>=' + threshold;\n}\n\nreturn 'OK:' + currentValue + '<' + threshold;\n"
+}

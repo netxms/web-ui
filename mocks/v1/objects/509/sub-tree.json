@@ -1,0 +1,30 @@
+[
+  {
+    "id": 510,
+    "guid": "b3c4d5e6-f7a8-9012-bc01-345678901234",
+    "class": "Interface",
+    "name": "eth0",
+    "alias": "",
+    "status": 0,
+    "isInMaintenanceMode": false,
+    "isMaintenanceApplicable": false,
+    "children": [],
+    "parents": [
+      509
+    ]
+  },
+  {
+    "id": 511,
+    "guid": "c4d5e6f7-a8b9-0123-cd01-456789012345",
+    "class": "Interface",
+    "name": "eth1",
+    "alias": "",
+    "status": 0,
+    "isInMaintenanceMode": false,
+    "isMaintenanceApplicable": false,
+    "children": [],
+    "parents": [
+      509
+    ]
+  }
+]

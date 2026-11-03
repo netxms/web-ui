@@ -1,0 +1,31 @@
+{
+  "id": 1,
+  "title": "CPU & Memory Usage",
+  "menuPath": "Performance",
+  "flags": 0,
+  "nodeFilter": "",
+  "tableDciName": "",
+  "columns": [
+    {
+      "name": "cpuUsage",
+      "displayName": "CPU Usage (%)",
+      "dataType": "float",
+      "func": "average",
+      "dciName": "System.CPU.Usage"
+    },
+    {
+      "name": "memUsed",
+      "displayName": "Memory Used (MB)",
+      "dataType": "integer",
+      "func": "last",
+      "dciName": "System.Memory.Physical.Used"
+    },
+    {
+      "name": "memTotal",
+      "displayName": "Memory Total (MB)",
+      "dataType": "integer",
+      "func": "last",
+      "dciName": "System.Memory.Physical.Total"
+    }
+  ]
+}

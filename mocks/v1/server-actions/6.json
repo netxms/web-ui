@@ -1,0 +1,11 @@
+{
+  "id": 6,
+  "name": "SMS Alert (Legacy)",
+  "type": 3,
+  "isDisabled": true,
+  "recipientAddress": "+15550001234",
+  "notificationChannelName": "Twilio SMS",
+  "subject": "",
+  "data": "ALERT: %alarm.message% [%node.name%]",
+  "description": "Disabled - replaced by the PagerDuty integration."
+}

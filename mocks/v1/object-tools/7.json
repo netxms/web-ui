@@ -1,0 +1,28 @@
+{
+  "id": 7,
+  "name": "Collect Diagnostics",
+  "type": "server-script",
+  "commandName": "DiagnosticsCollector",
+  "commandShortName": "Diagnostics",
+  "disabled": false,
+  "description": "Run the diagnostic collection script on the selected node.",
+  "askConfirmation": false,
+  "confirmationMessage": "",
+  "generatesOutput": true,
+  "showInCommands": true,
+  "runInContainerContext": false,
+  "suppressSuccessMessage": false,
+  "setupTcpTunnel": false,
+  "remotePort": 0,
+  "snmpIndexedByValue": false,
+  "filter": "",
+  "data": "DiagnosticsCollector",
+  "inputFields": [
+    {
+      "name": "outputFormat",
+      "type": "list",
+      "displayName": "Output Format",
+      "options": "text\njson\ncsv"
+    }
+  ]
+}

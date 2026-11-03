@@ -1,0 +1,26 @@
+{
+  "id": 3,
+  "name": "mjones",
+  "fullName": "Mary Jones",
+  "email": "mjones@company.com",
+  "phoneNumber": "",
+  "description": "Imported from LDAP directory.",
+  "authMethod": 5,
+  "certMappingMethod": 0,
+  "certMappingData": "",
+  "flags": {
+    "disabled": false,
+    "changePassword": false,
+    "cannotChangePassword": false,
+    "intruderLockout": false,
+    "passwordNeverExpires": false,
+    "ldapUser": true,
+    "syncException": false,
+    "closeOtherSessions": false,
+    "tokenAuthOnly": false,
+    "twoFAExempt": false,
+    "twoFAEnforce": false,
+    "serviceAccount": false
+  },
+  "systemRights": 0
+}

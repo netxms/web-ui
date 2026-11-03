@@ -1,0 +1,152 @@
+/*
+ * Chart legends drawn as DOM rather than in the canvas (as legacy's ChartLegend widget is),
+ * shared by the legend components so they sit identically on every edge.
+ * utils/chartLegendLayout.js picks the edge per render. A legend sets its own `order`, so a host
+ * only has to be a flex container in the right direction.
+ */
+
+.chart-legend {
+  overflow: auto;
+  min-width: 0;
+  min-height: 0;
+  background: var(--p-surface-card);
+  font-size: 0.75rem;
+}
+
+/* Under or over the plot: a full-width band that never takes more than a third of the
+   chart, so the plot stays the main event. */
+.chart-legend--bottom,
+.chart-legend--top {
+  flex-shrink: 0;
+  max-height: 30%;
+}
+
+.chart-legend--bottom {
+  border-top: 1px solid var(--p-content-border-color);
+}
+
+.chart-legend--top {
+  order: -1;
+  border-bottom: 1px solid var(--p-content-border-color);
+}
+
+/* Beside the plot: sized to its own content rather than a share of the width, so a
+   two-series legend does not reserve a column it cannot fill. */
+.chart-legend--left,
+.chart-legend--right {
+  flex: 0 1 auto;
+  align-self: stretch;
+  max-width: 55%;
+}
+
+.chart-legend--left {
+  order: -1;
+  border-right: 1px solid var(--p-content-border-color);
+}
+
+.chart-legend--right {
+  border-left: 1px solid var(--p-content-border-color);
+}
+
+.chart-legend__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A side legend is content-sized, so its table must not stretch to a width it has no
+   figures to fill. */
+.chart-legend--left .chart-legend__table,
+.chart-legend--right .chart-legend__table {
+  width: auto;
+}
+
+.chart-legend__table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.25rem 0.75rem;
+  background: var(--p-surface-card);
+  border-bottom: 1px solid var(--p-content-border-color);
+  color: var(--p-text-muted-color);
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.chart-legend__table thead th.chart-legend__name-col {
+  text-align: left;
+  width: 40%;
+}
+
+.chart-legend--left .chart-legend__table thead th.chart-legend__name-col,
+.chart-legend--right .chart-legend__table thead th.chart-legend__name-col {
+  width: auto;
+}
+
+.chart-legend__table tbody td {
+  padding: 0.2rem 0.75rem;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--p-text-color);
+}
+
+/* Breathing room under the last row, so it does not sit flush on the view's bottom edge. */
+.chart-legend__table tbody tr:last-child > * {
+  padding-bottom: 0.5rem;
+}
+
+.chart-legend__name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0.75rem;
+  font-weight: 400;
+  text-align: left;
+  min-width: 0;
+}
+
+/* The side table has no column ceiling of its own, so a long DCI description would push
+   the plot out of the widget instead of ellipsizing. */
+.chart-legend--left .chart-legend__name,
+.chart-legend--right .chart-legend__name {
+  max-width: 12rem;
+}
+
+.chart-legend__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.125rem 1rem;
+  margin: 0;
+  padding: 0.375rem 0.75rem;
+  list-style: none;
+}
+
+/* Beside the plot there is no width to wrap into, so entries stack. */
+.chart-legend--left .chart-legend__list,
+.chart-legend--right .chart-legend__list {
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
+.chart-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  max-width: 14rem;
+  color: var(--p-text-color);
+}
+
+.chart-legend__swatch {
+  flex-shrink: 0;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 2px;
+}
+
+.chart-legend__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

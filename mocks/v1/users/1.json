@@ -1,0 +1,26 @@
+{
+  "id": 1,
+  "name": "admin",
+  "fullName": "System Administrator",
+  "email": "admin@company.com",
+  "phoneNumber": "+1-555-0100",
+  "description": "Built-in system administrator account with full access.",
+  "authMethod": 0,
+  "certMappingMethod": 0,
+  "certMappingData": "",
+  "flags": {
+    "disabled": false,
+    "changePassword": false,
+    "cannotChangePassword": false,
+    "intruderLockout": false,
+    "passwordNeverExpires": true,
+    "ldapUser": false,
+    "syncException": false,
+    "closeOtherSessions": false,
+    "tokenAuthOnly": false,
+    "twoFAExempt": false,
+    "twoFAEnforce": false,
+    "serviceAccount": false
+  },
+  "systemRights": 9007199254740991
+}

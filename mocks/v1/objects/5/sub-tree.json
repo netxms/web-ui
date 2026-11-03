@@ -1,0 +1,52 @@
+[
+  {
+    "id": 849,
+    "guid": "a0b1c2d3-e4f5-6789-abcd-ef0123456789",
+    "class": "AssetGroup",
+    "name": "Servers",
+    "alias": "",
+    "category": 0,
+    "timestamp": "2026-01-05T10:00:00Z",
+    "status": 1,
+    "isInMaintenanceMode": false,
+    "isMaintenanceApplicable": false,
+    "children": [
+      {
+        "id": 850,
+        "guid": "b1c2d3e4-f5a6-7890-bcde-f01234567890",
+        "class": "Asset",
+        "name": "srv-dc-01",
+        "alias": "Primary DC Server",
+        "category": 0,
+        "timestamp": "2026-05-12T09:15:00Z",
+        "status": 0,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": true
+      },
+      {
+        "id": 851,
+        "guid": "c2d3e4f5-a6b7-8901-cdef-012345678901",
+        "class": "Asset",
+        "name": "srv-dc-02",
+        "alias": "Secondary DC Server",
+        "category": 0,
+        "timestamp": "2026-04-30T14:22:00Z",
+        "status": 1,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": true
+      }
+    ]
+  },
+  {
+    "id": 852,
+    "guid": "d3e4f5a6-b7c8-9012-def0-123456789012",
+    "class": "Asset",
+    "name": "sw-core-01",
+    "alias": "Core Switch",
+    "category": 0,
+    "timestamp": "2026-03-18T11:45:00Z",
+    "status": 0,
+    "isInMaintenanceMode": false,
+    "isMaintenanceApplicable": true
+  }
+]

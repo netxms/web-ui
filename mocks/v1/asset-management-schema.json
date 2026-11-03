@@ -1,0 +1,146 @@
+{
+  "attributes": [
+    {
+      "name": "serial",
+      "displayName": "Serial Number",
+      "dataType": "String",
+      "systemType": "Serial",
+      "isMandatory": true,
+      "isUnique": true,
+      "isHidden": false,
+      "rangeMin": 0,
+      "rangeMax": 64
+    },
+    {
+      "name": "vendor",
+      "displayName": "Vendor",
+      "dataType": "String",
+      "systemType": "Vendor",
+      "isMandatory": false,
+      "isUnique": false,
+      "isHidden": false,
+      "rangeMin": 0,
+      "rangeMax": 128
+    },
+    {
+      "name": "model",
+      "displayName": "Model",
+      "dataType": "String",
+      "systemType": "Model",
+      "isMandatory": false,
+      "isUnique": false,
+      "isHidden": false,
+      "rangeMin": 0,
+      "rangeMax": 128
+    },
+    {
+      "name": "ip_address",
+      "displayName": "IP Address",
+      "dataType": "IPAddress",
+      "systemType": "IPAddress",
+      "isMandatory": false,
+      "isUnique": true,
+      "isHidden": false
+    },
+    {
+      "name": "mac_address",
+      "displayName": "MAC Address",
+      "dataType": "MacAddress",
+      "systemType": "MacAddress",
+      "isMandatory": false,
+      "isUnique": true,
+      "isHidden": false
+    },
+    {
+      "name": "location",
+      "displayName": "Location",
+      "dataType": "String",
+      "systemType": "None",
+      "isMandatory": false,
+      "isUnique": false,
+      "isHidden": false,
+      "rangeMin": 0,
+      "rangeMax": 256
+    },
+    {
+      "name": "department",
+      "displayName": "Department",
+      "dataType": "String",
+      "systemType": "None",
+      "isMandatory": false,
+      "isUnique": false,
+      "isHidden": false,
+      "rangeMin": 0,
+      "rangeMax": 128
+    },
+    {
+      "name": "purchase_date",
+      "displayName": "Purchase Date",
+      "dataType": "Date",
+      "systemType": "None",
+      "isMandatory": false,
+      "isUnique": false,
+      "isHidden": false
+    },
+    {
+      "name": "rack_unit",
+      "displayName": "Rack Unit",
+      "dataType": "Integer",
+      "systemType": "None",
+      "isMandatory": false,
+      "isUnique": false,
+      "isHidden": false,
+      "rangeMin": 1,
+      "rangeMax": 48
+    },
+    {
+      "name": "os_type",
+      "displayName": "OS Type",
+      "dataType": "Enum",
+      "systemType": "None",
+      "isMandatory": false,
+      "isUnique": false,
+      "isHidden": false,
+      "enumValues": {
+        "linux": "Linux",
+        "windows": "Windows",
+        "macos": "macOS",
+        "freebsd": "FreeBSD",
+        "other": "Other"
+      }
+    },
+    {
+      "name": "status",
+      "displayName": "Status",
+      "dataType": "Enum",
+      "systemType": "None",
+      "isMandatory": true,
+      "isUnique": false,
+      "isHidden": false,
+      "enumMap": {
+        "Provisioned": "0",
+        "In storage": "1",
+        "Installed": "2",
+        "Decomissioned": "3"
+      }
+    },
+    {
+      "name": "warranty_expiry",
+      "displayName": "Warranty Expiry",
+      "dataType": "Date",
+      "systemType": "None",
+      "isMandatory": false,
+      "isUnique": false,
+      "isHidden": false
+    },
+    {
+      "name": "is_managed",
+      "displayName": "Managed",
+      "dataType": "Boolean",
+      "systemType": "None",
+      "isMandatory": false,
+      "isUnique": false,
+      "isHidden": false
+    }
+  ]
+}

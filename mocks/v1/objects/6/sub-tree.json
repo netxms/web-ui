@@ -1,0 +1,52 @@
+[
+  {
+    "id": 599,
+    "guid": "c1d2e3f4-a5b6-7890-cdef-123456789abc",
+    "class": "NetworkMapGroup",
+    "name": "Datacenter Maps",
+    "alias": "",
+    "category": 0,
+    "timestamp": "2026-01-10T09:00:00Z",
+    "status": 0,
+    "isInMaintenanceMode": false,
+    "isMaintenanceApplicable": false,
+    "children": [
+      {
+        "id": 600,
+        "guid": "d2e3f4a5-b6c7-8901-defa-234567890bcd",
+        "class": "NetworkMap",
+        "name": "DC-Alpha Core Topology",
+        "alias": "",
+        "category": 0,
+        "timestamp": "2026-02-01T12:00:00Z",
+        "status": 0,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": false
+      },
+      {
+        "id": 601,
+        "guid": "e3f4a5b6-c7d8-9012-efab-345678901cde",
+        "class": "NetworkMap",
+        "name": "IP Topology – Office",
+        "alias": "",
+        "category": 0,
+        "timestamp": "2026-02-10T09:30:00Z",
+        "status": 0,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": false
+      },
+      {
+        "id": 602,
+        "guid": "f4a5b6c7-d8e9-0123-fabc-456789012def",
+        "class": "NetworkMap",
+        "name": "Traffic Heatmap & Storm Demo",
+        "alias": "",
+        "category": 0,
+        "timestamp": "2026-03-01T10:00:00Z",
+        "status": 0,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": false
+      }
+    ]
+  }
+]

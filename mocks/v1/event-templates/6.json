@@ -1,0 +1,9 @@
+{
+  "code": 6,
+  "name": "SYS_THRESHOLD_REACHED",
+  "severity": 2,
+  "flags": 1,
+  "message": "Threshold reached for DCI %3 on node %1: current value is %2",
+  "tags": ["threshold", "dci"],
+  "description": "Generated when a DCI value crosses a configured threshold."
+}

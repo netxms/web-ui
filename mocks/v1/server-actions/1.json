@@ -1,0 +1,11 @@
+{
+  "id": 1,
+  "name": "Send Critical Alarm Email",
+  "type": 3,
+  "isDisabled": false,
+  "recipientAddress": "%alarm.owner%",
+  "notificationChannelName": "SMTP Email",
+  "subject": "CRITICAL: %alarm.message% on %node.name%",
+  "data": "A critical alarm has been triggered.\n\nNode: %node.name%\nSeverity: %alarm.severity%\nMessage: %alarm.message%\nTime: %alarm.timestamp%",
+  "description": "Send an email notification for critical alarms."
+}

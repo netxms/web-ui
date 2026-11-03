@@ -1,0 +1,9 @@
+{
+  "code": 4,
+  "name": "SYS_IF_DOWN",
+  "severity": 3,
+  "flags": 1,
+  "message": "Interface %2 on node %1 is down",
+  "tags": ["interface", "availability"],
+  "description": "Generated when a network interface goes down."
+}

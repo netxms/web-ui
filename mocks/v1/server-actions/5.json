@@ -1,0 +1,11 @@
+{
+  "id": 5,
+  "name": "Forward to Ops Server",
+  "type": 4,
+  "isDisabled": false,
+  "recipientAddress": "ops-server.company.com:4701",
+  "notificationChannelName": "",
+  "subject": "",
+  "data": "",
+  "description": "Forward the event to the secondary NetXMS operations server."
+}

@@ -1,0 +1,95 @@
+{
+  "id": 601,
+  "name": "IP Topology – Office",
+  "mapType": 2,
+  "background": {
+    "type": "color",
+    "color": "#f8fafc"
+  },
+  "defaultDisplayMode": "icons",
+  "elements": [
+    {
+      "id": "e-gw",
+      "type": "object",
+      "objectId": 385,
+      "objectClass": "Node",
+      "objectName": "wifi-1.office.example.com",
+      "objectStatus": 4,
+      "x": 350,
+      "y": 120
+    },
+    {
+      "id": "e-netxms",
+      "type": "object",
+      "objectId": 108,
+      "objectClass": "Node",
+      "objectName": "mon-server",
+      "objectStatus": 3,
+      "x": 200,
+      "y": 300
+    },
+    {
+      "id": "e-eth0",
+      "type": "object",
+      "objectId": 111,
+      "objectClass": "Interface",
+      "objectName": "eth0",
+      "objectStatus": 0,
+      "x": 380,
+      "y": 300
+    },
+    {
+      "id": "e-lo",
+      "type": "object",
+      "objectId": 35372,
+      "objectClass": "Interface",
+      "objectName": "lo",
+      "objectStatus": 0,
+      "x": 540,
+      "y": 300
+    },
+    {
+      "id": "d-office",
+      "type": "decoration",
+      "decorationType": "group-box",
+      "label": "Office Network",
+      "x": 100,
+      "y": 60,
+      "width": 550,
+      "height": 110,
+      "style": { "color": "#3b82f6", "opacity": 0.08 }
+    }
+  ],
+  "links": [
+    {
+      "id": "l-gw-netxms",
+      "from": "e-gw",
+      "to": "e-netxms",
+      "type": 0,
+      "label": null,
+      "color": "default",
+      "routing": "direct",
+      "dciData": null
+    },
+    {
+      "id": "l-gw-eth0",
+      "from": "e-gw",
+      "to": "e-eth0",
+      "type": 0,
+      "label": null,
+      "color": "default",
+      "routing": "direct",
+      "dciData": null
+    },
+    {
+      "id": "l-gw-lo",
+      "from": "e-gw",
+      "to": "e-lo",
+      "type": 0,
+      "label": null,
+      "color": "default",
+      "routing": "direct",
+      "dciData": null
+    }
+  ]
+}

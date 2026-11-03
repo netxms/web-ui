@@ -1,0 +1,92 @@
+[
+  {
+    "id": 1,
+    "guid": "58b22129-21e1-4dc7-b883-55455e42e166",
+    "class": "Network",
+    "name": "Entire Network",
+    "alias": "",
+    "category": 0,
+    "timestamp": "2017-12-05T16:14:10Z",
+    "status": 4
+  },
+  {
+    "id": 2,
+    "guid": "a0f110d2-0077-49e0-9033-b48b33f9db07",
+    "class": "ServiceRoot",
+    "name": "Infrastructure Services",
+    "alias": "",
+    "category": 0,
+    "timestamp": "2026-02-06T14:18:10Z",
+    "status": 4
+  },
+  {
+    "id": 3,
+    "guid": "dac707e1-d83e-43c5-9133-50b961f7acda",
+    "class": "TemplateRoot",
+    "name": "Templates",
+    "alias": "",
+    "category": 0,
+    "timestamp": "2016-08-25T08:19:06Z",
+    "status": 0
+  },
+  {
+    "id": 5,
+    "guid": "b97f2423-e81c-4ea8-b776-5cb3ff7b65c9",
+    "class": "AssetRoot",
+    "name": "Assets",
+    "alias": "",
+    "category": 0,
+    "timestamp": null,
+    "status": 0
+  },
+  {
+    "id": 6,
+    "guid": "3ecf4305-d439-469c-97e4-83efe0a4668b",
+    "class": "NetworkMapRoot",
+    "name": "Network Maps",
+    "alias": "",
+    "category": 0,
+    "timestamp": "2017-05-24T10:04:51Z",
+    "status": 0
+  },
+  {
+    "id": 7,
+    "guid": "ad9f9dd1-d5d9-49bf-a2c3-54be647bfa6c",
+    "class": "DashboardRoot",
+    "name": "Dashboards",
+    "alias": "",
+    "category": 0,
+    "timestamp": "2023-11-14T16:49:47Z",
+    "status": 0
+  },
+  {
+    "id": 9,
+    "guid": "96f22a8d-97da-43a3-80ef-117a5a2fc985",
+    "class": "BusinessServiceRoot",
+    "name": "Business Services",
+    "alias": "",
+    "category": 0,
+    "timestamp": "2016-08-25T08:20:14Z",
+    "status": 0
+  },
+  {
+    "id": 700,
+    "guid": "c3d4e5f6-a7b8-9012-cdef-123456789abc",
+    "class": "Rack",
+    "name": "Server Room - Rack A",
+    "alias": "",
+    "category": 0,
+    "timestamp": "2026-04-01T10:00:00Z",
+    "status": 0
+  },
+  {
+    "id": 701,
+    "guid": "d4e5f6a7-b8c9-0123-defa-23456789abcd",
+    "class": "Rack",
+    "name": "Server Room - Rack B",
+    "alias": "",
+    "category": 0,
+    "timestamp": "2026-04-01T10:00:00Z",
+    "status": 0
+  }
+]

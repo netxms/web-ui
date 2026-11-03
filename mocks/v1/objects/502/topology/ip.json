@@ -1,0 +1,24 @@
+{
+  "objects": [
+    { "id": 502, "class": "Node", "name": "web-01.dc-alpha.example.com", "status": 0 },
+    { "id": 810, "class": "Node", "name": "gw-01.dc-alpha.example.com", "status": 0 },
+    { "id": 811, "class": "Node", "name": "core-rtr-01.dc-alpha.example.com", "status": 0 },
+    { "id": 812, "class": "Node", "name": "core-rtr-02.dc-alpha.example.com", "status": 0 },
+    { "id": 813, "class": "Subnet", "name": "10.0.1.0/24", "status": 0 },
+    { "id": 814, "class": "Subnet", "name": "10.0.2.0/24", "status": 0 },
+    { "id": 815, "class": "Subnet", "name": "10.0.10.0/24", "status": 0 },
+    { "id": 816, "class": "Subnet", "name": "192.168.100.0/30", "status": 0 },
+    { "id": 817, "class": "Node", "name": "isp-edge-01.example.com", "status": 0 }
+  ],
+  "links": [
+    { "object1": 502, "object2": 813, "interface1": 0, "interface2": 0, "type": 0, "name": "", "port1": "", "port2": "", "flags": 0 },
+    { "object1": 810, "object2": 813, "interface1": 0, "interface2": 0, "type": 0, "name": "", "port1": "", "port2": "", "flags": 0 },
+    { "object1": 810, "object2": 814, "interface1": 0, "interface2": 0, "type": 0, "name": "", "port1": "", "port2": "", "flags": 0 },
+    { "object1": 811, "object2": 814, "interface1": 0, "interface2": 0, "type": 0, "name": "", "port1": "", "port2": "", "flags": 0 },
+    { "object1": 811, "object2": 815, "interface1": 0, "interface2": 0, "type": 0, "name": "", "port1": "", "port2": "", "flags": 0 },
+    { "object1": 812, "object2": 815, "interface1": 0, "interface2": 0, "type": 0, "name": "", "port1": "", "port2": "", "flags": 0 },
+    { "object1": 811, "object2": 816, "interface1": 0, "interface2": 0, "type": 0, "name": "", "port1": "", "port2": "", "flags": 0 },
+    { "object1": 812, "object2": 816, "interface1": 0, "interface2": 0, "type": 0, "name": "", "port1": "", "port2": "", "flags": 0 },
+    { "object1": 812, "object2": 817, "interface1": 0, "interface2": 0, "type": 0, "name": "", "port1": "", "port2": "", "flags": 0 }
+  ]
+}

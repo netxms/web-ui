@@ -1,0 +1,31 @@
+{
+  "values": [
+    {
+      "id": 1001,
+      "description": "CPU utilization",
+      "value": "62",
+      "unitName": "%",
+      "dataType": "float",
+      "status": 0,
+      "timestamp": "2026-07-08T09:55:00Z"
+    },
+    {
+      "id": 1002,
+      "description": "Memory used",
+      "value": "78",
+      "unitName": "%",
+      "dataType": "float",
+      "status": 0,
+      "timestamp": "2026-07-08T09:55:00Z"
+    },
+    {
+      "id": 1003,
+      "description": "Disk I/O",
+      "value": "34.5",
+      "unitName": "MB/s",
+      "dataType": "float",
+      "status": 0,
+      "timestamp": "2026-07-08T09:55:00Z"
+    }
+  ]
+}

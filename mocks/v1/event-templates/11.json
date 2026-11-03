@@ -1,0 +1,9 @@
+{
+  "code": 11,
+  "name": "SYS_SNMP_FAIL",
+  "severity": 2,
+  "flags": 1,
+  "message": "Unable to perform SNMP request on node %1",
+  "tags": ["snmp", "availability"],
+  "description": "Generated when an SNMP request fails to the target node."
+}

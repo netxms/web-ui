@@ -1,0 +1,19 @@
+{
+  "objects": [
+    { "id": 502, "class": "Node", "name": "web-01.dc-alpha.example.com", "status": 0 },
+    { "id": 505, "class": "Node", "name": "web-02.dc-alpha.example.com", "status": 0 },
+    { "id": 509, "class": "Node", "name": "db-primary.dc-alpha.example.com", "status": 0 },
+    { "id": 830, "class": "Node", "name": "proxy-01.dc-alpha.example.com", "status": 0 },
+    { "id": 831, "class": "Node", "name": "proxy-02.dc-alpha.example.com", "status": 0 },
+    { "id": 832, "class": "Node", "name": "remote-agent-01.branch.example.com", "status": 1 },
+    { "id": 833, "class": "Node", "name": "remote-agent-02.branch.example.com", "status": 0 }
+  ],
+  "links": [
+    { "object1": 502, "object2": 830, "interface1": 0, "interface2": 0, "type": 4, "name": "Agent Proxy", "port1": "", "port2": "", "flags": 0 },
+    { "object1": 505, "object2": 830, "interface1": 0, "interface2": 0, "type": 4, "name": "Agent Proxy", "port1": "", "port2": "", "flags": 0 },
+    { "object1": 509, "object2": 831, "interface1": 0, "interface2": 0, "type": 4, "name": "Agent Proxy", "port1": "", "port2": "", "flags": 0 },
+    { "object1": 830, "object2": 832, "interface1": 0, "interface2": 0, "type": 3, "name": "Agent Tunnel", "port1": "", "port2": "", "flags": 0 },
+    { "object1": 831, "object2": 833, "interface1": 0, "interface2": 0, "type": 3, "name": "Agent Tunnel", "port1": "", "port2": "", "flags": 0 },
+    { "object1": 830, "object2": 831, "interface1": 0, "interface2": 0, "type": 6, "name": "SNMP Proxy", "port1": "", "port2": "", "flags": 0 }
+  ]
+}

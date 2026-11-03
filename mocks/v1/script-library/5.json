@@ -1,0 +1,5 @@
+{
+  "id": 5,
+  "name": "BackupVerify",
+  "code": "/**\n * BackupVerify - Checks whether recent backup jobs have succeeded.\n * Reads the backup status DCI and raises an alarm if stale or failed.\n */\n\nlocal node = $node;\nlocal maxAgeHours = 26; // Alert if no successful backup in 26 hours\n\nlocal lastBackup = GetDCIValue(node, 'Custom.Backup.LastSuccessTimestamp');\nlocal lastStatus = GetDCIValue(node, 'Custom.Backup.LastStatus');\n\nif (lastBackup == null)\n{\n  CreateAlarm(node, 100003, 'Backup status unknown - DCI not collecting', '');\n  return 'UNKNOWN';\n}\n\nlocal ageSeconds = time() - lastBackup;\nlocal ageHours = ageSeconds / 3600;\n\nif (lastStatus != 'SUCCESS')\n{\n  CreateAlarm(node, 100003, 'Last backup failed: ' + lastStatus, '');\n  return 'FAILED';\n}\n\nif (ageHours > maxAgeHours)\n{\n  CreateAlarm(node, 100003, 'No successful backup in ' + ceil(ageHours) + ' hours', '');\n  return 'STALE';\n}\n\nreturn 'OK';\n"
+}

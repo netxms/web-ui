@@ -1,0 +1,77 @@
+/*
+ * Focus and range states for sidebar tree rows, global so every tree shares them; the row shape
+ * stays in each tree's scoped styles. A scoped selector outranks these, so nothing here may be
+ * restated in a scoped block.
+ */
+
+/* Positioning context for the focus marker. ObjectTreeNode sets this too (its indent guides
+   need it); the hand-rolled root rows do not. */
+.tree-node-row {
+  position: relative;
+}
+
+/* Negative offset keeps the ring inside the row, which is clipped by the sidebar's
+   overflow. `:focus-visible` so a plain click does not leave a ring behind;
+   `[data-focus-ring]` is the forced ring for focus moved from script - see
+   `utils/focusRing.js`. */
+.tree-node-row:focus-visible,
+.tree-node-row[data-focus-ring] {
+  outline: 2px solid var(--p-primary-color);
+  outline-offset: -2px;
+}
+
+/*
+ * Focus on a selected row (the common case): a ring in the contrast colour would cut lines
+ * across a range, so it is a short bar centred in the fill, the accent-bar pattern of the nav
+ * rail.
+ */
+.tree-node-row.selected:focus-visible,
+.tree-node-row.selected[data-focus-ring] {
+  outline: none;
+}
+
+.tree-node-row.selected:focus-visible::before,
+.tree-node-row.selected[data-focus-ring]::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0;
+  top: 50%;
+  width: 3px;
+  height: 58%;
+  transform: translateY(-50%);
+  border-start-end-radius: 3px;
+  border-end-end-radius: 3px;
+  /* The one colour guaranteed to read on the accent fill, in either theme - it is the
+     token the row's own label is painted in. */
+  background: var(--p-primary-contrast-color);
+}
+
+/* A contiguous range reads as one block: only its two ends stay rounded. Without this,
+   every row keeps its own 4px radius and the block looks like a stack of pills. */
+.tree-node-row.range-first {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.tree-node-row.range-last {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.tree-node-row.range-middle {
+  border-radius: 0;
+}
+
+/* The lowest row pinned by sticky scrolling (see useStuckRowMarker), so the stack reads as
+   floating over the rows scrolling under it rather than as ordinary rows. Rounding off the
+   bottom corners would open a gap for those rows to show through, so they are squared.
+   `.sidebar-tree` lifts it over the scoped 4px radius the rows set. */
+.sidebar-tree .tree-node-row[data-stuck] {
+  box-shadow: 0 4px 6px -3px rgb(0 0 0 / 0.25);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.app-dark .sidebar-tree .tree-node-row[data-stuck] {
+  box-shadow: 0 4px 6px -3px rgb(0 0 0 / 0.6);
+}

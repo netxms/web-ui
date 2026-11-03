@@ -1,0 +1,28 @@
+/*
+ * MultiSelect "select all" label. Without a filter, PrimeVue's toggle-all row is a bare checkbox
+ * with no clue what it toggles, and no prop or slot can label it (the `header` slot sits above
+ * the row). The label is an ::after inside `.p-checkbox`, whose input is absolutely positioned
+ * across the full box, so clicking the label toggles the selection.
+ *
+ * To reword it for one MultiSelect, set the custom property on its overlay:
+ *   :pt="{ overlay: { style: '--app-select-all-label: \'Select every class\'' } }"
+ */
+
+.p-multiselect-header:not(:has(.p-multiselect-filter-container)) .p-checkbox {
+  width: auto;
+  align-items: center;
+  gap: var(--p-multiselect-option-gap, 0.5rem);
+  margin-inline-end: 0;
+}
+
+/* The box carries its own width/height; without this it would shrink to fit the label. */
+.p-multiselect-header:not(:has(.p-multiselect-filter-container)) .p-checkbox .p-checkbox-box {
+  flex: 0 0 auto;
+}
+
+.p-multiselect-header:not(:has(.p-multiselect-filter-container)) .p-checkbox::after {
+  content: var(--app-select-all-label, 'Select all');
+  color: var(--p-multiselect-option-color, var(--p-text-color));
+  white-space: nowrap;
+  cursor: pointer;
+}

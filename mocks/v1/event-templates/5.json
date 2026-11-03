@@ -1,0 +1,9 @@
+{
+  "code": 5,
+  "name": "SYS_IF_UP",
+  "severity": 0,
+  "flags": 1,
+  "message": "Interface %2 on node %1 is up",
+  "tags": ["interface", "availability"],
+  "description": "Generated when a network interface comes back up."
+}

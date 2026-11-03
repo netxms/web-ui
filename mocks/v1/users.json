@@ -1,0 +1,112 @@
+[
+  {
+    "id": 1,
+    "name": "admin",
+    "fullName": "System Administrator",
+    "email": "admin@company.com",
+    "authMethod": 0,
+    "flags": {
+      "disabled": false,
+      "changePassword": false,
+      "cannotChangePassword": false,
+      "intruderLockout": false,
+      "passwordNeverExpires": true,
+      "ldapUser": false,
+      "syncException": false,
+      "closeOtherSessions": false,
+      "tokenAuthOnly": false,
+      "twoFAExempt": false,
+      "twoFAEnforce": false,
+      "serviceAccount": false
+    },
+    "systemRights": 9007199254740991
+  },
+  {
+    "id": 2,
+    "name": "jsmith",
+    "fullName": "John Smith",
+    "email": "jsmith@company.com",
+    "authMethod": 0,
+    "flags": {
+      "disabled": false,
+      "changePassword": false,
+      "cannotChangePassword": false,
+      "intruderLockout": false,
+      "passwordNeverExpires": false,
+      "ldapUser": false,
+      "syncException": false,
+      "closeOtherSessions": false,
+      "tokenAuthOnly": false,
+      "twoFAExempt": false,
+      "twoFAEnforce": true,
+      "serviceAccount": false
+    },
+    "systemRights": 2048
+  },
+  {
+    "id": 3,
+    "name": "mjones",
+    "fullName": "Mary Jones",
+    "email": "mjones@company.com",
+    "authMethod": 5,
+    "flags": {
+      "disabled": false,
+      "changePassword": false,
+      "cannotChangePassword": false,
+      "intruderLockout": false,
+      "passwordNeverExpires": false,
+      "ldapUser": true,
+      "syncException": false,
+      "closeOtherSessions": false,
+      "tokenAuthOnly": false,
+      "twoFAExempt": false,
+      "twoFAEnforce": false,
+      "serviceAccount": false
+    },
+    "systemRights": 0
+  },
+  {
+    "id": 4,
+    "name": "bwilson",
+    "fullName": "Bob Wilson",
+    "email": "bwilson@company.com",
+    "authMethod": 0,
+    "flags": {
+      "disabled": true,
+      "changePassword": false,
+      "cannotChangePassword": false,
+      "intruderLockout": false,
+      "passwordNeverExpires": false,
+      "ldapUser": false,
+      "syncException": false,
+      "closeOtherSessions": false,
+      "tokenAuthOnly": false,
+      "twoFAExempt": false,
+      "twoFAEnforce": false,
+      "serviceAccount": false
+    },
+    "systemRights": 0
+  },
+  {
+    "id": 5,
+    "name": "api-monitor",
+    "fullName": "API Monitor Service",
+    "email": "",
+    "authMethod": 0,
+    "flags": {
+      "disabled": false,
+      "changePassword": false,
+      "cannotChangePassword": true,
+      "intruderLockout": false,
+      "passwordNeverExpires": true,
+      "ldapUser": false,
+      "syncException": false,
+      "closeOtherSessions": false,
+      "tokenAuthOnly": true,
+      "twoFAExempt": true,
+      "twoFAEnforce": false,
+      "serviceAccount": true
+    },
+    "systemRights": 1024
+  }
+]

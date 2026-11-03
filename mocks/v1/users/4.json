@@ -1,0 +1,26 @@
+{
+  "id": 4,
+  "name": "bwilson",
+  "fullName": "Bob Wilson",
+  "email": "bwilson@company.com",
+  "phoneNumber": "+1-555-0404",
+  "description": "Account suspended - employee left company.",
+  "authMethod": 0,
+  "certMappingMethod": 0,
+  "certMappingData": "",
+  "flags": {
+    "disabled": true,
+    "changePassword": false,
+    "cannotChangePassword": false,
+    "intruderLockout": false,
+    "passwordNeverExpires": false,
+    "ldapUser": false,
+    "syncException": false,
+    "closeOtherSessions": false,
+    "tokenAuthOnly": false,
+    "twoFAExempt": false,
+    "twoFAEnforce": false,
+    "serviceAccount": false
+  },
+  "systemRights": 0
+}

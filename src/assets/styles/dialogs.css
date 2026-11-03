@@ -1,0 +1,75 @@
+/*
+ * Dialog restyle variants, switched globally by the data-dialog-header / data-dialog-footer
+ * attributes on <html> (useDialogStyle.js). PrimeVue's CSS is in @layer, so these unlayered
+ * rules win regardless of specificity. Colors are theme tokens, so the variants follow the
+ * active theme and dark mode.
+ */
+
+/* Clip colored headers to the dialog's rounded corners. Overlays (dropdowns,
+   pickers) render on <body>, so this never clips popups. */
+.p-dialog {
+  overflow: hidden;
+  border: none !important;
+}
+
+.p-dialog .p-dialog-title {
+  font-weight: 600;
+}
+
+.p-dialog .p-dialog-close-button,
+.p-dialog .p-button-icon-only.p-button-rounded {
+  width: 2rem;
+  height: 2rem;
+}
+
+/* Dark-header themes (flame/crimson/ocean) -> dark-teal bar with light text.
+   Light themes (emerald/blue) -> white bar matching the app header. */
+html[data-dialog-header='branded'] .p-dialog-header {
+  background: var(--app-header-bg);
+  color: var(--app-header-fg);
+  border-bottom: 1px solid var(--app-header-border);
+}
+
+/* ── Header: primary (active theme accent color) ─────────────────────────── */
+html[data-dialog-header='primary'] .p-dialog-header {
+  background: var(--p-primary-color);
+  color: var(--p-primary-contrast-color);
+}
+
+/* ── Header: accent (neutral header + colored top stripe) ────────────────── */
+html[data-dialog-header='accent'] .p-dialog {
+  border-top: 3px solid var(--p-primary-color);
+}
+
+html[data-dialog-header='accent'] .p-dialog-header {
+  border-bottom: 1px solid var(--p-surface-border);
+}
+
+/* ── Header: gradient (NetXMS brand red -> orange) ───────────────────────── */
+html[data-dialog-header='gradient'] .p-dialog-header {
+  background: linear-gradient(90deg, #ed3118, #f99012);
+  color: #fff;
+}
+
+/* Keep the close (X) button legible on any colored header. currentColor tracks
+   the header text color, so the translucent hover works on light and dark bars. */
+html[data-dialog-header='branded'] .p-dialog-header .p-dialog-close-button,
+html[data-dialog-header='primary'] .p-dialog-header .p-dialog-close-button,
+html[data-dialog-header='gradient'] .p-dialog-header .p-dialog-close-button {
+  color: inherit;
+}
+
+html[data-dialog-header='branded'] .p-dialog-header .p-dialog-close-button:hover,
+html[data-dialog-header='primary'] .p-dialog-header .p-dialog-close-button:hover,
+html[data-dialog-header='gradient'] .p-dialog-header .p-dialog-close-button:hover {
+  color: inherit;
+  background: color-mix(in srgb, currentColor 15%, transparent);
+}
+
+/* ── Footer: tinted bar with divider ─────────────────────────────────────── */
+html[data-dialog-footer='tinted'] .p-dialog-footer {
+  background: var(--p-surface-ground);
+  border-top: 1px solid var(--p-surface-border);
+}
+
+/* Footer "plain" needs no rule — it is the default PrimeVue look. */

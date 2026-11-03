@@ -1,0 +1,5 @@
+{
+  "id": 4,
+  "name": "NetworkDiscovery",
+  "code": "/**\n * NetworkDiscovery - Scans a subnet and reports active hosts.\n *\n * Parameters:\n *   $1 - subnet CIDR (e.g., '10.0.0.0/24')\n */\n\nlocal subnet = ($1 != null) ? $1 : '192.168.1.0/24';\nlocal results = CreateArray();\n\nresults->append('Network Discovery Report');\nresults->append('Subnet: ' + subnet);\nresults->append('Timestamp: ' + FormatDate(time(), '%Y-%m-%d %H:%M:%S'));\nresults->append('---');\n\n// In a real implementation this would iterate discovered objects\nlocal discovered = GetObjectsUnderHierarchy($node);\nforeach (obj : discovered)\n{\n  if (obj.class == 'Node' && obj.isReachable)\n    results->append('Active: ' + obj.name + ' (' + obj.ipAddr + ')');\n}\n\nreturn ArrayToString(results, '\\n');\n"
+}

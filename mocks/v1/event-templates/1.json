@@ -1,0 +1,9 @@
+{
+  "code": 1,
+  "name": "SYS_NODE_DOWN",
+  "severity": 4,
+  "flags": 1,
+  "message": "Node %1 is down",
+  "tags": ["node", "availability"],
+  "description": "Generated when node connectivity is lost."
+}

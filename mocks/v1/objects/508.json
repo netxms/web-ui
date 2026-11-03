@@ -1,0 +1,49 @@
+{
+  "id": 508,
+  "guid": "c9d0e1f2-a3b4-5678-2345-789012345678",
+  "class": "Cluster",
+  "timestamp": "2026-02-15T08:00:00Z",
+  "name": "db-cluster",
+  "alias": "",
+  "commentsSource": "PostgreSQL 16 primary/replica cluster with streaming replication.",
+  "comments": "PostgreSQL 16 primary/replica cluster with streaming replication.",
+  "status": 2,
+  "statusText": "Minor",
+  "statusCalcAlg": 0,
+  "statusPropAlg": 0,
+  "fixedStatus": -1,
+  "statusShift": 0,
+  "statusTranslation": [1, 2, 3, 4],
+  "statusSingleThreshold": 75,
+  "statusThresholds": [80, 60, 40, 20],
+  "maintenanceEventId": 0,
+  "maintenanceInitiator": 0,
+  "mapImage": "00000000-0000-0000-0000-000000000000",
+  "geoLocation": { "type": 0, "latitude": 0, "longitude": 0, "accuracy": 0, "timestamp": 0 },
+  "postalAddress": { "country": null, "region": null, "city": null, "district": null, "streetAddress": null, "postcode": null },
+  "drilldownObjectId": 0,
+  "dashboards": [],
+  "urls": [],
+  "accessList": [
+    { "userId": 1073741825, "access": 18874367 }
+  ],
+  "inheritAccessRights": true,
+  "trustedObjects": [],
+  "creationTime": "2026-02-15T08:00:00Z",
+  "categoryId": 0,
+  "aiHint": "",
+  "customAttributes": [
+    { "name": "cluster.type", "value": "primary-replica", "flags": 0, "sourceObject": 0 },
+    { "name": "db.engine", "value": "PostgreSQL 16", "flags": 0, "sourceObject": 0 },
+    { "name": "db.replication_lag_warn", "value": "30s", "flags": 0, "sourceObject": 0 }
+  ],
+  "clusterType": 0,
+  "syncNetworks": ["10.10.1.0/24"],
+  "zoneUIN": 0,
+  "resources": [
+    { "id": 1, "name": "db-vip", "address": "10.10.1.20", "currentOwner": 509 }
+  ],
+  "children": [509, 512],
+  "parents": [500],
+  "responsibleUsers": []
+}

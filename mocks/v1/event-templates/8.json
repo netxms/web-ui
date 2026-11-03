@@ -1,0 +1,9 @@
+{
+  "code": 8,
+  "name": "SYS_SERVICE_DOWN",
+  "severity": 3,
+  "flags": 1,
+  "message": "Network service %2 on node %1 is down",
+  "tags": ["service", "availability"],
+  "description": "Generated when a monitored network service becomes unavailable."
+}

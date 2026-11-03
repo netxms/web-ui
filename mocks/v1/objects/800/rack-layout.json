@@ -1,0 +1,76 @@
+{
+  "rackId": 800,
+  "name": "Rack-DC1-A01",
+  "height": 12,
+  "topBottomNumbering": false,
+  "passiveElements": [
+    {
+      "id": 1,
+      "name": "Patch Panel 1U 24-port",
+      "type": 0,
+      "position": 12,
+      "height": 1,
+      "orientation": 0,
+      "portCount": 24,
+      "imageFront": "00000000-0000-0000-0000-000000000000",
+      "imageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2,
+      "name": "Rack PDU",
+      "type": 3,
+      "position": 11,
+      "height": 2,
+      "orientation": 1,
+      "portCount": 0,
+      "imageFront": "00000000-0000-0000-0000-000000000000",
+      "imageRear": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "objects": [
+    {
+      "id": 502,
+      "objectClass": 2,
+      "name": "web-01.dc-alpha.example.com",
+      "status": 0,
+      "rackPosition": 9,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 505,
+      "objectClass": 2,
+      "name": "web-02.dc-alpha.example.com",
+      "status": 1,
+      "rackPosition": 8,
+      "rackHeight": 2,
+      "rackOrientation": 1,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 508,
+      "objectClass": 2,
+      "name": "db-primary.dc-alpha.example.com",
+      "status": 3,
+      "rackPosition": 6,
+      "rackHeight": 3,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 514,
+      "objectClass": 2,
+      "name": "storage-01.dc-alpha.example.com",
+      "status": 0,
+      "rackPosition": 3,
+      "rackHeight": 3,
+      "rackOrientation": 2,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    }
+  ]
+}

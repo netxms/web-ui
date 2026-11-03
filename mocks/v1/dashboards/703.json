@@ -1,0 +1,273 @@
+{
+  "id": 703,
+  "name": "Widget Showcase",
+  "numColumns": 12,
+  "rowHeight": 80,
+  "scrollable": true,
+  "elements": [
+    {
+      "guid": "703-label-header",
+      "type": 0,
+      "data": {
+        "title": "Widget Showcase — All Implemented Widget Types",
+        "align": "center",
+        "fontSize": "lg"
+      },
+      "layout": { "horizontalSpan": 12, "verticalSpan": 1, "gridX": 0, "gridY": 0 }
+    },
+    {
+      "guid": "703-si-infra",
+      "type": 6,
+      "data": {
+        "title": "Infrastructure Services",
+        "objectId": 2,
+        "objectName": "Infrastructure Services"
+      },
+      "layout": { "horizontalSpan": 3, "verticalSpan": 2, "gridX": 0, "gridY": 1 }
+    },
+    {
+      "guid": "703-si-dc",
+      "type": 6,
+      "data": { "title": "DataCenter-Alpha", "objectId": 500, "objectName": "DataCenter-Alpha" },
+      "layout": { "horizontalSpan": 3, "verticalSpan": 2, "gridX": 3, "gridY": 1 }
+    },
+    {
+      "guid": "703-si-web",
+      "type": 6,
+      "data": { "title": "web-cluster", "objectId": 501, "objectName": "web-cluster" },
+      "layout": { "horizontalSpan": 3, "verticalSpan": 2, "gridX": 6, "gridY": 1 }
+    },
+    {
+      "guid": "703-si-db",
+      "type": 6,
+      "data": { "title": "db-cluster", "objectId": 508, "objectName": "db-cluster" },
+      "layout": { "horizontalSpan": 3, "verticalSpan": 2, "gridX": 9, "gridY": 1 }
+    },
+    {
+      "guid": "703-scripted-bar",
+      "type": 30,
+      "data": {
+        "title": "CPU by Host (scripted)",
+        "objectId": 0,
+        "script": "",
+        "transposed": false,
+        "showLegend": false
+      },
+      "layout": { "horizontalSpan": 4, "verticalSpan": 3, "gridX": 0, "gridY": 3 }
+    },
+    {
+      "guid": "703-scripted-pie",
+      "type": 31,
+      "data": {
+        "title": "Traffic by Zone (scripted)",
+        "objectId": 0,
+        "script": "",
+        "doughnutRendering": true,
+        "showLegend": true,
+        "showTotal": false
+      },
+      "layout": { "horizontalSpan": 4, "verticalSpan": 3, "gridX": 4, "gridY": 3 }
+    },
+    {
+      "guid": "703-alarms",
+      "type": 11,
+      "data": { "title": "Active Alarms", "objectId": 0, "severityFilter": 31, "stateFilter": 15 },
+      "layout": { "horizontalSpan": 4, "verticalSpan": 3, "gridX": 8, "gridY": 3 }
+    },
+    {
+      "guid": "703-line",
+      "type": 1,
+      "data": {
+        "title": "web-01 Utilization (24h)",
+        "dciList": [
+          { "nodeId": 501, "dciId": 1001, "name": "CPU utilization" },
+          { "nodeId": 501, "dciId": 1002, "name": "Memory used" }
+        ],
+        "timeUnits": 2,
+        "timeRange": 1,
+        "useMultipliers": false,
+        "showLegend": true,
+        "refreshRate": 30
+      },
+      "layout": { "horizontalSpan": 6, "verticalSpan": 3, "gridX": 0, "gridY": 6 }
+    },
+    {
+      "guid": "703-bar",
+      "type": 2,
+      "data": {
+        "title": "Current Utilization",
+        "dciList": [
+          { "nodeId": 501, "dciId": 1001, "name": "CPU" },
+          { "nodeId": 501, "dciId": 1002, "name": "Memory" },
+          { "nodeId": 501, "dciId": 1003, "name": "Disk I/O" }
+        ],
+        "showLegend": false,
+        "refreshRate": 30
+      },
+      "layout": { "horizontalSpan": 3, "verticalSpan": 3, "gridX": 6, "gridY": 6 }
+    },
+    {
+      "guid": "703-pie",
+      "type": 3,
+      "data": {
+        "title": "Resource Share",
+        "dciList": [
+          { "nodeId": 501, "dciId": 1001, "name": "CPU" },
+          { "nodeId": 501, "dciId": 1002, "name": "Memory" },
+          { "nodeId": 501, "dciId": 1003, "name": "Disk I/O" }
+        ],
+        "doughnutRendering": true,
+        "showTotal": false,
+        "showLegend": true,
+        "refreshRate": 30
+      },
+      "layout": { "horizontalSpan": 3, "verticalSpan": 3, "gridX": 9, "gridY": 6 }
+    },
+    {
+      "guid": "703-gauge",
+      "type": 13,
+      "data": {
+        "title": "CPU Gauge",
+        "dciList": [{ "nodeId": 501, "dciId": 1001, "name": "CPU" }],
+        "gaugeType": 0,
+        "minValue": 0,
+        "maxValue": 100,
+        "leftYellowZone": 0,
+        "leftRedZone": 0,
+        "rightYellowZone": 70,
+        "rightRedZone": 90,
+        "refreshRate": 30
+      },
+      "layout": { "horizontalSpan": 3, "verticalSpan": 3, "gridX": 0, "gridY": 9 }
+    },
+    {
+      "guid": "703-status-chart",
+      "type": 5,
+      "data": {
+        "title": "DataCenter-Alpha Status",
+        "rootObject": 500,
+        "objectName": "DataCenter-Alpha",
+        "transposed": false,
+        "showLegend": false
+      },
+      "layout": { "horizontalSpan": 3, "verticalSpan": 3, "gridX": 3, "gridY": 9 }
+    },
+    {
+      "guid": "703-webpage",
+      "type": 14,
+      "data": { "title": "Network Monitoring Reference", "url": "https://en.wikipedia.org/wiki/Network_monitoring" },
+      "layout": { "horizontalSpan": 6, "verticalSpan": 3, "gridX": 6, "gridY": 9 }
+    },
+    {
+      "guid": "703-separator",
+      "type": 18,
+      "data": { "lineWidth": 2 },
+      "layout": { "horizontalSpan": 12, "verticalSpan": 1, "gridX": 0, "gridY": 12 }
+    },
+    {
+      "guid": "703-netmap",
+      "type": 8,
+      "data": { "title": "DC-Alpha Core Topology", "objectId": 600 },
+      "layout": { "horizontalSpan": 8, "verticalSpan": 5, "gridX": 0, "gridY": 13 }
+    },
+    {
+      "guid": "703-statusmap",
+      "type": 20,
+      "data": { "title": "DataCenter-Alpha", "objectId": 500, "objectName": "DataCenter-Alpha" },
+      "layout": { "horizontalSpan": 4, "verticalSpan": 5, "gridX": 8, "gridY": 13 }
+    },
+    {
+      "guid": "703-embedded-dashboard",
+      "type": 7,
+      "data": {
+        "title": "Embedded: NOC Overview + Self (cycle demo)",
+        "dashboardObjects": [700, 703],
+        "displayInterval": 8,
+        "contextObjectId": 0
+      },
+      "layout": { "horizontalSpan": 6, "verticalSpan": 4, "gridX": 0, "gridY": 18 }
+    },
+    {
+      "guid": "703-geomap",
+      "type": 10,
+      "data": {
+        "title": "Geo Map — Infrastructure",
+        "latitude": 50.0,
+        "longitude": 10.0,
+        "zoom": 4,
+        "rootObjectId": 2
+      },
+      "layout": { "horizontalSpan": 6, "verticalSpan": 4, "gridX": 6, "gridY": 18 }
+    },
+    {
+      "guid": "703-summary-table",
+      "type": 21,
+      "data": {
+        "title": "CPU & Memory (Summary Table)",
+        "baseObjectId": 500,
+        "baseObjectName": "DataCenter-Alpha",
+        "tableId": 1,
+        "refreshInterval": 30
+      },
+      "layout": { "horizontalSpan": 6, "verticalSpan": 4, "gridX": 0, "gridY": 22 }
+    },
+    {
+      "guid": "703-object-query",
+      "type": 28,
+      "data": {
+        "title": "Object Query — All Nodes",
+        "query": "type == NODE",
+        "rootObjectId": 0,
+        "refreshRate": 60,
+        "recordLimit": 20,
+        "properties": []
+      },
+      "layout": { "horizontalSpan": 6, "verticalSpan": 4, "gridX": 6, "gridY": 22 }
+    },
+    {
+      "guid": "703-rack",
+      "type": 26,
+      "data": { "title": "Rack-DC1-A01", "objectId": 800, "objectName": "Rack-DC1-A01", "view": 0 },
+      "layout": { "horizontalSpan": 3, "verticalSpan": 5, "gridX": 0, "gridY": 26 }
+    },
+    {
+      "guid": "703-port-view",
+      "type": 29,
+      "data": { "title": "Port View — web-01", "rootObjectId": 502, "objectName": "web-01" },
+      "layout": { "horizontalSpan": 5, "verticalSpan": 3, "gridX": 3, "gridY": 26 }
+    },
+    {
+      "guid": "703-service-components",
+      "type": 25,
+      "data": {
+        "title": "Service Components",
+        "objectId": 500,
+        "objectName": "DataCenter-Alpha"
+      },
+      "layout": { "horizontalSpan": 4, "verticalSpan": 5, "gridX": 8, "gridY": 26 }
+    },
+    {
+      "guid": "703-object-tools",
+      "type": 27,
+      "data": {
+        "title": "Quick Tools",
+        "tools": [
+          { "objectId": 501, "toolId": 1, "name": "Ping web-cluster" },
+          { "objectId": 508, "toolId": 2, "name": "Traceroute db-cluster" }
+        ],
+        "numColumns": 2
+      },
+      "layout": { "horizontalSpan": 5, "verticalSpan": 2, "gridX": 3, "gridY": 29 }
+    },
+    {
+      "guid": "703-label-footer",
+      "type": 0,
+      "data": {
+        "title": "End of showcase — widgets above render live data where available",
+        "align": "center",
+        "fontSize": "sm"
+      },
+      "layout": { "horizontalSpan": 12, "verticalSpan": 1, "gridX": 0, "gridY": 31 }
+    }
+  ]
+}

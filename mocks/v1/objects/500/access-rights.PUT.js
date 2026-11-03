@@ -1,0 +1,17 @@
+function readBody(req) {
+  return new Promise((resolve) => {
+    let body = ''
+    req.on('data', (chunk) => { body += chunk })
+    req.on('end', () => {
+      try { resolve(JSON.parse(body)) } catch { resolve({}) }
+    })
+  })
+}
+
+export default async function(req) {
+  const body = await readBody(req)
+  return {
+    inheritAccessRights: body.inheritAccessRights ?? true,
+    accessList: Array.isArray(body.accessList) ? body.accessList : [],
+  }
+}

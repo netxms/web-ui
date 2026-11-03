@@ -1,0 +1,38 @@
+{
+  "id": 3,
+  "title": "Disk Usage by Node",
+  "menuPath": "Storage",
+  "flags": 0,
+  "nodeFilter": "",
+  "tableDciName": "",
+  "columns": [
+    {
+      "name": "diskTotal",
+      "displayName": "Total (GB)",
+      "dataType": "float",
+      "func": "last",
+      "dciName": "System.Disk.Total(/)"
+    },
+    {
+      "name": "diskUsed",
+      "displayName": "Used (GB)",
+      "dataType": "float",
+      "func": "last",
+      "dciName": "System.Disk.Used(/)"
+    },
+    {
+      "name": "diskFree",
+      "displayName": "Free (GB)",
+      "dataType": "float",
+      "func": "last",
+      "dciName": "System.Disk.Free(/)"
+    },
+    {
+      "name": "diskPct",
+      "displayName": "Used (%)",
+      "dataType": "float",
+      "func": "last",
+      "dciName": "System.Disk.UsedPerc(/)"
+    }
+  ]
+}

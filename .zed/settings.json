@@ -1,0 +1,20 @@
+{
+  "languages": {
+    "Vue.js": {
+      "code_actions_on_format": { "source.fixAll.oxc": true }
+    },
+    "JavaScript": {
+      "code_actions_on_format": { "source.fixAll.oxc": true }
+    },
+    "TypeScript": {
+      "code_actions_on_format": { "source.fixAll.oxc": true }
+    }
+  },
+  "lsp": {
+    "oxlint": {
+      "initialization_options": {
+        "settings": { "fixKind": "safe_fix", "run": "onType" }
+      }
+    }
+  }
+}

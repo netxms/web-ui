@@ -1,0 +1,9 @@
+[
+  { "id": 1, "name": "HealthCheck" },
+  { "id": 2, "name": "DiagnosticsCollector" },
+  { "id": 3, "name": "AutoRemediate" },
+  { "id": 4, "name": "NetworkDiscovery" },
+  { "id": 5, "name": "BackupVerify" },
+  { "id": 6, "name": "ReportGenerator" },
+  { "id": 7, "name": "ThresholdEvaluator" }
+]

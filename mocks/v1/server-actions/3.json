@@ -1,0 +1,11 @@
+{
+  "id": 3,
+  "name": "Restart Agent on Node",
+  "type": 1,
+  "isDisabled": false,
+  "recipientAddress": "%node.ipAddr%",
+  "notificationChannelName": "",
+  "subject": "",
+  "data": "Agent.Restart",
+  "description": "Instruct the remote agent to restart itself."
+}

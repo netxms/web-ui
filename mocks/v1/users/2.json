@@ -1,0 +1,26 @@
+{
+  "id": 2,
+  "name": "jsmith",
+  "fullName": "John Smith",
+  "email": "jsmith@company.com",
+  "phoneNumber": "+1-555-0201",
+  "description": "Network operations engineer.",
+  "authMethod": 0,
+  "certMappingMethod": 0,
+  "certMappingData": "",
+  "flags": {
+    "disabled": false,
+    "changePassword": false,
+    "cannotChangePassword": false,
+    "intruderLockout": false,
+    "passwordNeverExpires": false,
+    "ldapUser": false,
+    "syncException": false,
+    "closeOtherSessions": false,
+    "tokenAuthOnly": false,
+    "twoFAExempt": false,
+    "twoFAEnforce": true,
+    "serviceAccount": false
+  },
+  "systemRights": 2048
+}

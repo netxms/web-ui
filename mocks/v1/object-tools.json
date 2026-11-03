@@ -1,0 +1,92 @@
+[
+  {
+    "id": 1,
+    "name": "Ping",
+    "type": "internal",
+    "commandName": "Ping (ICMP)",
+    "commandShortName": "Ping",
+    "disabled": false,
+    "description": "Send ICMP echo request to the target node."
+  },
+  {
+    "id": 2,
+    "name": "Traceroute",
+    "type": "internal",
+    "commandName": "Traceroute",
+    "commandShortName": "Trace",
+    "disabled": false,
+    "description": "Trace the network path to the target node."
+  },
+  {
+    "id": 3,
+    "name": "SNMP Walk",
+    "type": "snmp-table",
+    "commandName": "SNMP MIB Walk",
+    "commandShortName": "SNMP Walk",
+    "disabled": false,
+    "description": "Walk the SNMP MIB tree of the target device."
+  },
+  {
+    "id": 4,
+    "name": "Interface List",
+    "type": "agent-list",
+    "commandName": "Net.InterfaceList",
+    "commandShortName": "Interfaces",
+    "disabled": false,
+    "description": "Retrieve the list of network interfaces from the NetXMS agent."
+  },
+  {
+    "id": 5,
+    "name": "Open Web Console",
+    "type": "url",
+    "commandName": "https://{node.ipAddr}/admin",
+    "commandShortName": "Web Console",
+    "disabled": false,
+    "description": "Open the device web management console."
+  },
+  {
+    "id": 6,
+    "name": "Restart Agent Service",
+    "type": "server-command",
+    "commandName": "nxagentd -R",
+    "commandShortName": "Restart Agent",
+    "disabled": false,
+    "description": "Restart the NetXMS agent service on the target node."
+  },
+  {
+    "id": 7,
+    "name": "Collect Diagnostics",
+    "type": "server-script",
+    "commandName": "DiagnosticsCollector",
+    "commandShortName": "Diagnostics",
+    "disabled": false,
+    "description": "Run the diagnostic collection script on the selected node."
+  },
+  {
+    "id": 8,
+    "name": "Download Agent Log",
+    "type": "file-download",
+    "commandName": "/var/log/nxagentd.log",
+    "commandShortName": "Agent Log",
+    "disabled": false,
+    "description": "Download the NetXMS agent log file from the target node."
+  },
+  {
+    "id": 9,
+    "name": "ARP Table (SNMP)",
+    "type": "snmp-table",
+    "commandName": "ARP Cache Table",
+    "commandShortName": "ARP",
+    "disabled": false,
+    "description": "Retrieve ARP cache table via SNMP."
+  },
+  {
+    "id": 10,
+    "name": "Legacy Port Scanner",
+    "type": "command",
+    "commandName": "nmap -sV {node.ipAddr}",
+    "commandShortName": "Port Scan",
+    "disabled": true,
+    "description": "Deprecated: use the built-in discovery scanner instead."
+  }
+]

@@ -1,0 +1,68 @@
+[
+  {
+    "id": 501,
+    "guid": "a1b2c3d4-0000-0000-0000-000000000501",
+    "class": "Cluster",
+    "name": "web-cluster",
+    "status": 0,
+    "statusText": "Normal",
+    "customAttributes": [],
+    "children": [],
+    "parents": [500]
+  },
+  {
+    "id": 508,
+    "guid": "a1b2c3d4-0000-0000-0000-000000000508",
+    "class": "Cluster",
+    "name": "db-cluster",
+    "status": 1,
+    "statusText": "Warning",
+    "customAttributes": [],
+    "children": [],
+    "parents": [500]
+  },
+  {
+    "id": 512,
+    "guid": "a1b2c3d4-0000-0000-0000-000000000512",
+    "class": "Node",
+    "name": "fw-edge",
+    "status": 0,
+    "statusText": "Normal",
+    "customAttributes": [],
+    "children": [],
+    "parents": [500]
+  },
+  {
+    "id": 513,
+    "guid": "a1b2c3d4-0000-0000-0000-000000000513",
+    "class": "Node",
+    "name": "core-sw-01",
+    "status": 3,
+    "statusText": "Major",
+    "customAttributes": [],
+    "children": [],
+    "parents": [500]
+  },
+  {
+    "id": 514,
+    "guid": "a1b2c3d4-0000-0000-0000-000000000514",
+    "class": "Node",
+    "name": "backup-01",
+    "status": 4,
+    "statusText": "Critical",
+    "customAttributes": [],
+    "children": [],
+    "parents": [500]
+  },
+  {
+    "id": 515,
+    "guid": "a1b2c3d4-0000-0000-0000-000000000515",
+    "class": "Node",
+    "name": "mon-01",
+    "status": 0,
+    "statusText": "Normal",
+    "customAttributes": [],
+    "children": [],
+    "parents": [500]
+  }
+]

@@ -1,0 +1,46 @@
+{
+  "id": 602,
+  "name": "Traffic Heatmap & Storm Demo",
+  "mapType": 0,
+  "background": { "type": "color", "color": "#f8fafc" },
+  "defaultDisplayMode": "icons",
+  "elements": [
+    { "id": "e-bdr",    "type": "object", "objectId": 514, "objectClass": "Node",    "objectName": "bdr-01",     "objectStatus": 0, "x": 420, "y": 80  },
+    { "id": "e-core-a", "type": "object", "objectId": 501, "objectClass": "Node",    "objectName": "core-sw-a",  "objectStatus": 4, "x": 240, "y": 210 },
+    { "id": "e-core-b", "type": "object", "objectId": 502, "objectClass": "Node",    "objectName": "core-sw-b",  "objectStatus": 0, "x": 600, "y": 210 },
+    { "id": "e-dist-1", "type": "object", "objectId": 504, "objectClass": "Node",    "objectName": "dist-sw-1",  "objectStatus": 2, "x": 100, "y": 360 },
+    { "id": "e-dist-2", "type": "object", "objectId": 505, "objectClass": "Node",    "objectName": "dist-sw-2",  "objectStatus": 0, "x": 310, "y": 360 },
+    { "id": "e-dist-3", "type": "object", "objectId": 506, "objectClass": "Node",    "objectName": "dist-sw-3",  "objectStatus": 1, "x": 530, "y": 360 },
+    { "id": "e-dist-4", "type": "object", "objectId": 507, "objectClass": "Node",    "objectName": "dist-sw-4",  "objectStatus": 0, "x": 740, "y": 360 },
+    { "id": "e-srv-1",  "type": "object", "objectId": 508, "objectClass": "Node",    "objectName": "srv-web-01", "objectStatus": 0, "x": 100, "y": 500 },
+    { "id": "e-srv-2",  "type": "object", "objectId": 509, "objectClass": "Node",    "objectName": "srv-app-01", "objectStatus": 0, "x": 310, "y": 500 },
+    { "id": "e-srv-3",  "type": "object", "objectId": 510, "objectClass": "Cluster", "objectName": "db-cluster", "objectStatus": 3, "x": 630, "y": 500 },
+
+    { "id": "d-edge", "type": "decoration", "decorationType": "group-box",
+      "label": "WAN / Edge", "x": 305, "y": 30, "width": 235, "height": 110,
+      "style": { "color": "#f97316", "opacity": 0.1 } },
+    { "id": "d-core", "type": "decoration", "decorationType": "group-box",
+      "label": "Core Switching", "x": 100, "y": 155, "width": 640, "height": 120,
+      "style": { "color": "#ef4444", "opacity": 0.1 } },
+    { "id": "d-dist", "type": "decoration", "decorationType": "group-box",
+      "label": "Access / Distribution", "x": 35, "y": 305, "width": 760, "height": 120,
+      "style": { "color": "#3b82f6", "opacity": 0.1 } },
+    { "id": "d-srv",  "type": "decoration", "decorationType": "group-box",
+      "label": "Server Farm", "x": 35, "y": 445, "width": 760, "height": 120,
+      "style": { "color": "#22c55e", "opacity": 0.1 } }
+  ],
+  "links": [
+    { "id": "l-bdr-ca", "from": "e-bdr",    "to": "e-core-a", "type": 0, "label": null,      "color": "default", "routing": "direct", "dciData": { "value": "200 Mbps", "rawValue": 200, "maxValue": 1000, "unit": "Mbps" } },
+    { "id": "l-bdr-cb", "from": "e-bdr",    "to": "e-core-b", "type": 0, "label": null,      "color": "default", "routing": "direct", "dciData": { "value": "350 Mbps", "rawValue": 350, "maxValue": 1000, "unit": "Mbps" } },
+    { "id": "l-ca-cb",  "from": "e-core-a", "to": "e-core-b", "type": 0, "label": "10 Gbps", "color": "default", "routing": "direct", "dciData": { "value": "480 Mbps", "rawValue": 480, "maxValue": 1000, "unit": "Mbps" } },
+    { "id": "l-ca-d1",  "from": "e-core-a", "to": "e-dist-1", "type": 0, "label": null,      "color": "default", "routing": "direct", "dciData": { "value": "820 Mbps", "rawValue": 820, "maxValue": 1000, "unit": "Mbps" } },
+    { "id": "l-ca-d2",  "from": "e-core-a", "to": "e-dist-2", "type": 0, "label": null,      "color": "default", "routing": "direct", "dciData": { "value": "550 Mbps", "rawValue": 550, "maxValue": 1000, "unit": "Mbps" } },
+    { "id": "l-cb-d3",  "from": "e-core-b", "to": "e-dist-3", "type": 0, "label": null,      "color": "default", "routing": "direct", "dciData": { "value": "780 Mbps", "rawValue": 780, "maxValue": 1000, "unit": "Mbps" } },
+    { "id": "l-cb-d4",  "from": "e-core-b", "to": "e-dist-4", "type": 0, "label": null,      "color": "default", "routing": "direct", "dciData": { "value": "250 Mbps", "rawValue": 250, "maxValue": 1000, "unit": "Mbps" } },
+    { "id": "l-d1-s1",  "from": "e-dist-1", "to": "e-srv-1",  "type": 0, "label": null,      "color": "default", "routing": "direct", "dciData": { "value": "650 Mbps", "rawValue": 650, "maxValue": 1000, "unit": "Mbps" } },
+    { "id": "l-d2-s2",  "from": "e-dist-2", "to": "e-srv-2",  "type": 0, "label": null,      "color": "default", "routing": "direct", "dciData": { "value": "300 Mbps", "rawValue": 300, "maxValue": 1000, "unit": "Mbps" } },
+    { "id": "l-d3-s3",  "from": "e-dist-3", "to": "e-srv-3",  "type": 0, "label": null,      "color": "default", "routing": "direct", "dciData": { "value": "720 Mbps", "rawValue": 720, "maxValue": 1000, "unit": "Mbps" } },
+    { "id": "l-d4-s3",  "from": "e-dist-4", "to": "e-srv-3",  "type": 0, "label": null,      "color": "default", "routing": "direct", "dciData": { "value": "950 Mbps", "rawValue": 950, "maxValue": 1000, "unit": "Mbps" } },
+    { "id": "l-d2-s3",  "from": "e-dist-2", "to": "e-srv-3",  "type": 0, "label": null,      "color": "default", "routing": "direct", "dciData": { "value": "410 Mbps", "rawValue": 410, "maxValue": 1000, "unit": "Mbps" } }
+  ]
+}

@@ -1,0 +1,127 @@
+/* Shared layout styles for the AI tab components: Configuration > AI Assistant and the AI
+   perspective. Each tab root carries the .ai-tab class; tab-specific rules stay scoped in the
+   component. */
+
+.ai-tab {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  background: var(--p-surface-ground);
+  min-height: 0;
+}
+
+.ai-tab .tab-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.ai-tab .tab-toolbar-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.ai-tab .tab-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.ai-tab .items-table {
+  border: 1px solid var(--p-surface-border);
+  border-radius: var(--p-border-radius-md, 0.375rem);
+  overflow: hidden;
+}
+
+.ai-tab .items-table .row--selected td {
+  background: color-mix(in srgb, var(--p-primary-color) 8%, transparent) !important;
+}
+
+.ai-tab .table-loading {
+  padding: 0.25rem 0;
+}
+
+.ai-tab .section-error {
+  justify-content: center;
+  padding: 2.5rem;
+}
+
+.ai-tab .table-empty {
+  text-align: center;
+  padding: 2.5rem;
+  color: var(--p-text-muted-color);
+  font-size: 0.875rem;
+}
+
+.ai-tab .item-name {
+  font-weight: 500;
+}
+
+.ai-tab .text-muted {
+  color: var(--p-text-muted-color);
+}
+
+.ai-tab .fst-italic {
+  font-style: italic;
+}
+
+.ai-tab .row-actions {
+  display: flex;
+  gap: 0.125rem;
+}
+
+.ai-tab .status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 500;
+}
+
+.ai-tab .status-ok {
+  color: var(--p-green-600);
+}
+
+.ai-tab .status-warn {
+  color: var(--p-orange-600);
+}
+
+.ai-tab .status-error {
+  color: var(--p-red-500);
+}
+
+.ai-tab .status-muted {
+  color: var(--p-text-muted-color);
+}
+
+.ai-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.25rem 0 0.5rem;
+}
+
+.ai-dialog-body .ai-dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.ai-dialog-body .ai-dialog-field label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--p-text-muted-color);
+}
+
+.ai-dialog-body .error-text {
+  color: var(--p-red-500);
+  font-size: 0.8125rem;
+}
+
+.ai-dialog-body .required-star {
+  color: var(--p-red-500);
+  margin-left: 0.125rem;
+}

@@ -1,0 +1,66 @@
+# Logs
+/logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+.DS_Store
+dist
+dist-ssr
+coverage
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+*.tsbuildinfo
+
+.eslintcache
+
+# Cypress
+/cypress/videos/
+/cypress/screenshots/
+
+# Vitest
+__screenshots__/
+
+# Vite
+*.timestamp-*-*.mjs
+
+# Claude local acess
+.claude
+
+# Machine-local context
+CLAUDE.local.md
+
+# Yarn
+.yarn/install-state.gz
+
+# Local review tooling
+.revmux/tasks/
+
+# Only the default brand and the Vite mode files listed here are tracked: any other
+# src/brands/<id>/ and its .env.<id> stay local.
+/src/brands/*/
+!/src/brands/__tests__/
+!/src/brands/netxms/
+
+# Enterprise modules are separate private checkouts at src/modules/<id>/; only the registry's
+# own tests are tracked here.
+/src/modules/*/
+!/src/modules/__tests__/
+/.env.*
+!/.env.demo
+!/.env.development
+!/.env.production

@@ -1,0 +1,5 @@
+{
+  "id": 3,
+  "name": "AutoRemediate",
+  "code": "/**\n * AutoRemediate - Attempts automatic remediation for common alarm conditions.\n * Called by the event processing policy when specific alarms fire.\n *\n * Parameters:\n *   $1 - alarm ID\n *   $2 - remediation action: 'restart-agent', 'clear-cache', 'notify-only'\n */\n\nlocal node = $node;\nlocal alarmId = $1;\nlocal action = ($2 != null) ? $2 : 'notify-only';\n\nlocal log = CreateArray();\nlog->append('AutoRemediate started for node: ' + node.name);\nlog->append('Alarm ID: ' + alarmId);\nlog->append('Action: ' + action);\n\nif (action == 'restart-agent' && node.isAgent)\n{\n  log->append('Sending agent restart command...');\n  AgentExecuteAction(node, 'Agent.Restart', null);\n  log->append('Agent restart command sent.');\n}\nelse if (action == 'clear-cache')\n{\n  log->append('Cache clear not yet implemented.');\n}\nelse\n{\n  log->append('No automated action taken - notification only.');\n}\n\nlog->append('AutoRemediate completed.');\nreturn ArrayToString(log, '\\n');\n"
+}

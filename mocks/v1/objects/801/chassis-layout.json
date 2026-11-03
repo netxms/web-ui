@@ -1,0 +1,80 @@
+{
+  "chassisId": 801,
+  "name": "Chassis-DC1-A02",
+  "controllerId": 502,
+  "status": 1,
+  "objects": [
+    {
+      "id": 526,
+      "objectClass": 2,
+      "name": "blade-01.dc-alpha.example.com",
+      "status": 0,
+      "placement": {
+        "image": "00000000-0000-0000-0000-000000000000",
+        "width": 40,
+        "widthUnits": 0,
+        "height": 2,
+        "heightUnits": 0,
+        "positionWidth": 0,
+        "positionWidthUnits": 0,
+        "positionHeight": 0,
+        "positionHeightUnits": 0,
+        "orientation": 0
+      }
+    },
+    {
+      "id": 527,
+      "objectClass": 2,
+      "name": "blade-02.dc-alpha.example.com",
+      "status": 1,
+      "placement": {
+        "image": "00000000-0000-0000-0000-000000000000",
+        "width": 40,
+        "widthUnits": 0,
+        "height": 2,
+        "heightUnits": 0,
+        "positionWidth": 40,
+        "positionWidthUnits": 0,
+        "positionHeight": 0,
+        "positionHeightUnits": 0,
+        "orientation": 0
+      }
+    },
+    {
+      "id": 529,
+      "objectClass": 2,
+      "name": "blade-03.dc-alpha.example.com",
+      "status": 0,
+      "placement": {
+        "image": "00000000-0000-0000-0000-000000000000",
+        "width": 20,
+        "widthUnits": 0,
+        "height": 2,
+        "heightUnits": 0,
+        "positionWidth": 0,
+        "positionWidthUnits": 0,
+        "positionHeight": 2,
+        "positionHeightUnits": 0,
+        "orientation": 1
+      }
+    },
+    {
+      "id": 530,
+      "objectClass": 2,
+      "name": "blade-04.dc-alpha.example.com",
+      "status": 4,
+      "placement": {
+        "image": "00000000-0000-0000-0000-000000000000",
+        "width": 20,
+        "widthUnits": 0,
+        "height": 2,
+        "heightUnits": 0,
+        "positionWidth": 20,
+        "positionWidthUnits": 0,
+        "positionHeight": 2,
+        "positionHeightUnits": 0,
+        "orientation": 1
+      }
+    }
+  ]
+}

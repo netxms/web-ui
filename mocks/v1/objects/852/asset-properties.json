@@ -1,0 +1,10 @@
+{
+  "serial": "SN-SW-C9300-001",
+  "vendor": "Cisco",
+  "model": "Catalyst 9300",
+  "ip_address": "10.0.0.1",
+  "mac_address": "CC:DD:EE:FF:00:01",
+  "location": "Server Room A, Rack 1",
+  "department": "IT Infrastructure",
+  "status": "Provisioned"
+}

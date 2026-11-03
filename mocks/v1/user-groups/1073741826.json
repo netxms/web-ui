@@ -1,0 +1,7 @@
+{
+  "id": 1073741826,
+  "name": "Admins",
+  "description": "Full administrative access to the NetXMS server.",
+  "members": [1],
+  "systemRights": 9007199254740991
+}

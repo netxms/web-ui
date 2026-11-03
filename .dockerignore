@@ -1,0 +1,18 @@
+# Build context of docker/Dockerfile. Module checkouts under src/modules/ stay in it, without
+# their own .git.
+**/.git
+**/node_modules
+dist
+docs
+coverage
+
+# Machine-local settings must never reach an image: Vite applies .env.local to builds too.
+**/*.local
+CLAUDE.local.md
+
+# Tooling state
+.claude
+.revmux
+.superpowers
+.eslintcache
+.yarn/install-state.gz

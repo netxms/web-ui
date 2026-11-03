@@ -1,0 +1,43 @@
+{
+  "id": 520,
+  "guid": "c1d2e3f4-a5b6-7890-4567-901234567890",
+  "class": "Zone",
+  "timestamp": "2026-02-15T08:00:00Z",
+  "name": "DMZ",
+  "alias": "",
+  "commentsSource": "Demilitarized zone for externally-facing services. UIN 100.",
+  "comments": "Demilitarized zone for externally-facing services. UIN 100.",
+  "status": 0,
+  "statusText": "Normal",
+  "statusCalcAlg": 0,
+  "statusPropAlg": 0,
+  "fixedStatus": -1,
+  "statusShift": 0,
+  "statusTranslation": [1, 2, 3, 4],
+  "statusSingleThreshold": 75,
+  "statusThresholds": [80, 60, 40, 20],
+  "maintenanceEventId": 0,
+  "maintenanceInitiator": 0,
+  "mapImage": "00000000-0000-0000-0000-000000000000",
+  "geoLocation": { "type": 0, "latitude": 0, "longitude": 0, "accuracy": 0, "timestamp": 0 },
+  "postalAddress": { "country": null, "region": null, "city": null, "district": null, "streetAddress": null, "postcode": null },
+  "drilldownObjectId": 0,
+  "dashboards": [],
+  "urls": [],
+  "accessList": [
+    { "userId": 1073741825, "access": 18874367 }
+  ],
+  "inheritAccessRights": true,
+  "trustedObjects": [],
+  "creationTime": "2026-02-15T08:00:00Z",
+  "categoryId": 0,
+  "aiHint": "",
+  "customAttributes": [
+    { "name": "zone.uin", "value": "100", "flags": 0, "sourceObject": 0 },
+    { "name": "zone.purpose", "value": "DMZ", "flags": 0, "sourceObject": 0 }
+  ],
+  "zoneUIN": 100,
+  "children": [521, 522],
+  "parents": [500],
+  "responsibleUsers": []
+}

@@ -1,0 +1,11 @@
+{
+  "id": 4,
+  "name": "Check Health via NXSL",
+  "type": 5,
+  "isDisabled": false,
+  "recipientAddress": "",
+  "notificationChannelName": "",
+  "subject": "",
+  "data": "HealthCheck",
+  "description": "Execute the HealthCheck NXSL script for automated diagnostics."
+}

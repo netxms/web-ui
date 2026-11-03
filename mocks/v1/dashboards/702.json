@@ -1,0 +1,67 @@
+{
+  "id": 702,
+  "name": "Executive Summary",
+  "numColumns": 12,
+  "rowHeight": 100,
+  "scrollable": false,
+  "elements": [
+    {
+      "guid": "702-label-header",
+      "type": 0,
+      "data": { "title": "Executive Summary", "align": "center", "fontSize": "xl" },
+      "layout": { "horizontalSpan": 12, "verticalSpan": 1, "gridX": 0, "gridY": 0 }
+    },
+    {
+      "guid": "702-si-infra",
+      "type": 6,
+      "data": {
+        "title": "Infrastructure Services",
+        "objectId": 2,
+        "objectName": "Infrastructure Services"
+      },
+      "layout": { "horizontalSpan": 4, "verticalSpan": 2, "gridX": 0, "gridY": 1 }
+    },
+    {
+      "guid": "702-si-dc",
+      "type": 6,
+      "data": { "title": "DataCenter-Alpha", "objectId": 500, "objectName": "DataCenter-Alpha" },
+      "layout": { "horizontalSpan": 4, "verticalSpan": 2, "gridX": 4, "gridY": 1 }
+    },
+    {
+      "guid": "702-alarms",
+      "type": 11,
+      "data": {
+        "title": "Critical Alarms",
+        "objectId": 0,
+        "severityFilter": 16,
+        "stateFilter": 15
+      },
+      "layout": { "horizontalSpan": 4, "verticalSpan": 2, "gridX": 8, "gridY": 1 }
+    },
+    {
+      "guid": "702-scripted-bar",
+      "type": 30,
+      "data": {
+        "title": "KPI Summary",
+        "objectId": 0,
+        "script": "",
+        "transposed": false,
+        "showLegend": false
+      },
+      "layout": { "horizontalSpan": 6, "verticalSpan": 3, "gridX": 0, "gridY": 3 }
+    },
+    {
+      "guid": "702-scripted-pie",
+      "type": 31,
+      "data": {
+        "title": "Incident Status",
+        "objectId": 0,
+        "script": "",
+        "doughnutRendering": true,
+        "showLegend": true,
+        "showTotal": true
+      },
+      "layout": { "horizontalSpan": 6, "verticalSpan": 3, "gridX": 6, "gridY": 3 }
+    }
+  ]
+}

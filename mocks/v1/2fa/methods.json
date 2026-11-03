@@ -1,0 +1,19 @@
+[
+  {
+    "name": "TOTP Authenticator",
+    "driver": "TOTP",
+    "description": "Standard TOTP codes via authenticator app.",
+    "isValid": true,
+    "configuration": {}
+  },
+  {
+    "name": "SMS Code",
+    "driver": "Message",
+    "description": "One-time code delivered via SMS through the Twilio channel.",
+    "isValid": true,
+    "configuration": {
+      "notificationChannelName": "Twilio SMS",
+      "messageTemplate": "Your NetXMS login code is: %code%"
+    }
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "code": 7,
+  "name": "SYS_THRESHOLD_REARMED",
+  "severity": 0,
+  "flags": 1,
+  "message": "Threshold rearmed for DCI %3 on node %1: current value is %2",
+  "tags": ["threshold", "dci"],
+  "description": "Generated when a DCI value returns to normal after a threshold violation."
+}

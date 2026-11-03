@@ -1,0 +1,59 @@
+{
+  "id": 603,
+  "name": "WAN Backbone – Europe (Geo Demo)",
+  "mapType": 10,
+  "background": { "type": "color", "color": "#f0f4f8" },
+  "defaultDisplayMode": "icons",
+  "elements": [
+    {
+      "id": "e-lon", "type": "object",
+      "objectName": "LON-01", "objectStatus": 0, "objectClass": "Node", "objectId": null,
+      "geolocation": { "lat": 51.51, "lng": -0.13 }
+    },
+    {
+      "id": "e-ams", "type": "object",
+      "objectName": "AMS-01", "objectStatus": 0, "objectClass": "Node", "objectId": null,
+      "geolocation": { "lat": 52.37, "lng": 4.89 }
+    },
+    {
+      "id": "e-fra", "type": "object",
+      "objectName": "FRA-01", "objectStatus": 1, "objectClass": "Node", "objectId": null,
+      "geolocation": { "lat": 50.11, "lng": 8.68 }
+    },
+    {
+      "id": "e-par", "type": "object",
+      "objectName": "PAR-01", "objectStatus": 0, "objectClass": "Node", "objectId": null,
+      "geolocation": { "lat": 48.85, "lng": 2.35 }
+    },
+    {
+      "id": "e-mad", "type": "object",
+      "objectName": "MAD-01", "objectStatus": 2, "objectClass": "Node", "objectId": null,
+      "geolocation": { "lat": 40.42, "lng": -3.70 }
+    },
+    {
+      "id": "e-waw", "type": "object",
+      "objectName": "WAW-01", "objectStatus": 0, "objectClass": "Node", "objectId": null,
+      "geolocation": { "lat": 52.23, "lng": 21.01 }
+    },
+    {
+      "id": "e-mil", "type": "object",
+      "objectName": "MIL-01", "objectStatus": 0, "objectClass": "Node", "objectId": null,
+      "geolocation": { "lat": 45.46, "lng": 9.19 }
+    },
+    {
+      "id": "e-sto", "type": "object",
+      "objectName": "STO-01", "objectStatus": 0, "objectClass": "Node", "objectId": null,
+      "geolocation": { "lat": 59.33, "lng": 18.07 }
+    }
+  ],
+  "links": [
+    { "id": "l-lon-ams", "from": "e-lon", "to": "e-ams", "type": 0, "label": "10G" },
+    { "id": "l-ams-fra", "from": "e-ams", "to": "e-fra", "type": 0, "label": "10G" },
+    { "id": "l-fra-par", "from": "e-fra", "to": "e-par", "type": 0, "label": "10G" },
+    { "id": "l-par-mad", "from": "e-par", "to": "e-mad", "type": 0, "label": "10G" },
+    { "id": "l-fra-mil", "from": "e-fra", "to": "e-mil", "type": 0, "label": "10G" },
+    { "id": "l-ams-waw", "from": "e-ams", "to": "e-waw", "type": 0, "label": "10G" },
+    { "id": "l-waw-sto", "from": "e-waw", "to": "e-sto", "type": 0, "label": "10G" },
+    { "id": "l-fra-waw", "from": "e-fra", "to": "e-waw", "type": 0, "label": "10G" }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "id": 851,
+  "guid": "c2d3e4f5-a6b7-8901-cdef-012345678901",
+  "class": "Asset",
+  "timestamp": "2026-04-30T14:22:00Z",
+  "name": "srv-dc-02",
+  "alias": "Secondary DC Server",
+  "commentsSource": "Dell PowerEdge R750 in Rack 4, Server Room A.",
+  "comments": "Dell PowerEdge R750 in Rack 4, Server Room A.",
+  "status": 1,
+  "statusText": "Warning",
+  "statusCalcAlg": 0,
+  "statusPropAlg": 0,
+  "fixedStatus": -1,
+  "statusShift": 0,
+  "statusTranslation": [1, 2, 3, 4],
+  "statusSingleThreshold": 75,
+  "statusThresholds": [80, 60, 40, 20],
+  "maintenanceEventId": 0,
+  "maintenanceInitiator": 0,
+  "isInMaintenanceMode": false,
+  "isMaintenanceApplicable": true,
+  "category": 0,
+  "linkedObject": {
+    "id": 504,
+    "name": "srv-dc-02.corp.local"
+  }
+}

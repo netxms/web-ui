@@ -1,0 +1,26 @@
+{
+  "id": 5,
+  "name": "api-monitor",
+  "fullName": "API Monitor Service",
+  "email": "",
+  "phoneNumber": "",
+  "description": "Service account used for external monitoring integrations.",
+  "authMethod": 0,
+  "certMappingMethod": 0,
+  "certMappingData": "",
+  "flags": {
+    "disabled": false,
+    "changePassword": false,
+    "cannotChangePassword": true,
+    "intruderLockout": false,
+    "passwordNeverExpires": true,
+    "ldapUser": false,
+    "syncException": false,
+    "closeOtherSessions": false,
+    "tokenAuthOnly": true,
+    "twoFAExempt": true,
+    "twoFAEnforce": false,
+    "serviceAccount": true
+  },
+  "systemRights": 1024
+}

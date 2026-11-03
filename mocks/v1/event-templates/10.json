@@ -1,0 +1,9 @@
+{
+  "code": 10,
+  "name": "SYS_AGENT_FAIL",
+  "severity": 2,
+  "flags": 1,
+  "message": "Unable to connect to NetXMS agent on node %1",
+  "tags": ["agent", "availability"],
+  "description": "Generated when communication with the NetXMS agent fails."
+}

@@ -1,0 +1,21 @@
+{
+  "id": 9,
+  "name": "ARP Table (SNMP)",
+  "type": "snmp-table",
+  "commandName": "ARP Cache Table",
+  "commandShortName": "ARP",
+  "disabled": false,
+  "description": "Retrieve ARP cache table via SNMP.",
+  "askConfirmation": false,
+  "confirmationMessage": "",
+  "generatesOutput": true,
+  "showInCommands": true,
+  "runInContainerContext": false,
+  "suppressSuccessMessage": false,
+  "setupTcpTunnel": false,
+  "remotePort": 0,
+  "snmpIndexedByValue": false,
+  "filter": "^(node\\.snmpAgentType == 1)",
+  "data": ".1.3.6.1.2.1.4.22",
+  "inputFields": []
+}

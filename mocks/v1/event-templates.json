@@ -1,0 +1,128 @@
+[
+  {
+    "code": 1,
+    "name": "SYS_NODE_DOWN",
+    "severity": 4,
+    "flags": 1,
+    "message": "Node %1 is down",
+    "tags": ["node", "availability"],
+    "description": "Generated when node connectivity is lost."
+  },
+  {
+    "code": 2,
+    "name": "SYS_NODE_UP",
+    "severity": 0,
+    "flags": 1,
+    "message": "Node %1 is up",
+    "tags": ["node", "availability"],
+    "description": "Generated when a previously unreachable node becomes reachable again."
+  },
+  {
+    "code": 3,
+    "name": "SYS_NODE_UNREACHABLE",
+    "severity": 3,
+    "flags": 1,
+    "message": "Node %1 is unreachable",
+    "tags": ["node", "availability"],
+    "description": "Generated when a node does not respond but is not confirmed down yet."
+  },
+  {
+    "code": 4,
+    "name": "SYS_IF_DOWN",
+    "severity": 3,
+    "flags": 1,
+    "message": "Interface %2 on node %1 is down",
+    "tags": ["interface", "availability"],
+    "description": "Generated when a network interface goes down."
+  },
+  {
+    "code": 5,
+    "name": "SYS_IF_UP",
+    "severity": 0,
+    "flags": 1,
+    "message": "Interface %2 on node %1 is up",
+    "tags": ["interface", "availability"],
+    "description": "Generated when a network interface comes back up."
+  },
+  {
+    "code": 6,
+    "name": "SYS_THRESHOLD_REACHED",
+    "severity": 2,
+    "flags": 1,
+    "message": "Threshold reached for DCI %3 on node %1: current value is %2",
+    "tags": ["threshold", "dci"],
+    "description": "Generated when a DCI value crosses a configured threshold."
+  },
+  {
+    "code": 7,
+    "name": "SYS_THRESHOLD_REARMED",
+    "severity": 0,
+    "flags": 1,
+    "message": "Threshold rearmed for DCI %3 on node %1: current value is %2",
+    "tags": ["threshold", "dci"],
+    "description": "Generated when a DCI value returns to normal after a threshold violation."
+  },
+  {
+    "code": 8,
+    "name": "SYS_SERVICE_DOWN",
+    "severity": 3,
+    "flags": 1,
+    "message": "Network service %2 on node %1 is down",
+    "tags": ["service", "availability"],
+    "description": "Generated when a monitored network service becomes unavailable."
+  },
+  {
+    "code": 9,
+    "name": "SYS_SERVICE_UP",
+    "severity": 0,
+    "flags": 1,
+    "message": "Network service %2 on node %1 is up",
+    "tags": ["service", "availability"],
+    "description": "Generated when a previously unavailable network service recovers."
+  },
+  {
+    "code": 10,
+    "name": "SYS_AGENT_FAIL",
+    "severity": 2,
+    "flags": 1,
+    "message": "Unable to connect to NetXMS agent on node %1",
+    "tags": ["agent", "availability"],
+    "description": "Generated when communication with the NetXMS agent fails."
+  },
+  {
+    "code": 11,
+    "name": "SYS_SNMP_FAIL",
+    "severity": 2,
+    "flags": 1,
+    "message": "Unable to perform SNMP request on node %1",
+    "tags": ["snmp", "availability"],
+    "description": "Generated when an SNMP request fails to the target node."
+  },
+  {
+    "code": 100001,
+    "name": "CUSTOM_HIGH_CPU",
+    "severity": 3,
+    "flags": 1,
+    "message": "CPU utilization on %1 is %2% (threshold: %3%)",
+    "tags": ["cpu", "performance", "custom"],
+    "description": "User-defined event for sustained high CPU utilization."
+  },
+  {
+    "code": 100002,
+    "name": "CUSTOM_DISK_FULL",
+    "severity": 4,
+    "flags": 1,
+    "message": "Disk %2 on %1 is critically full: %3% used",
+    "tags": ["disk", "storage", "custom"],
+    "description": "User-defined event for critically high disk usage."
+  },
+  {
+    "code": 100003,
+    "name": "CUSTOM_BACKUP_FAILED",
+    "severity": 3,
+    "flags": 1,
+    "message": "Backup job failed on %1: %2",
+    "tags": ["backup", "custom"],
+    "description": "User-defined event triggered by failed backup job script."
+  }
+]

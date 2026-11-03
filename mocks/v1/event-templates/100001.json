@@ -1,0 +1,9 @@
+{
+  "code": 100001,
+  "name": "CUSTOM_HIGH_CPU",
+  "severity": 3,
+  "flags": 1,
+  "message": "CPU utilization on %1 is %2% (threshold: %3%)",
+  "tags": ["cpu", "performance", "custom"],
+  "description": "User-defined event for sustained high CPU utilization."
+}

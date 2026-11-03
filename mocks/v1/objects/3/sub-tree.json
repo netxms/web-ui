@@ -1,0 +1,40 @@
+[
+  {
+    "id": 900,
+    "guid": "f1a2b3c4-d5e6-7890-1234-567890abc900",
+    "class": "TemplateGroup",
+    "name": "Standard Templates",
+    "alias": "",
+    "category": 0,
+    "timestamp": "2026-05-01T08:00:00Z",
+    "status": 0,
+    "isInMaintenanceMode": false,
+    "isMaintenanceApplicable": false,
+    "children": [
+      {
+        "id": 901,
+        "guid": "f1a2b3c4-d5e6-7890-1234-567890abc901",
+        "class": "Template",
+        "name": "Linux Server Base",
+        "alias": "linux-base",
+        "category": 0,
+        "timestamp": "2026-05-01T08:00:00Z",
+        "status": 0,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": false
+      },
+      {
+        "id": 902,
+        "guid": "f1a2b3c4-d5e6-7890-1234-567890abc902",
+        "class": "Template",
+        "name": "Windows Server Base",
+        "alias": "windows-base",
+        "category": 0,
+        "timestamp": "2026-05-01T08:00:00Z",
+        "status": 0,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": false
+      }
+    ]
+  }
+]

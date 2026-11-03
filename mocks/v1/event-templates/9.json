@@ -1,0 +1,9 @@
+{
+  "code": 9,
+  "name": "SYS_SERVICE_UP",
+  "severity": 0,
+  "flags": 1,
+  "message": "Network service %2 on node %1 is up",
+  "tags": ["service", "availability"],
+  "description": "Generated when a previously unavailable network service recovers."
+}

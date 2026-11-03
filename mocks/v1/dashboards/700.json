@@ -1,0 +1,72 @@
+{
+  "id": 700,
+  "name": "NOC Overview",
+  "numColumns": 12,
+  "rowHeight": 80,
+  "scrollable": false,
+  "elements": [
+    {
+      "guid": "700-label-header",
+      "type": 0,
+      "data": {
+        "title": "Network Operations Center — Live View",
+        "align": "center",
+        "fontSize": "lg"
+      },
+      "layout": { "horizontalSpan": 12, "verticalSpan": 1, "gridX": 0, "gridY": 0 }
+    },
+    {
+      "guid": "700-alarms",
+      "type": 11,
+      "data": { "title": "Active Alarms", "objectId": 0, "severityFilter": 31, "stateFilter": 15 },
+      "layout": { "horizontalSpan": 7, "verticalSpan": 4, "gridX": 0, "gridY": 1 }
+    },
+    {
+      "guid": "700-si-infra",
+      "type": 6,
+      "data": {
+        "title": "Infrastructure Services",
+        "objectId": 2,
+        "objectName": "Infrastructure Services"
+      },
+      "layout": { "horizontalSpan": 2, "verticalSpan": 2, "gridX": 7, "gridY": 1 }
+    },
+    {
+      "guid": "700-si-dc",
+      "type": 6,
+      "data": { "title": "DataCenter-Alpha", "objectId": 500, "objectName": "DataCenter-Alpha" },
+      "layout": { "horizontalSpan": 3, "verticalSpan": 2, "gridX": 9, "gridY": 1 }
+    },
+    {
+      "guid": "700-scripted-bar",
+      "type": 30,
+      "data": {
+        "title": "Protocol Traffic",
+        "objectId": 0,
+        "script": "",
+        "transposed": false,
+        "showLegend": false
+      },
+      "layout": { "horizontalSpan": 5, "verticalSpan": 2, "gridX": 7, "gridY": 3 }
+    },
+    {
+      "guid": "700-scripted-pie",
+      "type": 31,
+      "data": {
+        "title": "Alarm Severity",
+        "objectId": 0,
+        "script": "",
+        "doughnutRendering": true,
+        "showLegend": true,
+        "showTotal": true
+      },
+      "layout": { "horizontalSpan": 4, "verticalSpan": 3, "gridX": 0, "gridY": 5 }
+    },
+    {
+      "guid": "700-netmap",
+      "type": 8,
+      "data": { "title": "DC-Alpha Core Topology", "objectId": 600 },
+      "layout": { "horizontalSpan": 8, "verticalSpan": 3, "gridX": 4, "gridY": 5 }
+    }
+  ]
+}

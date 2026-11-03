@@ -1,0 +1,26 @@
+{
+  "objects": [
+    { "id": 502, "class": "Node", "name": "web-01.dc-alpha.example.com", "status": 0 },
+    { "id": 505, "class": "Node", "name": "web-02.dc-alpha.example.com", "status": 0 },
+    { "id": 509, "class": "Node", "name": "db-primary.dc-alpha.example.com", "status": 0 },
+    { "id": 512, "class": "Node", "name": "db-replica.dc-alpha.example.com", "status": 1 },
+    { "id": 801, "class": "Node", "name": "core-sw-01.dc-alpha.example.com", "status": 0 },
+    { "id": 802, "class": "Node", "name": "core-sw-02.dc-alpha.example.com", "status": 0 },
+    { "id": 803, "class": "Node", "name": "dist-sw-01.dc-alpha.example.com", "status": 0 },
+    { "id": 804, "class": "Node", "name": "dist-sw-02.dc-alpha.example.com", "status": 2 },
+    { "id": 805, "class": "Node", "name": "app-01.dc-alpha.example.com", "status": 0 },
+    { "id": 806, "class": "Node", "name": "app-02.dc-alpha.example.com", "status": 0 }
+  ],
+  "links": [
+    { "object1": 502, "object2": 801, "interface1": 0, "interface2": 0, "type": 0, "name": "", "port1": "eth0", "port2": "gi0/1", "flags": 0 },
+    { "object1": 505, "object2": 801, "interface1": 0, "interface2": 0, "type": 0, "name": "", "port1": "eth0", "port2": "gi0/2", "flags": 0 },
+    { "object1": 805, "object2": 801, "interface1": 0, "interface2": 0, "type": 0, "name": "", "port1": "eth0", "port2": "gi0/3", "flags": 0 },
+    { "object1": 806, "object2": 802, "interface1": 0, "interface2": 0, "type": 0, "name": "", "port1": "eth0", "port2": "gi0/1", "flags": 0 },
+    { "object1": 801, "object2": 802, "interface1": 0, "interface2": 0, "type": 2, "name": "LAG", "port1": "po1", "port2": "po1", "flags": 0 },
+    { "object1": 801, "object2": 803, "interface1": 0, "interface2": 0, "type": 0, "name": "", "port1": "gi1/0", "port2": "gi0/0", "flags": 0 },
+    { "object1": 802, "object2": 804, "interface1": 0, "interface2": 0, "type": 0, "name": "", "port1": "gi1/0", "port2": "gi0/0", "flags": 0 },
+    { "object1": 803, "object2": 509, "interface1": 0, "interface2": 0, "type": 0, "name": "", "port1": "gi0/1", "port2": "eth0", "flags": 0 },
+    { "object1": 803, "object2": 512, "interface1": 0, "interface2": 0, "type": 0, "name": "", "port1": "gi0/2", "port2": "eth0", "flags": 0 },
+    { "object1": 804, "object2": 509, "interface1": 0, "interface2": 0, "type": 0, "name": "", "port1": "gi0/1", "port2": "eth1", "flags": 0 }
+  ]
+}

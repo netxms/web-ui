@@ -1,0 +1,25 @@
+[
+  {
+    "name": "TOTP",
+    "description": "Time-based One-Time Password (RFC 6238). Compatible with Google Authenticator, Authy, and similar apps.",
+    "parameters": []
+  },
+  {
+    "name": "Message",
+    "description": "Sends a one-time code via a configured notification channel (e.g., SMS, email).",
+    "parameters": [
+      {
+        "name": "notificationChannelName",
+        "description": "Notification channel to use for delivering the code.",
+        "dataType": "string",
+        "isMandatory": true
+      },
+      {
+        "name": "messageTemplate",
+        "description": "Message template. Use %code% placeholder for the OTP code.",
+        "dataType": "string",
+        "isMandatory": false
+      }
+    ]
+  }
+]

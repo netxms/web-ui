@@ -1,0 +1,65 @@
+{
+  "id": 500,
+  "guid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "class": "Container",
+  "timestamp": "2026-02-15T08:00:00Z",
+  "name": "DataCenter-Alpha",
+  "alias": "DC-Alpha",
+  "commentsSource": "Primary datacenter facility. Hosts web, database, and infrastructure tiers.",
+  "comments": "Primary datacenter facility. Hosts web, database, and infrastructure tiers.",
+  "status": 3,
+  "statusText": "Major",
+  "statusCalcAlg": 0,
+  "statusPropAlg": 0,
+  "fixedStatus": -1,
+  "statusShift": 0,
+  "statusTranslation": [1, 2, 3, 4],
+  "statusSingleThreshold": 75,
+  "statusThresholds": [80, 60, 40, 20],
+  "maintenanceEventId": 0,
+  "maintenanceInitiator": 0,
+  "mapImage": "00000000-0000-0000-0000-000000000000",
+  "geoLocation": {
+    "type": 0,
+    "latitude": 0,
+    "longitude": 0,
+    "accuracy": 0,
+    "timestamp": 0
+  },
+  "postalAddress": {
+    "country": "US",
+    "region": "California",
+    "city": "San Francisco",
+    "district": null,
+    "streetAddress": "100 Tech Park Drive",
+    "postcode": "94105"
+  },
+  "drilldownObjectId": 0,
+  "dashboards": [600],
+  "urls": [
+    { "id": 1, "url": "https://wiki.example.com/datacenter-alpha", "description": "Internal wiki page" },
+    { "id": 2, "url": "https://grafana.example.com/d/dc-alpha", "description": null }
+  ],
+  "accessList": [
+    { "userId": 1073741824, "access": 17 },
+    { "userId": 1073741825, "access": 18874367 },
+    { "userId": 2, "access": 1 }
+  ],
+  "inheritAccessRights": true,
+  "trustedObjects": [501],
+  "creationTime": "2026-02-15T08:00:00Z",
+  "categoryId": 0,
+  "aiHint": "",
+  "customAttributes": [
+    { "name": "location.building", "value": "Building A", "flags": 0, "sourceObject": 0 },
+    { "name": "location.floor", "value": "B1", "flags": 0, "sourceObject": 0 },
+    { "name": "dc.tier", "value": "Tier 3", "flags": 1, "sourceObject": 0 },
+    { "name": "org.owner", "value": "Infrastructure Team", "flags": 1, "sourceObject": 2 }
+  ],
+  "flags": 0,
+  "children": [501, 508, 514, 520, 526, 527, 529, 530, 531, 700, 701, 800, 801],
+  "parents": [2],
+  "responsibleUsers": [
+    { "userId": 1, "tag": "primary" }
+  ]
+}

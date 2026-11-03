@@ -1,0 +1,50 @@
+[
+  {
+    "name": "SMTP",
+    "description": "Send notifications via SMTP email server.",
+    "parameters": [
+      { "name": "Server", "description": "SMTP server hostname or IP address.", "dataType": "string", "isMandatory": true },
+      { "name": "Port", "description": "SMTP server port (default: 25).", "dataType": "integer", "isMandatory": false },
+      { "name": "Login", "description": "SMTP authentication username.", "dataType": "string", "isMandatory": false },
+      { "name": "Password", "description": "SMTP authentication password.", "dataType": "password", "isMandatory": false },
+      { "name": "FromName", "description": "Display name for the sender.", "dataType": "string", "isMandatory": false },
+      { "name": "FromAddr", "description": "Sender email address.", "dataType": "string", "isMandatory": false },
+      { "name": "Encryption", "description": "Encryption mode: NONE, SSL, STARTTLS.", "dataType": "string", "isMandatory": false }
+    ]
+  },
+  {
+    "name": "TextMessaging",
+    "description": "Send SMS messages via a configurable text messaging gateway.",
+    "parameters": [
+      { "name": "Driver", "description": "Underlying SMS driver (e.g., Twilio, Nexmo).", "dataType": "string", "isMandatory": true },
+      { "name": "AccountSID", "description": "Account SID / API key.", "dataType": "string", "isMandatory": true },
+      { "name": "AuthToken", "description": "Auth token / secret.", "dataType": "password", "isMandatory": true },
+      { "name": "From", "description": "Sender phone number (E.164 format).", "dataType": "string", "isMandatory": true }
+    ]
+  },
+  {
+    "name": "Slack",
+    "description": "Post messages to Slack channels via incoming webhooks.",
+    "parameters": [
+      { "name": "WebhookURL", "description": "Slack incoming webhook URL.", "dataType": "string", "isMandatory": true },
+      { "name": "Channel", "description": "Default channel (e.g., #ops-alerts). Overridden by recipient in actions.", "dataType": "string", "isMandatory": false },
+      { "name": "Username", "description": "Bot display name in Slack.", "dataType": "string", "isMandatory": false }
+    ]
+  },
+  {
+    "name": "PagerDuty",
+    "description": "Create and resolve PagerDuty incidents via the Events API v2.",
+    "parameters": [
+      { "name": "IntegrationKey", "description": "PagerDuty service integration key.", "dataType": "password", "isMandatory": true },
+      { "name": "SeverityMapping", "description": "Comma-separated NetXMS:PagerDuty severity pairs.", "dataType": "string", "isMandatory": false }
+    ]
+  },
+  {
+    "name": "Telegram",
+    "description": "Send messages to Telegram chats via the Bot API.",
+    "parameters": [
+      { "name": "BotToken", "description": "Telegram bot API token.", "dataType": "password", "isMandatory": true },
+      { "name": "DefaultChatId", "description": "Default Telegram chat/group ID.", "dataType": "string", "isMandatory": false }
+    ]
+  }
+]

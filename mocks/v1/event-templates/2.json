@@ -1,0 +1,9 @@
+{
+  "code": 2,
+  "name": "SYS_NODE_UP",
+  "severity": 0,
+  "flags": 1,
+  "message": "Node %1 is up",
+  "tags": ["node", "availability"],
+  "description": "Generated when a previously unreachable node becomes reachable again."
+}

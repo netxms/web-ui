@@ -1,0 +1,65 @@
+{
+  "id": 600,
+  "name": "DC-Alpha Core Topology",
+  "mapType": 0,
+  "background": { "type": "color", "color": "#f8fafc" },
+  "defaultDisplayMode": "icons",
+  "elements": [
+    { "id": "e-inet",  "type": "object", "objectId": 520, "objectClass": "Zone",   "objectName": "Internet",           "objectStatus": 0, "x": 300, "y": 80  },
+    { "id": "e-fw",    "type": "object", "objectId": 514, "objectClass": "Node",   "objectName": "fw-edge-01",         "objectStatus": 0, "x": 540, "y": 80  },
+
+    { "id": "e-core1", "type": "object", "objectId": 501, "objectClass": "Node",    "objectName": "core-sw-1",          "objectStatus": 4, "x": 200, "y": 230 },
+    { "id": "e-core2", "type": "object", "objectId": 502, "objectClass": "Node",    "objectName": "core-sw-2",          "objectStatus": 0, "x": 460, "y": 230 },
+    { "id": "e-vpn",   "type": "object", "objectId": 503, "objectClass": "Node",    "objectName": "vpn-concentrator",   "objectStatus": 1, "x": 700, "y": 230 },
+
+    { "id": "e-dist1", "type": "object", "objectId": 504, "objectClass": "Node",    "objectName": "dist-sw-1",          "objectStatus": 0, "x": 120, "y": 375 },
+    { "id": "e-dist2", "type": "object", "objectId": 505, "objectClass": "Node",    "objectName": "dist-sw-2",          "objectStatus": 0, "x": 310, "y": 375 },
+    { "id": "e-dist3", "type": "object", "objectId": 506, "objectClass": "Node",    "objectName": "dist-sw-3",          "objectStatus": 2, "x": 510, "y": 375 },
+    { "id": "e-dist4", "type": "object", "objectId": 507, "objectClass": "Node",    "objectName": "dist-sw-4",          "objectStatus": 0, "x": 700, "y": 375 },
+
+    { "id": "e-web",   "type": "object", "objectId": 508, "objectClass": "Cluster", "objectName": "web-cluster",        "objectStatus": 0, "x": 120, "y": 520 },
+    { "id": "e-app",   "type": "object", "objectId": 509, "objectClass": "Node",    "objectName": "app-srv-01",         "objectStatus": 2, "x": 310, "y": 520 },
+    { "id": "e-db",    "type": "object", "objectId": 510, "objectClass": "Cluster", "objectName": "db-cluster",         "objectStatus": 0, "x": 510, "y": 520 },
+    { "id": "e-store", "type": "object", "objectId": 511, "objectClass": "Node",    "objectName": "storage-01",         "objectStatus": 0, "x": 700, "y": 520 },
+
+    { "id": "e-mgmt",   "type": "object", "objectId": 108, "objectClass": "Node",   "objectName": "mon-mgmt",           "objectStatus": 3, "x": 905, "y": 230 },
+    { "id": "e-sensor", "type": "object", "objectId": 530, "objectClass": "Sensor", "objectName": "Temp-Rack-A-01",     "objectStatus": 0, "x": 905, "y": 375 },
+
+    { "id": "d-edge", "type": "decoration", "decorationType": "group-box",
+      "label": "WAN / Edge", "x": 175, "y": 25, "width": 480, "height": 115,
+      "style": { "color": "#f97316", "opacity": 0.1 } },
+    { "id": "d-core", "type": "decoration", "decorationType": "group-box",
+      "label": "Core Network", "x": 88, "y": 170, "width": 745, "height": 125,
+      "style": { "color": "#ef4444", "opacity": 0.1 } },
+    { "id": "d-dist", "type": "decoration", "decorationType": "group-box",
+      "label": "Distribution Layer", "x": 50, "y": 315, "width": 785, "height": 125,
+      "style": { "color": "#3b82f6", "opacity": 0.1 } },
+    { "id": "d-srv",  "type": "decoration", "decorationType": "group-box",
+      "label": "Server Farm", "x": 50, "y": 460, "width": 785, "height": 125,
+      "style": { "color": "#22c55e", "opacity": 0.1 } },
+    { "id": "d-mgmt", "type": "decoration", "decorationType": "group-box",
+      "label": "Management", "x": 845, "y": 170, "width": 125, "height": 270,
+      "style": { "color": "#8b5cf6", "opacity": 0.12 } }
+  ],
+  "links": [
+    { "id": "l-inet-fw",      "from": "e-inet",  "to": "e-fw",    "type": 0, "label": "WAN",         "color": "default",                         "routing": "direct", "dciData": null },
+    { "id": "l-fw-core1",     "from": "e-fw",    "to": "e-core1", "type": 0, "label": null,          "color": "default",                         "routing": "direct", "dciData": { "value": "450 Mbps", "rawValue": 450, "maxValue": 1000, "unit": "Mbps" } },
+    { "id": "l-fw-core2",     "from": "e-fw",    "to": "e-core2", "type": 0, "label": null,          "color": "default",                         "routing": "direct", "dciData": null },
+    { "id": "l-core-core",    "from": "e-core1", "to": "e-core2", "type": 0, "label": "10 Gbps",     "color": "default",                         "routing": "direct", "dciData": null },
+    { "id": "l-core2-vpn",    "from": "e-core2", "to": "e-vpn",   "type": 1, "label": "VPN Tunnel",  "color": "custom", "customColor": "#8b5cf6", "routing": "direct", "dciData": null },
+
+    { "id": "l-core1-dist1",  "from": "e-core1", "to": "e-dist1", "type": 0, "label": null, "color": "default", "routing": "direct", "dciData": null },
+    { "id": "l-core1-dist2",  "from": "e-core1", "to": "e-dist2", "type": 0, "label": null, "color": "default", "routing": "direct", "dciData": null },
+    { "id": "l-core2-dist3",  "from": "e-core2", "to": "e-dist3", "type": 0, "label": null, "color": "default", "routing": "direct", "dciData": null },
+    { "id": "l-core2-dist4",  "from": "e-core2", "to": "e-dist4", "type": 0, "label": null, "color": "default", "routing": "direct", "dciData": null },
+
+    { "id": "l-dist1-web",    "from": "e-dist1", "to": "e-web",   "type": 0, "label": null,    "color": "default",                         "routing": "direct", "dciData": { "value": "850 Mbps", "rawValue": 850, "maxValue": 1000, "unit": "Mbps" } },
+    { "id": "l-dist2-app",    "from": "e-dist2", "to": "e-app",   "type": 0, "label": null,    "color": "default",                         "routing": "direct", "dciData": null },
+    { "id": "l-dist3-db",     "from": "e-dist3", "to": "e-db",    "type": 6, "label": "SNMP",  "color": "custom", "customColor": "#eab308", "routing": "direct", "dciData": null },
+    { "id": "l-dist4-store",  "from": "e-dist4", "to": "e-store", "type": 0, "label": null,    "color": "default",                         "routing": "direct", "dciData": null },
+
+    { "id": "l-core2-mgmt",   "from": "e-core2",  "to": "e-mgmt",   "type": 4, "label": "Agent Proxy", "color": "custom", "customColor": "#22c55e", "routing": "direct", "dciData": null },
+    { "id": "l-dist4-sensor", "from": "e-dist4",  "to": "e-sensor", "type": 0, "label": null,          "color": "default",                         "routing": "direct", "dciData": null },
+    { "id": "l-sensor-mgmt",  "from": "e-sensor", "to": "e-mgmt",   "type": 5, "label": "SSH",         "color": "custom", "customColor": "#06b6d4", "routing": "direct", "dciData": null }
+  ]
+}

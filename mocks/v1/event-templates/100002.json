@@ -1,0 +1,9 @@
+{
+  "code": 100002,
+  "name": "CUSTOM_DISK_FULL",
+  "severity": 4,
+  "flags": 1,
+  "message": "Disk %2 on %1 is critically full: %3% used",
+  "tags": ["disk", "storage", "custom"],
+  "description": "User-defined event triggered by critically high disk usage."
+}

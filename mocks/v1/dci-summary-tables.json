@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "title": "CPU & Memory Usage",
+    "menuPath": "Performance"
+  },
+  {
+    "id": 2,
+    "title": "Interface Traffic Summary",
+    "menuPath": "Network/Interfaces"
+  },
+  {
+    "id": 3,
+    "title": "Disk Usage by Node",
+    "menuPath": "Storage"
+  },
+  {
+    "id": 4,
+    "title": "Agent Version Report",
+    "menuPath": "Inventory"
+  }
+]

@@ -1,0 +1,41 @@
+/* Shared form styles for PropertiesView section components */
+
+.properties-view .form-fieldset {
+  border: 1px solid var(--p-surface-border);
+  border-radius: var(--p-border-radius);
+  background: var(--p-surface-card);
+  padding: 1rem;
+  margin: 0;
+}
+
+.properties-view .form-fieldset legend {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--p-text-color);
+  padding: 0 0.5rem;
+}
+
+.properties-view .form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.properties-view .form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* Property sections use a smaller, muted label than the dialogs do. `.form-field__label`
+   is what FormField renders; `.form-label` is the hand-rolled markup not yet migrated. */
+.properties-view .form-label,
+.properties-view .form-field__label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--p-text-muted-color);
+}
+
+.properties-view .form-input {
+  width: 100%;
+}

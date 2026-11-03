@@ -1,0 +1,14 @@
+{
+  "serial": "SN-DC-R750-002",
+  "vendor": "Dell",
+  "model": "PowerEdge R750",
+  "ip_address": "10.0.1.11",
+  "mac_address": "AA:BB:CC:DD:EE:02",
+  "location": "Server Room A, Rack 4",
+  "department": "IT Infrastructure",
+  "purchase_date": "2022-06-15",
+  "rack_unit": "4",
+  "os_type": "linux",
+  "warranty_expiry": "2027-06-15",
+  "status": "In storage"
+}

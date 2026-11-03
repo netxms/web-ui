@@ -1,0 +1,28 @@
+{
+  "id": 850,
+  "guid": "b1c2d3e4-f5a6-7890-bcde-f01234567890",
+  "class": "Asset",
+  "timestamp": "2026-05-12T09:15:00Z",
+  "name": "srv-dc-01",
+  "alias": "Primary DC Server",
+  "commentsSource": "Dell PowerEdge R750 in Rack 3, Server Room A.",
+  "comments": "Dell PowerEdge R750 in Rack 3, Server Room A.",
+  "status": 0,
+  "statusText": "Normal",
+  "statusCalcAlg": 0,
+  "statusPropAlg": 0,
+  "fixedStatus": -1,
+  "statusShift": 0,
+  "statusTranslation": [1, 2, 3, 4],
+  "statusSingleThreshold": 75,
+  "statusThresholds": [80, 60, 40, 20],
+  "maintenanceEventId": 0,
+  "maintenanceInitiator": 0,
+  "isInMaintenanceMode": false,
+  "isMaintenanceApplicable": true,
+  "category": 0,
+  "linkedObject": {
+    "id": 503,
+    "name": "srv-dc-01.corp.local"
+  }
+}

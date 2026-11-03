@@ -1,0 +1,9 @@
+{
+  "code": 3,
+  "name": "SYS_NODE_UNREACHABLE",
+  "severity": 3,
+  "flags": 1,
+  "message": "Node %1 is unreachable",
+  "tags": ["node", "availability"],
+  "description": "Generated when a node does not respond but is not confirmed down yet."
+}

@@ -1,0 +1,9 @@
+{
+  "code": 100003,
+  "name": "CUSTOM_BACKUP_FAILED",
+  "severity": 3,
+  "flags": 1,
+  "message": "Backup job failed on %1: %2",
+  "tags": ["backup", "custom"],
+  "description": "User-defined event triggered by failed backup job script."
+}

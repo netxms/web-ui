@@ -1,0 +1,50 @@
+[
+  {
+    "name": "SMTP Email",
+    "driverName": "SMTP",
+    "description": "Sends email notifications via the corporate SMTP relay.",
+    "driverInitialized": true,
+    "healthCheckStatus": true,
+    "errorMessage": null,
+    "messageCount": 1482,
+    "failureCount": 3,
+    "queueSize": 0,
+    "configuration": "Server=smtp.company.com\nPort=587\nLogin=netxms@company.com\nEncryption=STARTTLS"
+  },
+  {
+    "name": "Twilio SMS",
+    "driverName": "TextMessaging",
+    "description": "SMS delivery via Twilio API for on-call alerts.",
+    "driverInitialized": true,
+    "healthCheckStatus": true,
+    "errorMessage": null,
+    "messageCount": 247,
+    "failureCount": 0,
+    "queueSize": 0,
+    "configuration": "AccountSID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nAuthToken=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nFrom=+15550001000"
+  },
+  {
+    "name": "Slack Ops",
+    "driverName": "Slack",
+    "description": "Posts alerts to the #ops-alerts Slack channel.",
+    "driverInitialized": true,
+    "healthCheckStatus": false,
+    "errorMessage": "Webhook endpoint returned HTTP 403. Check token expiry.",
+    "messageCount": 863,
+    "failureCount": 12,
+    "queueSize": 4,
+    "configuration": "WebhookURL=https://hooks.slack.com/services/xxx/yyy/zzz\nChannel=#ops-alerts"
+  },
+  {
+    "name": "PagerDuty",
+    "driverName": "PagerDuty",
+    "description": "Creates and resolves PagerDuty incidents for critical alarms.",
+    "driverInitialized": true,
+    "healthCheckStatus": true,
+    "errorMessage": null,
+    "messageCount": 94,
+    "failureCount": 0,
+    "queueSize": 0,
+    "configuration": "IntegrationKey=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\nSeverityMapping=Critical:critical,Major:error,Minor:warning"
+  }
+]

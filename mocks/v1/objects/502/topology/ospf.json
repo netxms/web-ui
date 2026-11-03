@@ -1,0 +1,20 @@
+{
+  "objects": [
+    { "id": 502, "class": "Node", "name": "web-01.dc-alpha.example.com", "status": 0 },
+    { "id": 811, "class": "Node", "name": "core-rtr-01.dc-alpha.example.com", "status": 0 },
+    { "id": 812, "class": "Node", "name": "core-rtr-02.dc-alpha.example.com", "status": 0 },
+    { "id": 820, "class": "Node", "name": "ospf-rtr-01.dc-alpha.example.com", "status": 0 },
+    { "id": 821, "class": "Node", "name": "ospf-rtr-02.dc-alpha.example.com", "status": 1 },
+    { "id": 822, "class": "Node", "name": "ospf-rtr-03.dc-alpha.example.com", "status": 0 },
+    { "id": 823, "class": "Node", "name": "dr-rtr.dc-alpha.example.com", "status": 0 }
+  ],
+  "links": [
+    { "object1": 502, "object2": 811, "interface1": 0, "interface2": 0, "type": 0, "name": "Area 0", "port1": "", "port2": "", "flags": 0 },
+    { "object1": 811, "object2": 812, "interface1": 0, "interface2": 0, "type": 0, "name": "Area 0 Backbone", "port1": "", "port2": "", "flags": 0 },
+    { "object1": 811, "object2": 820, "interface1": 0, "interface2": 0, "type": 0, "name": "Area 1", "port1": "", "port2": "", "flags": 0 },
+    { "object1": 811, "object2": 821, "interface1": 0, "interface2": 0, "type": 0, "name": "Area 1", "port1": "", "port2": "", "flags": 0 },
+    { "object1": 812, "object2": 822, "interface1": 0, "interface2": 0, "type": 0, "name": "Area 2", "port1": "", "port2": "", "flags": 0 },
+    { "object1": 812, "object2": 823, "interface1": 0, "interface2": 0, "type": 0, "name": "Area 2", "port1": "", "port2": "", "flags": 0 },
+    { "object1": 820, "object2": 823, "interface1": 0, "interface2": 0, "type": 0, "name": "Area 2", "port1": "", "port2": "", "flags": 0 }
+  ]
+}
