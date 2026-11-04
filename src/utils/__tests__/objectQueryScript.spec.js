@@ -34,12 +34,12 @@ describe('nxslString', () => {
 describe('compileObjectFilter — search modes', () => {
   it('matches a normal search as a case-insensitive substring', () => {
     const { script } = compileObjectFilter({ text: 'sw', mode: SEARCH_MODE.NORMAL })
-    expect(script).toContain('index(lower(name), lower("sw")) > 0')
+    expect(script).toContain('name.toLowerCase().contains("sw".toLowerCase())')
   })
 
   it('treats * and ? in a normal search literally', () => {
     const { script } = compileObjectFilter({ text: 'a*b?', mode: SEARCH_MODE.NORMAL })
-    expect(script).toContain('index(lower(name), lower("a*b?")) > 0')
+    expect(script).toContain('name.toLowerCase().contains("a*b?".toLowerCase())')
     expect(script).not.toContain('ilike')
   })
 
@@ -57,7 +57,7 @@ describe('compileObjectFilter — search modes', () => {
 
   it('escapes the search string rather than letting it reach the script as syntax', () => {
     const { script } = compileObjectFilter({ text: '" || true || "', mode: SEARCH_MODE.NORMAL })
-    expect(script).toContain('lower("\\" || true || \\"")')
+    expect(script).toContain('contains("\\" || true || \\"".toLowerCase())')
   })
 
   it('searches base attributes bare and class-specific ones through safe dereference', () => {
@@ -82,12 +82,17 @@ describe('compileObjectFilter — search modes', () => {
     expect(script).not.toMatch(/\$object\?\.\w+ ilike/)
   })
 
-  it('casts safe dereferences in normal mode too, since lower rejects NULL as well', () => {
+  it('casts safe dereferences in normal mode too, since a method call on NULL fails as well', () => {
     const { script } = compileObjectFilter({ text: 'x' })
     for (const attr of SEARCH_ATTRIBUTES.optional) {
-      expect(script).toContain(`lower(string($object?.${attr}))`)
+      expect(script).toContain(`string($object?.${attr}).toLowerCase()`)
     }
-    expect(script).not.toMatch(/lower\(\$object\?\./)
+    expect(script).not.toMatch(/\$object\?\.\w+\.toLowerCase/)
+  })
+
+  it('uses no deprecated NXSL functions, which compile with warnings', () => {
+    const { script } = compileObjectFilter({ text: 'x' })
+    expect(script).not.toMatch(/\b(index|lower)\(/)
   })
 
   it('casts safe dereferences in regexp mode too, since imatch rejects NULL as well', () => {

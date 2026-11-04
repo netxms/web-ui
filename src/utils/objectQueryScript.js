@@ -6,8 +6,8 @@
  *
  * - Bare identifiers resolve against the object under test; only base NetObj attributes are safe
  *   bare. Class-specific ones go through `?.`, which yields NULL instead of aborting the query.
- * - That NULL must be cast with `string(...)`: `ilike` and `imatch` raise "Invalid operation with
- *   NULL value", aborting the whole query; NULL casts to "". `==` is NULL-tolerant.
+ * - That NULL must be cast with `string(...)`: `ilike`, `imatch` and String methods fail on NULL,
+ *   aborting the whole query; NULL casts to "". `==` is NULL-tolerant.
  * - `AddrInRange` takes strings, and `ipAddr` already is one (there is no `->address`).
  *
  * Unlike legacy, the searched attributes are a fixed list, and the IP range tests the primary
@@ -119,7 +119,7 @@ export function nxslString(value) {
 function matchExpression(attribute, text, mode) {
   if (mode === SEARCH_MODE.REGEXP) return `${attribute} imatch ${nxslString(text)}`
   if (mode === SEARCH_MODE.PATTERN) return `${attribute} ilike ${nxslString(text)}`
-  return `index(lower(${attribute}), lower(${nxslString(text)})) > 0`
+  return `${attribute}.toLowerCase().contains(${nxslString(text)}.toLowerCase())`
 }
 
 function anyOf(expressions) {
@@ -131,7 +131,7 @@ function anyOf(expressions) {
 function textClause(text, mode) {
   const clauses = [
     ...SEARCH_ATTRIBUTES.base.map((attr) => matchExpression(attr, text, mode)),
-    // ilike on a NULL attribute aborts the query; string() casts NULL to "".
+    // A NULL attribute aborts the query; string() casts NULL to "".
     ...SEARCH_ATTRIBUTES.optional.map((attr) =>
       matchExpression(`string($object?.${attr})`, text, mode),
     ),
