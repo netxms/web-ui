@@ -146,12 +146,10 @@ const isFullBleed = computed(() => !!route.meta.fullBleed)
 }
 
 .layout-main-inner {
-  min-width: 1000px;
   height: 100%;
 }
 
 .layout-main--full-bleed .layout-main-inner {
-  min-width: unset;
   flex: 1;
   min-height: 0;
   display: flex;

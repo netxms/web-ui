@@ -751,7 +751,8 @@ function sourceDciTarget(row) {
           >
         </template>
 
-        <!-- In the toolbar's free middle, so selecting a row moves nothing. -->
+        <!-- In the toolbar's free middle, so selecting a row only moves anything when the toolbar has
+             to wrap to keep the actions reachable. -->
         <SelectionActions
           v-if="mode === 'values'"
           :count="selectedDcis.length"
@@ -1095,17 +1096,27 @@ function sourceDciTarget(row) {
   min-height: 0;
 }
 
+/* The filter gives up width first; only then does the toolbar wrap. */
 .dcis-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem;
   border-bottom: 1px solid var(--p-surface-border);
   background: var(--p-surface-card);
+  white-space: nowrap;
+}
+
+/* Zero basis: line breaking counts the filter at its minimum, then it grows back to 300px. */
+.dcis-toolbar > .p-iconfield {
+  flex: 1 1 0;
+  min-width: 10rem;
+  max-width: 300px;
 }
 
 .filter-input {
-  width: 300px;
+  width: 100%;
 }
 
 .dci-count {

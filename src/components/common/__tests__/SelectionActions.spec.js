@@ -55,6 +55,7 @@ describe('SelectionActions', () => {
   describe('when the labels do not fit', () => {
     // jsdom does no layout: the observer is driven by hand, and the row claims a width.
     const LABELLED_WIDTH = 500
+    const ICON_ROW_WIDTH = 200
     let resize
     let offsetWidth
 
@@ -73,7 +74,8 @@ describe('SelectionActions', () => {
       Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
         configurable: true,
         get() {
-          return this.classList.contains('selection-actions__row') ? LABELLED_WIDTH : 0
+          if (this.classList.contains('selection-actions__row')) return LABELLED_WIDTH
+          return this.classList.contains('selection-actions__sizer') ? ICON_ROW_WIDTH : 0
         },
       })
     })
@@ -87,7 +89,8 @@ describe('SelectionActions', () => {
       { label: 'Line chart', icon: 'pi pi-chart-line' },
       { label: 'Preview', icon: 'pi pi-eye' },
     ]
-    const labels = (wrapper) => wrapper.findAll('.p-button-label').map((label) => label.text())
+    const labels = (wrapper) =>
+      wrapper.findAll('.selection-actions__row .p-button-label').map((label) => label.text())
 
     it('drops to icons that keep their names, and back once there is room', async () => {
       const wrapper = mountActions({ actions })
@@ -104,6 +107,29 @@ describe('SelectionActions', () => {
       await nextTick()
       await nextTick()
       expect(labels(wrapper)).toEqual(['Line chart', 'Preview', 'Clear'])
+    })
+
+    it('never gets narrower than its icon row while something is selected', async () => {
+      const wrapper = mountActions({ actions })
+      await nextTick()
+      resize(300)
+      await nextTick()
+      await nextTick()
+      expect(wrapper.find('.selection-actions').attributes('style')).toContain(
+        `min-width: calc(${ICON_ROW_WIDTH}px + 0.5rem)`,
+      )
+
+      await wrapper.setProps({ count: 0 })
+      resize(300)
+      await nextTick()
+      expect(wrapper.find('.selection-actions').attributes('style')).toBeUndefined()
+    })
+
+    it('keeps its sizer out of focus and of the accessibility tree', async () => {
+      const wrapper = mountActions({ actions })
+      const sizer = wrapper.find('.selection-actions__sizer')
+      expect(sizer.attributes('aria-hidden')).toBe('true')
+      expect(sizer.attributes()).toHaveProperty('inert')
     })
   })
 })

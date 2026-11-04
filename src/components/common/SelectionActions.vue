@@ -6,8 +6,9 @@ import { useElementSize } from '@/composables/useElementSize'
 
 /**
  * A table's selection actions in the view's toolbar row. It holds the space between the
- * toolbar's groups whether or not anything is selected, so selecting rows moves nothing. Labelled
- * buttons drop to icons with tooltips when they do not fit.
+ * toolbar's groups whether or not anything is selected. Labelled buttons drop to icons with
+ * tooltips when they do not fit; while something is selected it never gets narrower than the
+ * icon row, so a toolbar that can wrap does rather than clipping the actions.
  */
 const props = defineProps({
   count: { type: Number, required: true },
@@ -25,7 +26,14 @@ const vTooltip = Tooltip
 
 const rootRef = ref(null)
 const rowRef = ref(null)
+const sizerRef = ref(null)
 const { width } = useElementSize(rootRef)
+const iconRowWidth = ref(0)
+
+// The root's padding is part of its width.
+const rootStyle = computed(() =>
+  props.count && iconRowWidth.value ? { minWidth: `calc(${iconRowWidth.value}px + 0.5rem)` } : null,
+)
 
 const compact = ref(false)
 // Measured the last time the row was shown with labels.
@@ -39,6 +47,7 @@ watch(contentKey, () => {
 })
 
 function fit() {
+  iconRowWidth.value = sizerRef.value?.offsetWidth ?? 0
   if (!rowRef.value || !width.value) return
   if (!compact.value) labelledWidth = rowRef.value.offsetWidth
   compact.value = labelledWidth > width.value
@@ -48,7 +57,7 @@ watch([width, contentKey, compact], fit, { flush: 'post' })
 </script>
 
 <template>
-  <div ref="rootRef" class="selection-actions">
+  <div ref="rootRef" class="selection-actions" :style="rootStyle">
     <div
       v-if="count"
       ref="rowRef"
@@ -73,6 +82,17 @@ watch([width, contentKey, compact], fit, { flush: 'post' })
       />
       <Button label="Clear" size="small" text severity="secondary" @click="emit('clear')" />
     </div>
+    <div v-if="count" ref="sizerRef" class="selection-actions__sizer" aria-hidden="true" inert>
+      <span class="selection-actions__count">{{ count }} selected</span>
+      <Button
+        v-for="action in actions"
+        :key="action.label"
+        :icon="action.icon"
+        size="small"
+        outlined
+      />
+      <Button label="Clear" size="small" text />
+    </div>
   </div>
 </template>
 
@@ -80,6 +100,7 @@ watch([width, contentKey, compact], fit, { flush: 'post' })
 /* Its width comes from the toolbar, not its content, so the content can be fitted to it. The
    padding, taken back by the margin, keeps focus rings inside the clip. */
 .selection-actions {
+  position: relative;
   flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
@@ -87,11 +108,17 @@ watch([width, contentKey, compact], fit, { flush: 'post' })
   margin: -0.25rem;
 }
 
-.selection-actions__row {
+.selection-actions__row,
+.selection-actions__sizer {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   width: max-content;
+}
+
+.selection-actions__sizer {
+  position: absolute;
+  visibility: hidden;
 }
 
 .selection-actions__count {
