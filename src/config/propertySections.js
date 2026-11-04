@@ -409,7 +409,7 @@ export const GROUP_ORDER = ['Basic', 'Network', 'Display', 'Advanced']
 export function getSectionsForClass(objectClass) {
   const override = CLASS_SECTIONS_OVERRIDE[objectClass]
   const extra = CLASS_EXTRA_SECTIONS[objectClass] ?? []
-  const allSections = override ?? [...COMMON_SECTIONS, ...extra]
+  const allSections = override ? [...override] : [...COMMON_SECTIONS, ...extra]
 
   const groupIndex = (s) => {
     const idx = GROUP_ORDER.indexOf(s.group)
