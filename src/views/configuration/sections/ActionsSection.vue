@@ -2,32 +2,22 @@
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Tag from 'primevue/tag'
-import AppTable from '@/components/common/AppTable.vue'
-import Button from 'primevue/button'
-import Skeleton from 'primevue/skeleton'
-import SmartFilterInput from '@/components/common/SmartFilterInput.vue'
-import { useConfirm } from 'primevue/useconfirm'
-import { useToast } from 'primevue/usetoast'
-import RefetchIndicator from '@/components/common/RefetchIndicator.vue'
-import QueryErrorState from '@/components/common/QueryErrorState.vue'
-import RestrictedState from '@/components/common/RestrictedState.vue'
-import SectionHeader from '@/components/layout/SectionHeader.vue'
-import EntityDetailHeader from '@/components/layout/EntityDetailHeader.vue'
-import EntityContextMenu from '@/components/common/EntityContextMenu.vue'
+import EntityListSection from '@/components/layout/EntityListSection.vue'
+import EntityDetailState from '@/components/layout/EntityDetailState.vue'
 import ServerActionDetailView from '@/components/server-actions/ServerActionDetailView.vue'
 import {
   useServerActions,
   useServerAction,
   useDeleteServerAction,
 } from '@/queries/useServerActionQueries'
+import { useConfirmDelete } from '@/composables/useConfirmDelete'
 import { useEntityDetail } from '@/composables/useEntityDetail'
 import { usePermissions } from '@/composables/usePermissions'
 import { useWorkingState } from '@/composables/useWorkingState'
 
 const route = useRoute()
 const router = useRouter()
-const confirm = useConfirm()
-const toast = useToast()
+const confirmDelete = useConfirmDelete()
 
 // Reading takes this right or the EPP right; changing takes this one (`actions.cpp`).
 const { can } = usePermissions()
@@ -74,66 +64,37 @@ const filteredActions = computed(() => {
   )
 })
 
-function onRowClick(row) {
-  openDetail(row.id)
-}
+const { mutateAsync: deleteAction } = useDeleteServerAction()
 
-const contextMenu = ref()
-
-const { mutate: deleteAction } = useDeleteServerAction()
-
-const contextMenuItems = computed(() => [
-  {
-    label: can.value.manageActions ? 'Edit' : 'View',
-    icon: can.value.manageActions ? 'pi pi-pencil' : 'pi pi-eye',
-    command: () => openDetail(contextMenu.value.contextData.id),
-  },
-  { separator: true, visible: can.value.manageActions },
-  {
-    label: 'Delete',
-    icon: 'pi pi-trash',
-    class: 'p-menuitem-danger',
-    visible: can.value.manageActions,
-    command: () => confirmDelete(contextMenu.value.contextData),
-  },
-])
-
-function confirmDelete(action) {
-  confirm.require({
-    message: `Delete action "${action.name}"? This cannot be undone.`,
-    header: 'Confirm Delete',
-    icon: 'pi pi-exclamation-triangle',
-    rejectLabel: 'Cancel',
-    acceptLabel: 'Delete',
-    acceptClass: 'p-button-danger',
-    accept: () => {
-      deleteAction(action.id, {
-        onSuccess: () => {
-          toast.add({
-            severity: 'success',
-            summary: 'Deleted',
-            detail: `Action "${action.name}" deleted.`,
-            life: 3000,
-          })
-        },
-        onError: (err) => {
-          const detail =
-            err.status === 409
-              ? 'Action is used in an event processing policy rule and cannot be deleted.'
-              : (err.message ?? 'Failed to delete action.')
-          toast.add({ severity: 'error', summary: 'Delete Failed', detail, life: 5000 })
-        },
-      })
+function menuItems(action) {
+  return [
+    {
+      label: can.value.manageActions ? 'Edit' : 'View',
+      icon: can.value.manageActions ? 'pi pi-pencil' : 'pi pi-eye',
+      command: () => openDetail(action.id),
     },
+    { separator: true, visible: can.value.manageActions },
+    {
+      label: 'Delete',
+      icon: 'pi pi-trash',
+      class: 'p-menuitem-danger',
+      visible: can.value.manageActions,
+      command: () => onDelete(action),
+    },
+  ]
+}
+
+function onDelete(action) {
+  confirmDelete({
+    message: `Delete action "${action.name}"? This cannot be undone.`,
+    run: () => deleteAction(action.id),
+    successDetail: `Action "${action.name}" deleted.`,
+    failureDetail: 'Failed to delete action.',
+    errorDetail: (err) =>
+      err.status === 409
+        ? 'Action is used in an event processing policy rule and cannot be deleted.'
+        : null,
   })
-}
-
-function onRowContextMenu({ event, row }) {
-  contextMenu.value.show(event, row)
-}
-
-function onActionsClick(event, rowData) {
-  contextMenu.value.show(event, rowData)
 }
 
 const columns = [
@@ -164,213 +125,79 @@ const actionDetailId = computed(() =>
 const {
   data: actionDetail,
   isLoading: isDetailLoading,
-  isError: isDetailError,
   error: detailError,
   refetch: refetchDetail,
 } = useServerAction(actionDetailId)
 </script>
 
 <template>
-  <div v-if="isDetailView" class="actions-detail">
-    <template v-if="isNewAction && !can.manageActions">
-      <EntityDetailHeader title="New Action" subtitle="Server Action" @back="closeDetail" />
-      <RestrictedState right="manageActions" />
-    </template>
-
-    <ServerActionDetailView v-else-if="isNewAction" :action="null" @close="closeDetail" />
-
-    <template v-else>
+  <EntityListSection
+    v-model:filter="filterState"
+    :detail="isDetailView"
+    title="Actions"
+    icon="pi pi-bolt"
+    :add-label="can.manageActions ? 'Add Action' : null"
+    filter-placeholder="Filter actions..."
+    count-noun="action"
+    :columns="columns"
+    :rows="filteredActions"
+    :loading="isLoading"
+    :fetching="isFetching"
+    :error="isError ? error : null"
+    empty-text="No server actions found."
+    :menu-items="menuItems"
+    sort-field="name"
+    :sort-order="1"
+    storage-key="server-actions"
+    :target-for="(row) => detailTarget(row.id)"
+    @refresh="refetch"
+    @add="openNew"
+    @row-click="(row) => openDetail(row.id)"
+  >
+    <template #detail>
+      <EntityDetailState
+        v-if="isNewAction && !can.manageActions"
+        restricted-right="manageActions"
+        restricted-title="New Action"
+        restricted-subtitle="Server Action"
+        @back="closeDetail"
+      />
+      <ServerActionDetailView v-else-if="isNewAction" :action="null" @close="closeDetail" />
       <ServerActionDetailView
-        v-if="actionDetail"
+        v-else-if="actionDetail"
         :action="actionDetail"
         :readonly="!can.manageActions"
         @close="closeDetail"
-        @saved="() => {}"
       />
-
-      <template v-else-if="isDetailLoading">
-        <EntityDetailHeader title="Loading…" @back="closeDetail" />
-        <div class="detail-loading">
-          <Skeleton height="1.5rem" width="40%" class="mb-3" />
-          <Skeleton height="1rem" width="60%" class="mb-2" />
-          <Skeleton height="1rem" width="55%" class="mb-2" />
-          <Skeleton height="1rem" width="45%" class="mb-2" />
-        </div>
-      </template>
-
-      <template v-else-if="isDetailError">
-        <EntityDetailHeader title="Error" @back="closeDetail" />
-        <div class="detail-content">
-          <QueryErrorState :error="detailError" @retry="refetchDetail" />
-        </div>
-      </template>
-
-      <template v-else>
-        <EntityDetailHeader title="Not Found" @back="closeDetail" />
-        <div class="detail-content">
-          <p class="empty-message">Action not found.</p>
-        </div>
-      </template>
+      <EntityDetailState
+        v-else
+        :loading="isDetailLoading"
+        :error="detailError"
+        not-found-text="Action not found."
+        @back="closeDetail"
+        @retry="refetchDetail"
+      />
     </template>
-  </div>
 
-  <!-- Kept mounted to preserve paginator state -->
-  <div v-show="!isDetailView" class="actions-section">
-    <SectionHeader title="Actions" icon="pi pi-bolt">
-      <template #actions>
-        <Button
-          v-tooltip.bottom="'Refresh'"
-          icon="pi pi-refresh"
-          size="small"
-          severity="secondary"
-          text
-          rounded
-          aria-label="Refresh"
-          @click="refetch"
-        />
-        <Button
-          v-if="can.manageActions"
-          label="Add Action"
-          icon="pi pi-plus"
-          size="small"
-          severity="primary"
-          @click="openNew"
-        />
-      </template>
-    </SectionHeader>
-
-    <RefetchIndicator :is-fetching="isFetching && !isLoading" />
-
-    <div class="section-toolbar">
-      <SmartFilterInput
-        v-model="filterState"
-        placeholder="Filter actions..."
-        class="filter-input"
+    <template #cell="{ col, row }">
+      <span
+        v-if="col.id === 'name'"
+        class="action-name"
+        :class="{ 'action-disabled': row.isDisabled }"
+        >{{ row.name }}</span
+      >
+      <Tag
+        v-else-if="col.id === 'type'"
+        :value="actionTypeLabel(row.type)"
+        severity="info"
+        outlined
       />
-      <span v-if="!isLoading" class="item-count">{{
-        $plural(filteredActions.length, 'action')
-      }}</span>
-    </div>
-
-    <div v-if="isLoading" class="section-loading">
-      <Skeleton v-for="i in 8" :key="i" height="2rem" class="mb-2" />
-    </div>
-
-    <AppTable
-      v-else
-      :columns="columns"
-      :rows="filteredActions"
-      :error="isError ? error : null"
-      striped
-      column-borders
-      resize-fit
-      sort-field="name"
-      :sort-order="1"
-      :page-size="50"
-      storage-key="server-actions"
-      class="actions-table"
-      :target-for="(row) => detailTarget(row.id)"
-      @row-click="onRowClick"
-      @row-contextmenu="onRowContextMenu"
-      @retry="refetch"
-    >
-      <template #cell="{ col, row }">
-        <span
-          v-if="col.id === 'name'"
-          class="action-name"
-          :class="{ 'action-disabled': row.isDisabled }"
-          >{{ row.name }}</span
-        >
-        <Tag
-          v-else-if="col.id === 'type'"
-          :value="actionTypeLabel(row.type)"
-          severity="info"
-          outlined
-        />
-        <span
-          v-else-if="col.id === 'recipientAddress'"
-          :class="{ 'text-muted': !row.recipientAddress }"
-          >{{ row.recipientAddress || '-' }}</span
-        >
-        <span v-else-if="col.id === 'emailSubject'" :class="{ 'text-muted': !row.emailSubject }">{{
-          row.emailSubject || '-'
-        }}</span>
-        <span v-else-if="col.id === 'data'" :class="{ 'text-muted': !row.data }">{{
-          row.data || '-'
-        }}</span>
-        <span
-          v-else-if="col.id === 'notificationChannelName'"
-          :class="{ 'text-muted': !row.notificationChannelName }"
-          >{{ row.notificationChannelName || '-' }}</span
-        >
-        <Button
-          v-else-if="col.id === 'actions'"
-          icon="pi pi-ellipsis-v"
-          text
-          rounded
-          severity="secondary"
-          size="small"
-          class="row-action-btn"
-          aria-label="Actions"
-          @click.stop="onActionsClick($event, row)"
-        />
-      </template>
-      <template #empty>
-        <div class="empty-message">No server actions found.</div>
-      </template>
-    </AppTable>
-
-    <EntityContextMenu ref="contextMenu" :items="contextMenuItems" />
-  </div>
+      <span v-else :class="{ 'text-muted': !row[col.field] }">{{ row[col.field] || '-' }}</span>
+    </template>
+  </EntityListSection>
 </template>
 
 <style scoped>
-.actions-section,
-.actions-detail {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-}
-
-.section-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--p-surface-border);
-  background: var(--p-surface-card);
-}
-
-.filter-input {
-  width: 300px;
-}
-
-.item-count {
-  margin-left: auto;
-  font-size: 0.8125rem;
-  color: var(--p-text-muted-color);
-}
-
-.section-loading,
-.detail-loading {
-  padding: 1rem;
-}
-
-.actions-table {
-  flex: 1;
-  min-height: 0;
-}
-
-.actions-table :deep(.app-table tbody tr) {
-  cursor: pointer;
-}
-
-.row-action-btn {
-  width: 1.5rem;
-  height: 1.5rem;
-}
-
 .action-name {
   font-weight: 500;
 }
@@ -382,17 +209,5 @@ const {
 
 .text-muted {
   color: var(--p-text-muted-color);
-}
-
-.empty-message {
-  text-align: center;
-  padding: 2rem;
-  color: var(--p-text-muted-color);
-}
-
-.detail-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1.5rem;
 }
 </style>

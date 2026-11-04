@@ -2,17 +2,11 @@
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import Button from 'primevue/button'
-import Skeleton from 'primevue/skeleton'
 import Tag from 'primevue/tag'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
-import AppTable from '@/components/common/AppTable.vue'
-import SmartFilterInput from '@/components/common/SmartFilterInput.vue'
-import EntityContextMenu from '@/components/common/EntityContextMenu.vue'
-import RefetchIndicator from '@/components/common/RefetchIndicator.vue'
-import QueryErrorState from '@/components/common/QueryErrorState.vue'
-import SectionHeader from '@/components/layout/SectionHeader.vue'
-import EntityDetailHeader from '@/components/layout/EntityDetailHeader.vue'
+import EntityListSection from '@/components/layout/EntityListSection.vue'
+import EntityDetailState from '@/components/layout/EntityDetailState.vue'
 import MappingTableDetailView from '@/components/mapping-tables/MappingTableDetailView.vue'
 import {
   useMappingTables,
@@ -72,7 +66,7 @@ watch(filteredTables, (visibleTables) => {
   if (next.size !== selectedIds.value.size) selectedIds.value = next
 })
 
-const { mutate: deleteTable } = useDeleteMappingTable()
+const { mutateAsync: deleteTable } = useDeleteMappingTable()
 
 function confirmDelete(targets) {
   confirm.require({
@@ -86,16 +80,16 @@ function confirmDelete(targets) {
     acceptLabel: 'Delete',
     acceptClass: 'p-button-danger',
     accept: () => {
+      // One observer runs every delete and keeps only the last call's callbacks, so each
+      // failure is caught on its own promise.
       for (const table of targets) {
-        deleteTable(table.id, {
-          onError: (err) => {
-            toast.add({
-              severity: 'error',
-              summary: 'Delete Failed',
-              detail: err.message ?? `Failed to delete "${table.name}".`,
-              life: 5000,
-            })
-          },
+        deleteTable(table.id).catch((err) => {
+          toast.add({
+            severity: 'error',
+            summary: 'Delete Failed',
+            detail: err.message ?? `Failed to delete "${table.name}".`,
+            life: 5000,
+          })
         })
       }
       selectedIds.value = new Set()
@@ -103,19 +97,8 @@ function confirmDelete(targets) {
   })
 }
 
-const contextMenu = ref()
-
-function contextTargets() {
-  const row = contextMenu.value?.contextData
-  if (!row) return []
-  return selectedIds.value.has(row.id) && selectedTables.value.length > 1
-    ? selectedTables.value
-    : [row]
-}
-
-const contextMenuItems = computed(() => {
-  const row = contextMenu.value?.contextData
-  const multiple = selectedIds.value.has(row?.id) && selectedTables.value.length > 1
+function menuItems(row) {
+  const multiple = selectedIds.value.has(row.id) && selectedTables.value.length > 1
   return [
     {
       label: 'Edit',
@@ -128,13 +111,9 @@ const contextMenuItems = computed(() => {
       label: multiple ? `Delete (${selectedTables.value.length})` : 'Delete',
       icon: 'pi pi-trash',
       class: 'p-menuitem-danger',
-      command: () => confirmDelete(contextTargets()),
+      command: () => confirmDelete(multiple ? selectedTables.value : [row]),
     },
   ]
-})
-
-function onRowContextMenu({ event, row }) {
-  contextMenu.value.show(event, row)
 }
 
 const tableDetailId = computed(() => {
@@ -146,7 +125,6 @@ const tableDetailId = computed(() => {
 const {
   data: tableDetail,
   isLoading: isDetailLoading,
-  isError: isDetailError,
   error: detailError,
   refetch: refetchDetail,
 } = useMappingTable(tableDetailId)
@@ -158,195 +136,101 @@ function onCreated(id) {
 </script>
 
 <template>
-  <div v-if="isDetailView" class="mapping-tables-detail">
-    <MappingTableDetailView
-      v-if="isNewTable"
-      :table="null"
-      @close="closeDetail"
-      @created="onCreated"
-    />
-
-    <template v-else>
+  <EntityListSection
+    v-model:filter="filterState"
+    :detail="isDetailView"
+    title="Mapping Tables"
+    icon="pi pi-arrow-right-arrow-left"
+    add-label="New Mapping Table"
+    filter-placeholder="Filter mapping tables..."
+    count-noun="table"
+    :columns="columns"
+    :rows="filteredTables"
+    :loading="isLoading"
+    :fetching="isFetching"
+    :error="isError ? error : null"
+    :menu-items="menuItems"
+    selectable
+    :selected-ids="selectedIds"
+    sort-field="name"
+    :sort-order="1"
+    storage-key="mapping-tables"
+    :target-for="(row) => detailTarget(row.id)"
+    @selection-change="selectedIds = $event"
+    @refresh="refetch"
+    @add="openDetail('new')"
+    @row-click="(row) => openDetail(row.id)"
+  >
+    <template #detail>
       <MappingTableDetailView
-        v-if="tableDetail && tableDetail.id === tableDetailId"
+        v-if="isNewTable"
+        :table="null"
+        @close="closeDetail"
+        @created="onCreated"
+      />
+      <MappingTableDetailView
+        v-else-if="tableDetail && tableDetail.id === tableDetailId"
         :key="tableDetailId"
         :table="tableDetail"
         @close="closeDetail"
       />
-
-      <template v-else-if="isDetailLoading">
-        <EntityDetailHeader title="Loading..." @back="closeDetail" />
-        <div class="detail-loading">
-          <Skeleton height="1.5rem" width="40%" class="mb-3" />
-          <Skeleton height="1rem" width="60%" class="mb-2" />
-          <Skeleton height="1rem" width="55%" class="mb-2" />
-        </div>
-      </template>
-
-      <template v-else-if="isDetailError">
-        <EntityDetailHeader title="Error" @back="closeDetail" />
-        <div class="detail-message">
-          <QueryErrorState :error="detailError" @retry="refetchDetail" />
-        </div>
-      </template>
-
-      <template v-else>
-        <EntityDetailHeader title="Not Found" @back="closeDetail" />
-        <div class="detail-message">
-          <p class="empty-message">Mapping table not found.</p>
-        </div>
-      </template>
+      <EntityDetailState
+        v-else
+        :loading="isDetailLoading"
+        :error="detailError"
+        not-found-text="Mapping table not found."
+        @back="closeDetail"
+        @retry="refetchDetail"
+      />
     </template>
-  </div>
 
-  <!-- Kept mounted to preserve paginator state -->
-  <div v-show="!isDetailView" class="mapping-tables-section">
-    <SectionHeader title="Mapping Tables" icon="pi pi-arrow-right-arrow-left">
-      <template #actions>
+    <template #before-table>
+      <div v-if="selectedTables.length" class="selection-bar">
+        <span class="selection-count">{{ $plural(selectedTables.length, 'table') }} selected</span>
         <Button
-          v-tooltip.bottom="'Refresh'"
-          icon="pi pi-refresh"
+          label="Delete"
+          icon="pi pi-trash"
           size="small"
-          severity="secondary"
-          text
-          rounded
-          aria-label="Refresh"
-          @click="refetch"
-        />
-        <Button
-          label="New Mapping Table"
-          icon="pi pi-plus"
-          size="small"
-          severity="primary"
-          @click="openDetail('new')"
-        />
-      </template>
-    </SectionHeader>
-
-    <RefetchIndicator :is-fetching="isFetching && !isLoading" />
-
-    <div class="section-toolbar">
-      <SmartFilterInput
-        v-model="filterState"
-        placeholder="Filter mapping tables..."
-        class="filter-input"
-      />
-      <span v-if="!isLoading" class="item-count">
-        {{ $plural(filteredTables.length, 'table') }}
-      </span>
-    </div>
-
-    <div v-if="selectedTables.length" class="selection-bar">
-      <span class="selection-count">{{ $plural(selectedTables.length, 'table') }} selected</span>
-      <Button
-        label="Delete"
-        icon="pi pi-trash"
-        size="small"
-        severity="danger"
-        outlined
-        @click="confirmDelete(selectedTables)"
-      />
-      <Button
-        label="Clear"
-        size="small"
-        text
-        severity="secondary"
-        @click="selectedIds = new Set()"
-      />
-    </div>
-
-    <div v-if="isLoading" class="section-loading">
-      <Skeleton v-for="i in 8" :key="i" height="2rem" class="mb-2" />
-    </div>
-
-    <QueryErrorState v-else-if="isError" :error="error" class="section-error" @retry="refetch" />
-
-    <AppTable
-      v-else
-      :columns="columns"
-      :rows="filteredTables"
-      striped
-      column-borders
-      resize-fit
-      selectable
-      :selected-ids="selectedIds"
-      sort-field="name"
-      :sort-order="1"
-      :page-size="50"
-      storage-key="mapping-tables"
-      class="tables-table"
-      :target-for="(row) => detailTarget(row.id)"
-      @selection-change="selectedIds = $event"
-      @row-click="(row) => openDetail(row.id)"
-      @row-contextmenu="onRowContextMenu"
-      @retry="refetch"
-    >
-      <template #cell="{ col, row }">
-        <span v-if="col.id === 'id'" class="text-muted">{{ row.id }}</span>
-        <span v-else-if="col.id === 'name'" class="table-name">{{ row.name }}</span>
-        <Tag
-          v-else-if="col.id === 'flags' && isNumeric(row)"
-          value="Numeric"
-          severity="info"
+          severity="danger"
           outlined
+          @click="confirmDelete(selectedTables)"
         />
-        <span v-else-if="col.id === 'flags'" class="text-muted">Text</span>
-        <span v-else-if="col.id === 'description'" :class="{ 'text-muted': !row.description }">
-          {{ row.description || '-' }}
-        </span>
         <Button
-          v-else-if="col.id === 'actions'"
-          icon="pi pi-ellipsis-v"
-          text
-          rounded
-          severity="secondary"
+          label="Clear"
           size="small"
-          class="row-action-btn"
-          aria-label="Actions"
-          @click.stop="onRowContextMenu({ event: $event, row })"
+          text
+          severity="secondary"
+          @click="selectedIds = new Set()"
         />
-      </template>
-      <template #empty>
-        <div v-if="tables.length === 0" class="empty-message">
-          No mapping tables. They translate raw values into readable ones, for NXSL
-          <code>map()</code> and for DCI value display.
-        </div>
-        <div v-else class="empty-message">No mapping tables match the current filter.</div>
-      </template>
-    </AppTable>
+      </div>
+    </template>
 
-    <EntityContextMenu ref="contextMenu" :items="contextMenuItems" />
-  </div>
+    <template #cell="{ col, row }">
+      <span v-if="col.id === 'id'" class="text-muted">{{ row.id }}</span>
+      <span v-else-if="col.id === 'name'" class="table-name">{{ row.name }}</span>
+      <Tag
+        v-else-if="col.id === 'flags' && isNumeric(row)"
+        value="Numeric"
+        severity="info"
+        outlined
+      />
+      <span v-else-if="col.id === 'flags'" class="text-muted">Text</span>
+      <span v-else-if="col.id === 'description'" :class="{ 'text-muted': !row.description }">
+        {{ row.description || '-' }}
+      </span>
+    </template>
+
+    <template #empty>
+      <template v-if="tables.length === 0">
+        No mapping tables. They translate raw values into readable ones, for NXSL
+        <code>map()</code> and for DCI value display.
+      </template>
+      <template v-else>No mapping tables match the current filter.</template>
+    </template>
+  </EntityListSection>
 </template>
 
 <style scoped>
-.mapping-tables-section,
-.mapping-tables-detail {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-}
-
-.section-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--p-surface-border);
-  background: var(--p-surface-card);
-}
-
-.filter-input {
-  width: 300px;
-}
-
-.item-count {
-  margin-left: auto;
-  font-size: 0.8125rem;
-  color: var(--p-text-muted-color);
-}
-
 .selection-bar {
   display: flex;
   align-items: center;
@@ -362,47 +246,11 @@ function onCreated(id) {
   margin-right: 0.25rem;
 }
 
-.section-loading,
-.detail-loading {
-  padding: 1rem;
-}
-
-.section-error {
-  justify-content: center;
-  padding: 4rem 2rem;
-}
-
-.detail-message {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1.5rem;
-}
-
-.tables-table {
-  flex: 1;
-  min-height: 0;
-}
-
-.tables-table :deep(.app-table tbody tr) {
-  cursor: pointer;
-}
-
 .table-name {
   font-weight: 500;
 }
 
 .text-muted {
-  color: var(--p-text-muted-color);
-}
-
-.row-action-btn {
-  width: 1.5rem;
-  height: 1.5rem;
-}
-
-.empty-message {
-  text-align: center;
-  padding: 2rem;
   color: var(--p-text-muted-color);
 }
 </style>

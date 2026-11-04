@@ -2,18 +2,10 @@
 import { ref, computed } from 'vue'
 import Tag from 'primevue/tag'
 import ToggleSwitch from 'primevue/toggleswitch'
-import AppTable from '@/components/common/AppTable.vue'
-import Button from 'primevue/button'
-import Skeleton from 'primevue/skeleton'
-import RefetchIndicator from '@/components/common/RefetchIndicator.vue'
-import QueryErrorState from '@/components/common/QueryErrorState.vue'
-import RestrictedState from '@/components/common/RestrictedState.vue'
-import SectionHeader from '@/components/layout/SectionHeader.vue'
-import EntityDetailHeader from '@/components/layout/EntityDetailHeader.vue'
-import SmartFilterInput from '@/components/common/SmartFilterInput.vue'
-import EntityContextMenu from '@/components/common/EntityContextMenu.vue'
+import EntityListSection from '@/components/layout/EntityListSection.vue'
+import EntityDetailState from '@/components/layout/EntityDetailState.vue'
+import { useConfirmDelete } from '@/composables/useConfirmDelete'
 import ObjectToolDetailView from '@/components/object-tools/ObjectToolDetailView.vue'
-import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -30,7 +22,7 @@ import { TOOL_TYPE_LABELS } from '@/utils/objectToolUtils'
 
 const route = useRoute()
 const router = useRouter()
-const confirm = useConfirm()
+const confirmDelete = useConfirmDelete()
 const toast = useToast()
 
 // Anyone may read the tools their access list allows; only changing them takes this right
@@ -69,46 +61,18 @@ function formatToolType(type) {
   return TOOL_TYPE_LABELS[type] ?? type
 }
 
-function onRowClick(row) {
-  openDetail(row.id)
-}
-
-const contextMenu = ref()
-
-const { mutate: deleteTool } = useDeleteObjectTool()
+const { mutateAsync: deleteTool } = useDeleteObjectTool()
 const { mutate: enableTool } = useEnableObjectTool()
 const { mutate: disableTool } = useDisableObjectTool()
 
-function confirmDelete(tool) {
-  confirm.require({
+async function onDelete(tool) {
+  const deleted = await confirmDelete({
     message: `Delete tool "${tool.name}"? This cannot be undone.`,
-    header: 'Confirm Delete',
-    icon: 'pi pi-exclamation-triangle',
-    rejectLabel: 'Cancel',
-    acceptLabel: 'Delete',
-    acceptClass: 'p-button-danger',
-    accept: () => {
-      deleteTool(tool.id, {
-        onSuccess: () => {
-          toast.add({
-            severity: 'success',
-            summary: 'Deleted',
-            detail: `Tool "${tool.name}" deleted.`,
-            life: 3000,
-          })
-          if (entityId.value === String(tool.id)) closeDetail()
-        },
-        onError: (err) => {
-          toast.add({
-            severity: 'error',
-            summary: 'Delete Failed',
-            detail: err.message ?? 'Failed to delete tool.',
-            life: 5000,
-          })
-        },
-      })
-    },
+    run: () => deleteTool(tool.id),
+    successDetail: `Tool "${tool.name}" deleted.`,
+    failureDetail: 'Failed to delete tool.',
   })
+  if (deleted && entityId.value === String(tool.id)) closeDetail()
 }
 
 function toggleEnabled(tool) {
@@ -134,8 +98,7 @@ function toggleEnabled(tool) {
   })
 }
 
-const contextMenuItems = computed(() => {
-  const tool = contextMenu.value?.contextData
+function menuItems(tool) {
   const canManage = can.value.manageTools
   return [
     {
@@ -155,17 +118,9 @@ const contextMenuItems = computed(() => {
       icon: 'pi pi-trash',
       class: 'p-menuitem-danger',
       visible: canManage,
-      command: () => confirmDelete(tool),
+      command: () => onDelete(tool),
     },
   ]
-})
-
-function onRowContextMenu({ event, row }) {
-  contextMenu.value.show(event, row)
-}
-
-function onActionsClick(event, rowData) {
-  contextMenu.value.show(event, rowData)
 }
 
 const columns = [
@@ -186,7 +141,6 @@ const numericEntityId = computed(() => {
 const {
   data: toolDetail,
   isLoading: isDetailLoading,
-  isError: isDetailError,
   error: detailError,
   refetch: refetchDetail,
 } = useObjectTool(numericEntityId)
@@ -198,175 +152,86 @@ const detailTool = computed(() => {
 </script>
 
 <template>
-  <div v-if="isDetailView" class="object-tools-detail">
-    <template v-if="isNewTool && !can.manageTools">
-      <EntityDetailHeader title="New Object Tool" subtitle="Object Tool" @back="closeDetail" />
-      <RestrictedState right="manageTools" />
+  <EntityListSection
+    v-model:filter="filterState"
+    :detail="isDetailView"
+    title="Object Tools"
+    icon="pi pi-wrench"
+    :add-label="can.manageTools ? 'New Tool' : null"
+    filter-placeholder="Filter tools..."
+    count-noun="tool"
+    :columns="columns"
+    :rows="filteredTools"
+    :loading="isLoading"
+    :fetching="isFetching"
+    :error="isError ? error : null"
+    empty-text="No object tools found."
+    :menu-items="menuItems"
+    sort-field="name"
+    :sort-order="1"
+    storage-key="object-tools"
+    :target-for="(row) => detailTarget(row.id)"
+    @refresh="refetch"
+    @add="openNew"
+    @row-click="(row) => openDetail(row.id)"
+  >
+    <template #detail>
+      <EntityDetailState
+        v-if="isNewTool && !can.manageTools"
+        restricted-right="manageTools"
+        restricted-title="New Object Tool"
+        restricted-subtitle="Object Tool"
+        @back="closeDetail"
+      />
+      <EntityDetailState v-else-if="!isNewTool && isDetailLoading" loading @back="closeDetail" />
+      <ObjectToolDetailView
+        v-else-if="isNewTool || toolDetail"
+        :tool="detailTool"
+        :readonly="!can.manageTools"
+        @close="closeDetail"
+      />
+      <EntityDetailState
+        v-else
+        :loading="isDetailLoading"
+        :error="detailError"
+        not-found-text="Object tool not found."
+        @back="closeDetail"
+        @retry="refetchDetail"
+      />
     </template>
-    <div v-else-if="!isNewTool && isDetailLoading" class="detail-loading">
-      <Skeleton height="2rem" width="40%" class="mb-3" />
-      <Skeleton height="1rem" width="60%" class="mb-2" />
-      <Skeleton height="1rem" width="55%" class="mb-2" />
-      <Skeleton height="1rem" width="45%" class="mb-2" />
-    </div>
-    <ObjectToolDetailView
-      v-else-if="isNewTool || toolDetail"
-      :tool="detailTool"
-      :readonly="!can.manageTools"
-      @close="closeDetail"
-    />
-    <QueryErrorState v-else-if="isDetailError" :error="detailError" @retry="refetchDetail" />
-  </div>
 
-  <!-- Kept mounted to preserve paginator state -->
-  <div v-show="!isDetailView" class="object-tools-section">
-    <SectionHeader title="Object Tools" icon="pi pi-wrench">
-      <template #actions>
-        <Button
-          v-tooltip.bottom="'Refresh'"
-          icon="pi pi-refresh"
-          size="small"
-          severity="secondary"
-          text
-          rounded
-          aria-label="Refresh"
-          @click="refetch"
-        />
-        <Button
-          v-if="can.manageTools"
-          label="New Tool"
-          icon="pi pi-plus"
-          size="small"
-          severity="primary"
-          @click="openNew"
-        />
-      </template>
-    </SectionHeader>
-
-    <RefetchIndicator :is-fetching="isFetching && !isLoading" />
-
-    <div class="section-toolbar">
-      <SmartFilterInput v-model="filterState" placeholder="Filter tools..." class="filter-input" />
-      <span v-if="!isLoading" class="item-count">{{ $plural(filteredTools.length, 'tool') }}</span>
-    </div>
-
-    <div v-if="isLoading" class="section-loading">
-      <Skeleton v-for="i in 8" :key="i" height="2rem" class="mb-2" />
-    </div>
-
-    <AppTable
-      v-else
-      :columns="columns"
-      :rows="filteredTools"
-      :error="isError ? error : null"
-      striped
-      column-borders
-      resize-fit
-      sort-field="name"
-      :sort-order="1"
-      :page-size="50"
-      storage-key="object-tools"
-      class="tools-table"
-      :target-for="(row) => detailTarget(row.id)"
-      @row-click="onRowClick"
-      @row-contextmenu="onRowContextMenu"
-      @retry="refetch"
-    >
-      <template #cell="{ col, row }">
-        <span
-          v-if="col.id === 'name'"
-          class="tool-name"
-          :class="{ 'tool-disabled': row.flags?.disabled }"
-          >{{ row.name }}</span
-        >
-        <Tag
-          v-else-if="col.id === 'type'"
-          :value="formatToolType(row.type)"
-          severity="info"
-          outlined
-          :class="{ 'tool-cell-disabled': row.flags?.disabled }"
-        />
-        <span
-          v-else-if="col.id === 'commandName'"
-          :class="{ 'text-muted': !row.commandName, 'tool-cell-disabled': row.flags?.disabled }"
-        >
-          {{ row.commandName || row.commandShortName || '-' }}
-        </span>
-        <ToggleSwitch
-          v-else-if="col.id === 'toggle'"
-          :model-value="!row.flags?.disabled"
-          :disabled="!can.manageTools"
-          @update:model-value="toggleEnabled(row)"
-          @click.stop
-        />
-        <Button
-          v-else-if="col.id === 'actions'"
-          icon="pi pi-ellipsis-v"
-          text
-          rounded
-          severity="secondary"
-          size="small"
-          class="row-action-btn"
-          aria-label="Actions"
-          @click.stop="onActionsClick($event, row)"
-        />
-      </template>
-      <template #empty>
-        <div class="empty-message">No object tools found.</div>
-      </template>
-    </AppTable>
-
-    <EntityContextMenu ref="contextMenu" :items="contextMenuItems" />
-  </div>
+    <template #cell="{ col, row }">
+      <span
+        v-if="col.id === 'name'"
+        class="tool-name"
+        :class="{ 'tool-disabled': row.flags?.disabled }"
+        >{{ row.name }}</span
+      >
+      <Tag
+        v-else-if="col.id === 'type'"
+        :value="formatToolType(row.type)"
+        severity="info"
+        outlined
+        :class="{ 'tool-cell-disabled': row.flags?.disabled }"
+      />
+      <span
+        v-else-if="col.id === 'commandName'"
+        :class="{ 'text-muted': !row.commandName, 'tool-cell-disabled': row.flags?.disabled }"
+      >
+        {{ row.commandName || row.commandShortName || '-' }}
+      </span>
+      <ToggleSwitch
+        v-else-if="col.id === 'toggle'"
+        :model-value="!row.flags?.disabled"
+        :disabled="!can.manageTools"
+        @update:model-value="toggleEnabled(row)"
+        @click.stop
+      />
+    </template>
+  </EntityListSection>
 </template>
 
 <style scoped>
-.object-tools-section,
-.object-tools-detail {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-}
-
-.section-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  border-bottom: 1px solid var(--p-surface-border);
-  background: var(--p-surface-card);
-}
-
-.filter-input {
-  width: 300px;
-}
-
-.item-count {
-  margin-left: auto;
-  font-size: 0.8125rem;
-  color: var(--p-text-muted-color);
-}
-
-.section-loading,
-.detail-loading {
-  padding: 1rem;
-}
-
-.tools-table {
-  flex: 1;
-  min-height: 0;
-}
-
-.tools-table :deep(.app-table tbody tr) {
-  cursor: pointer;
-}
-
-.row-action-btn {
-  width: 1.5rem;
-  height: 1.5rem;
-}
-
 .tool-name {
   font-weight: 500;
 }
@@ -381,12 +246,6 @@ const detailTool = computed(() => {
 }
 
 .text-muted {
-  color: var(--p-text-muted-color);
-}
-
-.empty-message {
-  text-align: center;
-  padding: 2rem;
   color: var(--p-text-muted-color);
 }
 </style>
