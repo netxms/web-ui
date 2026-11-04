@@ -9,6 +9,7 @@ import {
   severityRank,
   SEVERITY_ORDER,
   alarmActionAvailability,
+  alarmsAllowing,
 } from '../alarmDisplay'
 import { getStatusInfo } from '../objectUtils'
 
@@ -124,5 +125,40 @@ describe('alarmActionAvailability', () => {
     ['terminated', { acknowledge: false, resolve: false, terminate: false }],
   ])('%s', (state, expected) => {
     expect(alarmActionAvailability(state)).toEqual(expected)
+  })
+
+  it.each([
+    ['outstanding', false],
+    ['acknowledged', false],
+    ['resolved', true],
+    ['terminated', false],
+  ])('under strict flow, %s can be terminated: %s', (state, terminate) => {
+    expect(alarmActionAvailability(state, { strictFlow: true }).terminate).toBe(terminate)
+  })
+
+  it('leaves acknowledge and resolve alone under strict flow', () => {
+    expect(alarmActionAvailability('outstanding', { strictFlow: true })).toMatchObject({
+      acknowledge: true,
+      resolve: true,
+    })
+  })
+})
+
+describe('alarmsAllowing', () => {
+  const alarms = [
+    { id: 1, state: 0 },
+    { id: 2, state: 1 },
+    { id: 3, state: 2 },
+  ]
+  const ids = (list) => list.map((alarm) => alarm.id)
+
+  it('keeps the alarms an action applies to', () => {
+    expect(ids(alarmsAllowing('acknowledge', alarms))).toEqual([1])
+    expect(ids(alarmsAllowing('resolve', alarms))).toEqual([1, 2])
+    expect(ids(alarmsAllowing('terminate', alarms))).toEqual([1, 2, 3])
+  })
+
+  it('applies strict flow', () => {
+    expect(ids(alarmsAllowing('terminate', alarms, { strictFlow: true }))).toEqual([3])
   })
 })

@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import QuickActionCard from './QuickActionCard.vue'
-import { useAlarms } from '@/queries/useAlarmQueries'
+import { useAlarmAttention } from '@/composables/useAlarmAttention'
 import {
   alarmTarget,
   dashboardTarget,
@@ -11,9 +11,7 @@ import {
   perspectiveTarget,
 } from '@/utils/routeTargets'
 
-const { data: alarms } = useAlarms()
-
-const totalAlarms = computed(() => (alarms.value ?? []).length)
+const { count: outstandingAlarms } = useAlarmAttention()
 
 const actions = computed(() => [
   {
@@ -27,7 +25,7 @@ const actions = computed(() => [
     icon: 'pi pi-bell',
     target: alarmTarget(),
     color: 'red',
-    badge: totalAlarms.value,
+    badge: outstandingAlarms.value,
   },
   {
     title: 'Dashboards',

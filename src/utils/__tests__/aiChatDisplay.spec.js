@@ -40,6 +40,17 @@ describe('question countdown', () => {
     expect(formatCountdown(65)).toBe('1:05')
     expect(formatCountdown(0)).toBe('0:00')
   })
+
+  it('counts down to an ISO 8601 deadline and stops at zero', () => {
+    const deadline = '2026-11-03T10:01:00Z'
+    expect(secondsLeft(deadline, Date.parse('2026-11-03T10:00:00.500Z'))).toBe(60)
+    expect(secondsLeft(deadline, Date.parse('2026-11-03T10:01:05Z'))).toBe(0)
+  })
+
+  it('has no deadline for a value it cannot read', () => {
+    expect(secondsLeft('not a date', 1)).toBeNull()
+    expect(secondsLeft(null, 1)).toBeNull()
+  })
 })
 
 describe('context usage', () => {

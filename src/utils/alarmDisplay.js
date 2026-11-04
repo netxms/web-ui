@@ -1,9 +1,11 @@
 // `color` is for marks only (icons, dots, bars, borders); anything carrying text takes the
-// `bgColor` + `textColor` pair. Severity icons come from StatusIcon.vue.
+// `bgColor` + `textColor` pair, or `onFillColor` for text on a solid `color`. Severity icons come
+// from StatusIcon.vue.
 const paletteColors = (key) => ({
   color: `var(--netxms-status-${key})`,
   bgColor: `var(--netxms-status-${key}-bg)`,
   textColor: `var(--netxms-status-${key}-text)`,
+  onFillColor: `var(--netxms-status-${key}-on-fill)`,
 })
 export const severityConfig = {
   critical: paletteColors('critical'),
@@ -40,14 +42,30 @@ export function normalizeState(value) {
 
 /**
  * @param {string} state - normalized (normalizeState)
+ * @param {object} [options]
+ * @param {boolean} [options.strictFlow] - `options.strictAlarmStatusFlow` of server-info. Only
+ *   clients enforce it: the server terminates from any state.
  * @returns {{ acknowledge: boolean, resolve: boolean, terminate: boolean }}
  */
-export function alarmActionAvailability(state) {
+export function alarmActionAvailability(state, { strictFlow = false } = {}) {
   return {
     acknowledge: state === 'outstanding',
     resolve: state !== 'resolved' && state !== 'terminated',
-    terminate: state !== 'terminated',
+    terminate: strictFlow ? state === 'resolved' : state !== 'terminated',
   }
+}
+
+/**
+ * The part of a selection an action applies to.
+ *
+ * @param {'acknowledge'|'resolve'|'terminate'} action
+ * @param {object[]} alarms
+ * @param {{ strictFlow?: boolean }} [options]
+ */
+export function alarmsAllowing(action, alarms, options) {
+  return alarms.filter(
+    (alarm) => alarmActionAvailability(normalizeState(alarm.state), options)[action],
+  )
 }
 
 export function getSeverity(alarm) {

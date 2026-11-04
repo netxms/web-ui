@@ -13,8 +13,8 @@ import { useElementSize } from '@/composables/useElementSize'
 const props = defineProps({
   count: { type: Number, required: true },
   /**
-   * `{ label, icon, command?(event), href?, severity? }` each. `href` renders a real anchor;
-   * `command` then handles the plain click.
+   * `{ label, icon, command?(event), href?, severity?, disabled? }` each. `href` renders a real
+   * anchor; `command` then handles the plain click.
    * @type {import('vue').PropType<Array<object>>}
    */
   actions: { type: Array, default: () => [] },
@@ -77,6 +77,7 @@ watch([width, contentKey, compact], fit, { flush: 'post' })
         :icon="action.icon"
         size="small"
         :severity="action.severity ?? 'secondary'"
+        :disabled="action.disabled"
         outlined
         @click="action.command?.($event)"
       />

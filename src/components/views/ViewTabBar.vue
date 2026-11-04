@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import Badge from 'primevue/badge'
 import Button from 'primevue/button'
 import Menu from 'primevue/menu'
 import EntityContextMenu from '@/components/common/EntityContextMenu.vue'
@@ -10,9 +11,10 @@ import { anchorEventAt } from '@/utils/menuAnchor'
 const props = defineProps({
   /**
    * All available views (flat array). `closable: false` marks a tab that comes and goes with
-   * the object; `lockable: false` one that can be closed but not locked (the chart tab).
+   * the object; `lockable: false` one that can be closed but not locked (the chart tab). A
+   * nonzero `badge` shows beside the label.
    * @type {Array<{ id: string, label: string, icon?: string, closable?: boolean,
-   *   lockable?: boolean }>}
+   *   lockable?: boolean, badge?: number }>}
    */
   views: {
     type: Array,
@@ -394,6 +396,7 @@ function resetDrag() {
           >
             <i v-if="view.icon" :class="view.icon" class="view-tab-icon" />
             <span class="view-tab-label">{{ view.label }}</span>
+            <Badge v-if="view.badge" :value="view.badge" severity="warn" class="view-tab-badge" />
             <span
               v-if="isLocked(view.id)"
               v-tooltip.bottom="LOCKED_HINT"
@@ -717,6 +720,15 @@ html.app-dark .view-tab-bar {
   max-width: 10rem;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.view-tab-badge {
+  flex-shrink: 0;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 0.25rem;
+  font-size: 0.6875rem;
+  line-height: 1.125rem;
 }
 
 .view-tab-close {

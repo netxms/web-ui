@@ -20,7 +20,8 @@ export function useRowSelection({
   onChange,
   isSelectable = () => true,
 }) {
-  const lastClickedIndex = ref(null)
+  // By id, not position: a live list reorders under the user between the two clicks of a range.
+  const anchorId = ref(null)
 
   const selectableRows = computed(() => toValue(rows).filter((row) => isSelectable(row)))
 
@@ -28,41 +29,61 @@ export function useRowSelection({
     return toValue(selectedIds).has(idOf(row))
   }
 
-  // A shift-range replaces the selection rather than adding to it, as in the legacy client.
-  function toggle(event, row, index) {
+  function indexOfId(id) {
+    return toValue(rows).findIndex((row) => idOf(row) === id)
+  }
+
+  // A range replaces the selection rather than adding to it, as in the legacy client.
+  function selectRange(fromId, toId) {
+    const a = indexOfId(fromId)
+    const b = indexOfId(toId)
+    onChange(
+      new Set(
+        toValue(rows)
+          .slice(Math.min(a, b), Math.max(a, b) + 1)
+          .filter(isSelectable)
+          .map(idOf),
+      ),
+    )
+  }
+
+  function toggle(event, row) {
     event.stopPropagation()
     if (!isSelectable(row)) return
 
-    const list = toValue(rows)
+    const key = idOf(row)
 
-    if (event.shiftKey && lastClickedIndex.value !== null) {
-      const from = Math.min(lastClickedIndex.value, index)
-      const to = Math.max(lastClickedIndex.value, index)
-      onChange(
-        new Set(
-          list
-            .slice(from, to + 1)
-            .filter(isSelectable)
-            .map(idOf),
-        ),
-      )
+    if (event.shiftKey && anchorId.value !== null && indexOfId(anchorId.value) !== -1) {
+      selectRange(anchorId.value, key)
       return
     }
 
     const next = new Set(toValue(selectedIds))
-    const key = idOf(row)
     if (next.has(key)) next.delete(key)
     else next.add(key)
     // Not left to the size watcher: it sees only the net size within a tick, so a
     // select-then-deselect would leave a stale anchor.
-    lastClickedIndex.value = next.size === 0 ? null : index
+    anchorId.value = next.size === 0 ? null : key
     onChange(next)
   }
 
-  function onKeydown(event, row, index) {
+  /**
+   * Keyboard range: from the anchor, or from `origin` (the row the keyboard is leaving) when
+   * there is none.
+   */
+  function extendTo(origin, row) {
+    if (anchorId.value === null || indexOfId(anchorId.value) === -1) anchorId.value = idOf(origin)
+    selectRange(anchorId.value, idOf(row))
+  }
+
+  function dropAnchor() {
+    anchorId.value = null
+  }
+
+  function onKeydown(event, row) {
     if (event.key !== ' ' && event.key !== 'Enter') return
     event.preventDefault()
-    toggle(event, row, index)
+    toggle(event, row)
   }
 
   const allSelected = computed(() => {
@@ -77,12 +98,12 @@ export function useRowSelection({
   )
 
   function selectAll() {
-    lastClickedIndex.value = null
+    dropAnchor()
     onChange(new Set(selectableRows.value.map(idOf)))
   }
 
   function clear() {
-    lastClickedIndex.value = null
+    dropAnchor()
     onChange(new Set())
   }
 
@@ -100,20 +121,15 @@ export function useRowSelection({
   watch(
     () => toValue(selectedIds).size,
     (size) => {
-      if (size === 0) lastClickedIndex.value = null
-    },
-  )
-
-  watch(
-    () => toValue(rows),
-    () => {
-      lastClickedIndex.value = null
+      if (size === 0) dropAnchor()
     },
   )
 
   return {
     isSelected,
     toggle,
+    extendTo,
+    dropAnchor,
     onKeydown,
     toggleAll,
     selectAll,

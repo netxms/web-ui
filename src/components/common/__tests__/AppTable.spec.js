@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { defineComponent, ref } from 'vue'
 import PrimeVue from 'primevue/config'
 import AppTable from '@/components/common/AppTable.vue'
@@ -541,6 +541,108 @@ describe('AppTable row selection', () => {
       await bodyRows(wrapper)[0].trigger('keydown', { key: 'Enter', ctrlKey: true })
 
       expect([...wrapper.emitted('selection-change')[0][0]]).toEqual([1])
+    })
+
+    describe('keyboard selection', () => {
+      /** The parent feeds each reported selection back in, as a real host does. */
+      function mountControlled(props) {
+        const wrapper = mountSelectable({
+          expandable: true,
+          'onSelection-change': (next) => wrapper.setProps({ selectedIds: next }),
+          ...props,
+        })
+        return wrapper
+      }
+
+      const selection = (wrapper) => [...wrapper.props('selectedIds')]
+
+      const press = async (wrapper, rowIndex, init) => {
+        const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init })
+        bodyRows(wrapper)[rowIndex].element.dispatchEvent(event)
+        await flushPromises()
+        return event
+      }
+
+      it('shift+ArrowDown selects from the focused row and moves the tab stop', async () => {
+        const wrapper = mountControlled()
+
+        await press(wrapper, 1, { key: 'ArrowDown', shiftKey: true })
+
+        expect(selection(wrapper)).toEqual([2, 3])
+        expect(bodyRows(wrapper).map((r) => r.attributes('tabindex'))).toEqual([
+          '-1',
+          '-1',
+          '0',
+          '-1',
+        ])
+      })
+
+      it('shift+ArrowUp walks a range back', async () => {
+        const wrapper = mountControlled()
+
+        await press(wrapper, 1, { key: 'ArrowDown', shiftKey: true })
+        await press(wrapper, 2, { key: 'ArrowDown', shiftKey: true })
+        await press(wrapper, 3, { key: 'ArrowUp', shiftKey: true })
+
+        expect(selection(wrapper)).toEqual([2, 3])
+      })
+
+      it('shift+End selects through the last row of the page', async () => {
+        const wrapper = mountControlled()
+
+        await press(wrapper, 1, { key: 'End', shiftKey: true })
+
+        expect(selection(wrapper)).toEqual([2, 3, 4])
+      })
+
+      it('a plain arrow keeps the selection and starts the next range there', async () => {
+        const wrapper = mountControlled()
+
+        await press(wrapper, 0, { key: 'ArrowDown', shiftKey: true })
+        await press(wrapper, 1, { key: 'ArrowDown' })
+        expect(selection(wrapper)).toEqual([1, 2])
+
+        await press(wrapper, 2, { key: 'ArrowDown', shiftKey: true })
+        expect(selection(wrapper)).toEqual([3, 4])
+      })
+
+      it('ctrl+A selects the page instead of the page text', async () => {
+        const wrapper = mountControlled()
+
+        const event = await press(wrapper, 0, { key: 'a', ctrlKey: true })
+
+        expect(selection(wrapper)).toEqual([1, 2, 3, 4])
+        expect(event.defaultPrevented).toBe(true)
+      })
+
+      it('Escape clears the selection', async () => {
+        const wrapper = mountControlled({ selectedIds: new Set([1, 2]) })
+
+        await press(wrapper, 0, { key: 'Escape' })
+
+        expect(selection(wrapper)).toEqual([])
+      })
+
+      it('leaves Escape alone while nothing is selected', async () => {
+        const wrapper = mountControlled()
+
+        const event = await press(wrapper, 0, { key: 'Escape' })
+
+        expect(event.defaultPrevented).toBe(false)
+        expect(wrapper.emitted('selection-change')).toBeUndefined()
+      })
+
+      it('does nothing in a table without selection', async () => {
+        const wrapper = mount(AppTable, {
+          props: { columns: selectionColumns, rows: makeRows(4), expandable: true },
+          global: { plugins: [PrimeVue] },
+        })
+
+        const event = await press(wrapper, 0, { key: 'a', ctrlKey: true })
+
+        expect(event.defaultPrevented).toBe(false)
+        expect(wrapper.emitted('selection-change')).toBeUndefined()
+      })
     })
 
     it('ignores the gesture on a row rowSelectable rejects', async () => {

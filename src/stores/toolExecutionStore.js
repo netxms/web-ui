@@ -4,7 +4,15 @@ import { defineStore } from 'pinia'
 export const useToolExecutionStore = defineStore('toolExecution', () => {
   const executions = ref(new Map())
 
-  function createExecution({ toolId, toolName, toolType, objectId, objectName, inputValues }) {
+  function createExecution({
+    toolId,
+    toolName,
+    toolType,
+    objectId,
+    objectName,
+    inputValues,
+    alarmId,
+  }) {
     // One slot per tool per object.
     const id = `${objectId}-${toolId}`
     const execution = {
@@ -23,6 +31,7 @@ export const useToolExecutionStore = defineStore('toolExecution', () => {
       startedAt: new Date(),
       completedAt: null,
       inputValues: inputValues || {},
+      alarmId,
     }
     executions.value.set(id, execution)
     return id

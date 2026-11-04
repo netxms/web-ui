@@ -27,6 +27,11 @@ vi.mock('@/composables/useServerComponents', () => ({
 
 vi.mock('@/stores/authStore', () => ({ useAuthStore: () => reactive({ sessionGuid: 's' }) }))
 
+const messageCount = ref(0)
+vi.mock('@/composables/useAiMessageAttention', () => ({
+  useAiMessageAttention: () => ({ count: messageCount }),
+}))
+
 const AiChatView = { name: 'AiChatView', props: ['incidentId'], template: '<div class="chat" />' }
 
 const ViewTabBar = {
@@ -56,9 +61,18 @@ beforeEach(() => {
   routerReplace.mockClear()
   can.value = { useAiAssistant: true, viewEventLog: true }
   components.value = ['AI-ASSISTANT']
+  messageCount.value = 0
 })
 
 describe('AiView', () => {
+  it('puts the count of what waits on the Messages tab', () => {
+    messageCount.value = 3
+    const views = mountView().findComponent(ViewTabBar).props('views')
+
+    expect(views.find((view) => view.id === 'messages').badge).toBe(3)
+    expect(views.find((view) => view.id === 'chat').badge).toBeUndefined()
+  })
+
   it('opens on the chat, with every tab the account can use', () => {
     const wrapper = mountView()
     const bar = wrapper.findComponent(ViewTabBar)

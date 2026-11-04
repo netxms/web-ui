@@ -48,16 +48,25 @@ export function getAlarm(id) {
   return get(`/v1/alarms/${id}`)
 }
 
-export function acknowledgeAlarm(id) {
-  return post(`/v1/alarms/${id}/acknowledge`)
+/**
+ * The three state changes answer 204 even when the server refuses the change (an alarm open in
+ * helpdesk, say): the handlers discard its result code. Only 403 and 404 report a failure.
+ *
+ * @param {number} id
+ * @param {object} [options] - see `request` in client.js
+ */
+export function acknowledgeAlarm(id, options) {
+  return post(`/v1/alarms/${id}/acknowledge`, undefined, options)
 }
 
-export function resolveAlarm(id) {
-  return post(`/v1/alarms/${id}/resolve`)
+/** @see acknowledgeAlarm */
+export function resolveAlarm(id, options) {
+  return post(`/v1/alarms/${id}/resolve`, undefined, options)
 }
 
-export function terminateAlarm(id) {
-  return post(`/v1/alarms/${id}/terminate`)
+/** @see acknowledgeAlarm */
+export function terminateAlarm(id, options) {
+  return post(`/v1/alarms/${id}/terminate`, undefined, options)
 }
 
 export function getAlarmComments(id) {

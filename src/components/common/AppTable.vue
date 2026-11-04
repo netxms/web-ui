@@ -19,6 +19,7 @@ import { ChevronsDownUp } from 'lucide-vue-next'
 import QueryErrorState from '@/components/common/QueryErrorState.vue'
 import AppTableRow from '@/components/common/AppTableRow.vue'
 import { useRowSelection } from '@/composables/useRowSelection'
+import { isTypingTarget } from '@/composables/useActionShortcuts'
 import { mayStealFocus } from '@/composables/useRegionFocus'
 import { useWorkingState } from '@/composables/useWorkingState'
 import { tables } from '@/utils/appStorage'
@@ -83,7 +84,9 @@ const props = defineProps({
   targetFor: { type: Function, default: null },
   /**
    * Checkbox selection with select-all and shift-ranges. Ctrl/cmd- and shift-click on a row
-   * select too, except ctrl/cmd on a `targetFor` row opens a new tab. The parent owns the Set.
+   * select too, except ctrl/cmd on a `targetFor` row opens a new tab. From a focused row,
+   * shift+arrows extend a range, ctrl/cmd+A selects the page and Escape clears. The parent owns
+   * the Set.
    */
   selectable: { type: Boolean, default: false },
   /** @type {Set} Only read when `selectable`. */
@@ -175,8 +178,6 @@ function expandRows(ids, limit = Infinity) {
 function collapseAll() {
   expandedRows.value.clear()
 }
-
-defineExpose({ expandRow, expandRows, collapseAll, revealRow })
 
 // Local registration, so specs mounting a table need not provide the directive.
 const vTooltip = Tooltip
@@ -311,8 +312,12 @@ const anyPagedRowExpanded = computed(
 const {
   isSelected: isRowSelected,
   toggle: toggleRowSelection,
+  extendTo: extendRowSelection,
+  dropAnchor: dropSelectionAnchor,
   onKeydown: onCheckboxKeydown,
   toggleAll: toggleAllSelection,
+  selectAll: selectAllRows,
+  clear: clearRowSelection,
   allSelected,
   someSelected,
   onTableMouseDown,
@@ -322,6 +327,8 @@ const {
   onChange: (next) => emit('selection-change', next),
   isSelectable: (row) => props.rowSelectable?.(row) ?? true,
 })
+
+defineExpose({ expandRow, expandRows, collapseAll, revealRow, allSelected })
 
 function canSelectRow(row) {
   return props.rowSelectable?.(row) ?? true
@@ -346,7 +353,25 @@ function onRowFocus(index, row) {
   emit('row-mouseenter', row)
 }
 
+/** @returns {boolean} whether the key was a selection command */
+function handleSelectionKey(event) {
+  if (!props.selectable || isTypingTarget(event.target)) return false
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
+    event.preventDefault()
+    selectAllRows()
+    return true
+  }
+  if (event.key === 'Escape' && props.selectedIds.size > 0) {
+    event.preventDefault()
+    clearRowSelection()
+    return true
+  }
+  return false
+}
+
 function onRowKeydown(event, index) {
+  if (handleSelectionKey(event)) return
+
   let next
   if (event.key === 'ArrowDown') next = index + 1
   else if (event.key === 'ArrowUp') next = index - 1
@@ -356,6 +381,10 @@ function onRowKeydown(event, index) {
 
   if (next < 0 || next >= pagedRows.value.length) return
   event.preventDefault()
+  if (props.selectable) {
+    if (event.shiftKey) extendRowSelection(pagedRows.value[index], pagedRows.value[next])
+    else dropSelectionAnchor()
+  }
   focusedRowIndex.value = next
   // The tabindex swap has to land in the DOM before the row can take focus.
   nextTick(() => tbodyRef.value?.querySelector('tr[tabindex="0"]')?.focus())

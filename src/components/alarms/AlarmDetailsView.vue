@@ -7,6 +7,7 @@ import AlarmIconLabel from '@/components/alarms/AlarmIconLabel.vue'
 import Skeleton from 'primevue/skeleton'
 import EntityDetailHeader from '@/components/layout/EntityDetailHeader.vue'
 import InfoCard from '@/components/objects/InfoCard.vue'
+import ObjectIcon from '@/components/objects/ObjectIcon.vue'
 import DciHistoryChart from '@/components/objects/DciHistoryChart.vue'
 import DciStringHistory from '@/components/objects/DciStringHistory.vue'
 import ChartSkeleton from '@/components/common/ChartSkeleton.vue'
@@ -19,7 +20,8 @@ import {
   useResolveAlarm,
   useTerminateAlarm,
 } from '@/queries/useAlarmQueries'
-import { useDciValues, useDciHistory } from '@/queries/useObjectQueries'
+import { useDciValues, useDciHistory, useObject } from '@/queries/useObjectQueries'
+import { useServerInfo } from '@/queries/useServerQueries'
 import { useDciValueMapping } from '@/queries/useMappingTableQueries'
 import { DCI_DATA_TYPES, formatDciValue } from '@/utils/dciFormat'
 import {
@@ -59,7 +61,12 @@ const { mutate: terminate, isPending: isTerminating } = useTerminateAlarm()
 
 const isMutating = computed(() => isAcknowledging.value || isResolving.value || isTerminating.value)
 const currentState = computed(() => (alarm.value ? normalizeState(alarm.value.state) : null))
-const can = computed(() => alarmActionAvailability(currentState.value))
+const { data: serverInfo } = useServerInfo()
+const can = computed(() =>
+  alarmActionAvailability(currentState.value, {
+    strictFlow: serverInfo.value?.options?.strictAlarmStatusFlow === true,
+  }),
+)
 
 // Parity with legacy: comments are read-only once the alarm is terminated.
 const canEditComments = computed(() => currentState.value !== 'terminated')
@@ -92,6 +99,7 @@ function formatDate(value) {
 }
 
 const sourceId = computed(() => alarm.value?.source ?? null)
+const { data: sourceObject } = useObject(sourceId)
 const dciId = computed(() => alarm.value?.dci ?? 0)
 const hasDci = computed(() => !!dciId.value)
 
@@ -194,7 +202,11 @@ const hasHistoryData = computed(() => (historyData.value?.values?.length ?? 0) >
                   class="source-link"
                   :disabled="!alarm.source"
                   @click="goToSource"
-                />
+                >
+                  <template #icon>
+                    <ObjectIcon :object="sourceObject" size="1.25em" />
+                  </template>
+                </Button>
               </dd>
             </div>
             <div class="info-row">

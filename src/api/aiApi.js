@@ -35,6 +35,30 @@ export function clearAiChat(chatId) {
   return post(`/v1/ai/chat/${chatId}/clear`)
 }
 
+/**
+ * What AI tasks left for the caller, without the expired ones. `status` is per caller: a pending
+ * message the caller has read answers `read`, and an approval request can be decided in both.
+ */
+export function getAiMessages() {
+  return get('/v1/ai/messages')
+}
+
+/**
+ * Answers the updated message. 409: not an approval request, or already decided. 404: expired or
+ * deleted. Nothing undoes `read`.
+ *
+ * @param {number} messageId
+ * @param {'read'|'approved'|'rejected'} status
+ */
+export function setAiMessageStatus(messageId, status) {
+  return put(`/v1/ai/messages/${messageId}/status`, { status })
+}
+
+/** For every recipient. Only the task's initiator or "manage AI tasks" may. */
+export function deleteAiMessage(messageId) {
+  return del(`/v1/ai/messages/${messageId}`)
+}
+
 export function getAiSkillsAndFunctions() {
   return get('/v1/ai/skills-and-functions')
 }

@@ -47,7 +47,7 @@ watch(
       :is-fetching="isFetching"
       :is-error="isError"
       :error="error"
-      hide-go-to-object
+      :owner-object-id="object.id"
       @retry="refetch"
       @refresh="refetch"
       @open-details="selectedAlarm = $event.id"

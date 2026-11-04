@@ -1,6 +1,6 @@
 <script setup>
 import { formatDateTimeShort } from '@/utils/timeFormat'
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AlarmIconLabel from '@/components/alarms/AlarmIconLabel.vue'
 import Button from 'primevue/button'
@@ -11,17 +11,24 @@ import { isPlainLeftClick, resolveHref } from '@/utils/navigation'
 import { alarmTarget, objectTarget } from '@/utils/routeTargets'
 import RefetchIndicator from '@/components/common/RefetchIndicator.vue'
 import QueryErrorState from '@/components/common/QueryErrorState.vue'
-import EntityContextMenu from '@/components/common/EntityContextMenu.vue'
+import ActionContextMenu from '@/components/actions/ActionContextMenu.vue'
+import SelectionActions from '@/components/common/SelectionActions.vue'
 import SmartFilterInput from '@/components/common/SmartFilterInput.vue'
 import CreateIncidentDialog from '@/components/incidents/CreateIncidentDialog.vue'
+import ObjectIcon from '@/components/objects/ObjectIcon.vue'
+import ToolInputDialog from '@/components/tools/ToolInputDialog.vue'
 import { incidentTarget } from '@/utils/routeTargets'
 import { useToast } from 'primevue/usetoast'
-import { useAcknowledgeAlarm, useResolveAlarm, useTerminateAlarm } from '@/queries/useAlarmQueries'
+import { useAlarmSourceObjects } from '@/queries/useAlarmQueries'
 import { useObjectsByIds, useZoneNames } from '@/queries/useObjectQueries'
 import { useAlarmTableStore } from '@/stores/alarmTableStore'
+import { ALARM_ACTIONS, useAlarmActions } from '@/composables/useAlarmActions'
+import { useAlarmContextMenu } from '@/composables/useAlarmContextMenu'
 import { useWorkingState } from '@/composables/useWorkingState'
 import { alarmFilterDefs } from '@/filterDefs/alarmFilterDefs'
-import { alarmActionAvailability, normalizeSeverity, normalizeState } from '@/utils/alarmDisplay'
+import { normalizeSeverity, normalizeState } from '@/utils/alarmDisplay'
+import { alarmExportRows } from '@/utils/alarmExport'
+import { downloadCsv, toCsv } from '@/utils/csvExport'
 import FormField from '@/components/common/FormField.vue'
 
 const props = defineProps({
@@ -31,7 +38,8 @@ const props = defineProps({
   isError: { type: Boolean, default: false },
   error: { type: [Object, Error], default: null },
   newAlarmIds: { type: Object, default: () => new Set() },
-  hideGoToObject: { type: Boolean, default: false },
+  /** The object whose alarms these are; alarms of its children can still go to their source. */
+  ownerObjectId: { type: Number, default: null },
   /** Hosts showing several tables in one perspective (a dashboard) give each its own. */
   storageKey: { type: String, default: 'alarms' },
 })
@@ -56,13 +64,23 @@ onUnmounted(() => {
 
 const compact = computed(() => containerWidth.value > 0 && containerWidth.value < 780)
 
-// Rows already carry sourceName; fetch the object only where it is missing (deleted object),
-// not one GET per distinct source.
-const sourceIds = computed(() => [
-  ...new Set(props.alarms.filter((a) => a.source && !a.sourceName).map((a) => a.source)),
-])
+const { data: sourceObjects } = useAlarmSourceObjects()
+
+// Rows already carry sourceName, and sourceObjects the rest; fetch the object only where those
+// fall short (a deleted object, a source newer than sourceObjects), not one GET per source.
+const sourceIds = computed(() => {
+  const known = sourceObjects.value
+  const missing = props.alarms.filter(
+    (a) => a.source && (!a.sourceName || (known && !known.has(a.source))),
+  )
+  return [...new Set(missing.map((a) => a.source))]
+})
 const { objectsById } = useObjectsByIds(sourceIds)
 const zoneNames = useZoneNames()
+
+function sourceObjectOf(alarm) {
+  return sourceObjects.value?.get(alarm.source) ?? objectsById.value.get(alarm.source) ?? null
+}
 
 function displaySourceName(alarm) {
   return alarm.sourceName ?? objectsById.value.get(alarm.source)?.name ?? alarm.source
@@ -73,9 +91,11 @@ function displayZoneName(alarm) {
 }
 
 const filterState = ref({ text: '', tokens: [] })
+const selectedIds = ref(new Set())
 
-// On an object's Alarms view the filter follows the user to the next object.
-useWorkingState(props.storageKey, { view: { filterState } })
+// On an object's Alarms view the filter follows the user to the next object; the selection is
+// this object's.
+useWorkingState(props.storageKey, { view: { filterState }, object: { selectedIds } })
 
 /**
  * @param {object} alarm
@@ -244,19 +264,89 @@ function onLinkButtonClick(event, run) {
   run()
 }
 
-const contextMenu = ref()
+const tableRef = ref(null)
 
-function onRowContextMenu({ event, row }) {
-  contextMenu.value.show(event, row)
+const selectedAlarms = computed(() =>
+  filteredAlarms.value.filter((alarm) => selectedIds.value.has(alarm.id)),
+)
+
+function deselect(ids) {
+  const next = new Set(selectedIds.value)
+  for (const id of ids) next.delete(id)
+  selectedIds.value = next
 }
 
-function onActionsClick(event, rowData) {
-  contextMenu.value.show(event, rowData)
+// A bulk action must not reach rows the filter has hidden, or alarms that have gone away.
+watch(filteredAlarms, (visible) => {
+  if (selectedIds.value.size === 0) return
+  const ids = new Set(visible.map((alarm) => alarm.id))
+  const gone = [...selectedIds.value].filter((id) => !ids.has(id))
+  if (gone.length) deselect(gone)
+})
+
+// A narrow table has no checkboxes to show or undo a selection with.
+watch(compact, (isCompact) => {
+  if (isCompact && selectedIds.value.size > 0) selectedIds.value = new Set()
+})
+
+const actions = useAlarmActions({ onSucceeded: deselect })
+
+/** Labels name the count, because only part of a selection may qualify. */
+const selectionActions = computed(() => {
+  const selected = selectedAlarms.value
+  const disabled = actions.isRunning.value
+  const items = []
+  for (const [action, { label, icon, danger }] of Object.entries(ALARM_ACTIONS)) {
+    const fits = actions.allowing(action, selected)
+    if (!fits.length) continue
+    items.push({
+      label: `${label} (${fits.length})`,
+      icon,
+      severity: danger ? 'danger' : undefined,
+      disabled,
+      command: () => actions.run(action, selected),
+    })
+  }
+  // The header checkbox covers one page, and paging is no reason to repeat an action.
+  const total = filteredAlarms.value.length
+  if (tableRef.value?.allSelected && selected.length < total) {
+    items.push({
+      label: `Select all ${total}`,
+      icon: 'pi pi-check-square',
+      disabled,
+      command: () => (selectedIds.value = new Set(filteredAlarms.value.map((alarm) => alarm.id))),
+    })
+  }
+  return items
+})
+
+const exportNames = {
+  sourceName: (alarm) => displaySourceName(alarm),
+  zoneName: (alarm) => zoneNames.value.get(alarm.zoneUIN) ?? null,
 }
 
-const { mutate: acknowledge, isPending: isAcknowledging } = useAcknowledgeAlarm()
-const { mutate: resolve, isPending: isResolving } = useResolveAlarm()
-const { mutate: terminate, isPending: isTerminating } = useTerminateAlarm()
+function exportCsv(alarms) {
+  const exported = store.shownColumns(ALL_COLUMNS)
+  downloadCsv(
+    'alarms',
+    toCsv(
+      alarmExportRows(alarms, exported, exportNames),
+      exported.map(({ id, label }) => ({ field: id, label })),
+    ),
+  )
+}
+
+/** The selection when there is one, otherwise every alarm the filter shows. */
+function onExportClick() {
+  exportCsv(selectedAlarms.value.length ? selectedAlarms.value : filteredAlarms.value)
+}
+
+/** Inside a multi-row selection acts on the selection, outside it on the row under the cursor. */
+function menuTargets(row) {
+  return selectedIds.value.has(row.id) && selectedAlarms.value.length > 1
+    ? selectedAlarms.value
+    : [row]
+}
 
 const toast = useToast()
 const createIncidentVisible = ref(false)
@@ -285,62 +375,37 @@ function onIncidentCreated(incident) {
   router.push(incidentTarget(incident.id))
 }
 
-const contextMenuItems = computed(() => {
-  const data = contextMenu.value?.contextData
-  const can = alarmActionAvailability(data ? normalizeState(data.state) : 'outstanding')
-  return [
-    {
-      label: 'Details',
-      icon: 'pi pi-search-plus',
-      command: () => emit('open-details', data),
-    },
-    ...(props.hideGoToObject
-      ? []
-      : [
-          {
-            label: 'Go to Object',
-            icon: 'pi pi-external-link',
-            disabled: !data?.source,
-            command: () => goToObject(data, 'alarms'),
-          },
-        ]),
-    { separator: true },
-    {
-      label: 'Acknowledge',
-      icon: 'pi pi-check',
-      disabled: !can.acknowledge,
-      command: () => acknowledge(data.id),
-    },
-    {
-      label: 'Resolve',
-      icon: 'pi pi-check-circle',
-      disabled: !can.resolve,
-      command: () => resolve(data.id),
-    },
-    { separator: true },
-    {
-      label: 'Create incident',
-      icon: 'pi pi-flag',
-      disabled: !data?.source,
-      command: () => openCreateIncident(data),
-    },
-    { separator: true },
-    {
-      label: 'Terminate',
-      icon: 'pi pi-trash',
-      class: 'p-menuitem-danger',
-      disabled: !can.terminate,
-      command: () => terminate(data.id),
-    },
-  ]
+const contextMenu = ref()
+
+const {
+  items: contextMenuItems,
+  open: prepareMenu,
+  pendingTool,
+  toolInputVisible,
+  submitToolInput,
+  cancelToolInput,
+} = useAlarmContextMenu({
+  targetsFor: menuTargets,
+  names: exportNames,
+  actions,
+  ownerObjectId: () => props.ownerObjectId,
+  objectTargetFor: (alarm) => objectTargetForAlarm(alarm),
+  onOpenDetails: (alarm) => emit('open-details', alarm),
+  onCreateIncident: openCreateIncident,
+  onExport: exportCsv,
 })
 
-function isMutating() {
-  return isAcknowledging.value || isResolving.value || isTerminating.value
+function openMenu(event, row) {
+  prepareMenu(row)
+  contextMenu.value.show(event)
 }
 
-function rowActions(row) {
-  return alarmActionAvailability(normalizeState(row.state))
+function onRowContextMenu({ event, row }) {
+  openMenu(event, row)
+}
+
+function onActionsClick(event, rowData) {
+  openMenu(event, rowData)
 }
 </script>
 
@@ -360,10 +425,28 @@ function rowActions(row) {
         :size="compact ? 'small' : 'normal'"
         class="filter-input"
       />
+      <!-- In the toolbar's free middle, so selecting a row moves nothing. -->
+      <SelectionActions
+        v-if="!compact"
+        :count="selectedAlarms.length"
+        :actions="selectionActions"
+        @clear="selectedIds = new Set()"
+      />
       <div class="toolbar-actions">
         <span v-if="!isLoading" class="item-count">{{
-          $plural(filteredAlarms.length, 'alarm')
+          actions.progressText.value ?? $plural(filteredAlarms.length, 'alarm')
         }}</span>
+        <Button
+          v-if="!compact"
+          icon="pi pi-download"
+          :label="selectedAlarms.length ? 'Export selected' : 'Export'"
+          severity="secondary"
+          text
+          size="small"
+          class="alarm-export"
+          :disabled="filteredAlarms.length === 0"
+          @click="onExportClick"
+        />
         <Button
           v-tooltip.bottom="'Refresh'"
           icon="pi pi-refresh"
@@ -396,21 +479,25 @@ function rowActions(row) {
 
     <AppTable
       v-else
+      ref="tableRef"
       :columns="columns"
       :rows="filteredAlarms"
       sort-field="lastChangeTime"
       :sort-order="-1"
       :row-class="severityRowClass"
-      :page-size="20"
+      :page-size="100"
       :page-size-options="[10, 20, 50, 100, 500]"
       :storage-key="storageKey"
       :compact="compact"
       :reorderable="!compact"
+      :selectable="!compact"
+      :selected-ids="selectedIds"
       expandable
       striped
       size="small"
       resize-fit
       class="alarms-table"
+      @selection-change="selectedIds = $event"
       @row-contextmenu="onRowContextMenu"
       @column-move="store.moveColumn(ALL_COLUMNS, $event)"
     >
@@ -424,9 +511,10 @@ function rowActions(row) {
           :sticky="row.isSticky"
           collapsible
         />
-        <template v-else-if="col.id === 'source'">
-          <span class="alarm-source">{{ displaySourceName(row) }}</span>
-        </template>
+        <span v-else-if="col.id === 'source'" class="alarm-source">
+          <ObjectIcon :object="sourceObjectOf(row)" size="1.25em" class="alarm-source-icon" />
+          <span class="alarm-source-name">{{ displaySourceName(row) }}</span>
+        </span>
         <template v-else-if="col.id === 'zone'">
           <span v-if="displayZoneName(row) !== '--'">{{ displayZoneName(row) }}</span>
           <span v-else class="text-muted">--</span>
@@ -494,7 +582,10 @@ function rowActions(row) {
               <AlarmIconLabel type="state" :value="row.state" :sticky="row.isSticky" />
             </FormField>
             <FormField class="detail-field" label="Source" group>
-              <span>{{ displaySourceName(row) }}</span>
+              <span class="alarm-source">
+                <ObjectIcon :object="sourceObjectOf(row)" size="1.25em" class="alarm-source-icon" />
+                <span class="alarm-source-name">{{ displaySourceName(row) }}</span>
+              </span>
             </FormField>
             <FormField class="detail-field" label="Created" group>
               <span>{{ formatDateTimeShort(row.creationTime ?? row.created) }}</span>
@@ -539,7 +630,7 @@ function rowActions(row) {
               @click="onLinkButtonClick($event, () => emit('open-details', row))"
             />
             <Button
-              v-if="!hideGoToObject"
+              v-if="row.source !== ownerObjectId"
               :as="row.source ? 'a' : undefined"
               class="link-button"
               :href="row.source ? resolveHref(objectTargetForAlarm(row)) : undefined"
@@ -557,8 +648,8 @@ function rowActions(row) {
               size="small"
               severity="secondary"
               outlined
-              :disabled="!rowActions(row).acknowledge || isMutating(row.id)"
-              @click="acknowledge(row.id)"
+              :disabled="!actions.availabilityOf(row).acknowledge || actions.isRunning.value"
+              @click="actions.run('acknowledge', [row])"
             />
             <Button
               label="Resolve"
@@ -566,8 +657,8 @@ function rowActions(row) {
               size="small"
               severity="success"
               outlined
-              :disabled="!rowActions(row).resolve || isMutating(row.id)"
-              @click="resolve(row.id)"
+              :disabled="!actions.availabilityOf(row).resolve || actions.isRunning.value"
+              @click="actions.run('resolve', [row])"
             />
             <Button
               label="Terminate"
@@ -575,15 +666,23 @@ function rowActions(row) {
               size="small"
               severity="danger"
               outlined
-              :disabled="!rowActions(row).terminate || isMutating(row.id)"
-              @click="terminate(row.id)"
+              :disabled="!actions.availabilityOf(row).terminate || actions.isRunning.value"
+              @click="actions.run('terminate', [row])"
             />
           </div>
         </div>
       </template>
     </AppTable>
 
-    <EntityContextMenu ref="contextMenu" :items="contextMenuItems" />
+    <ActionContextMenu ref="contextMenu" :items="contextMenuItems" />
+
+    <ToolInputDialog
+      v-model:visible="toolInputVisible"
+      :tool-name="pendingTool?.tool.commandShortName || pendingTool?.tool.name"
+      :input-fields="pendingTool?.tool.inputFields || []"
+      @submit="submitToolInput"
+      @cancel="cancelToolInput"
+    />
 
     <CreateIncidentDialog
       v-model:visible="createIncidentVisible"
@@ -672,14 +771,24 @@ function rowActions(row) {
 
 .alarm-message {
   display: block;
-  max-width: 400px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .alarm-source {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.alarm-source-icon {
+  flex-shrink: 0;
+  color: var(--p-text-muted-color);
+}
+
+.alarm-source-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -707,7 +816,9 @@ function rowActions(row) {
   color: var(--p-text-muted-color);
 }
 
-.row-action-btn {
+/* Past PrimeVue's own small rounded icon button, which is loaded later and at 2rem would set the
+   height of every row. */
+.p-button.p-button-sm.row-action-btn {
   width: 1.5rem;
   height: 1.5rem;
 }

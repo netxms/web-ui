@@ -190,6 +190,7 @@ function confirmSavePrompt() {
           </button>
         </div>
       </div>
+      <span v-if="$slots.context" class="ai-composer-toolbar-separator" aria-hidden="true" />
       <slot name="context" />
       <div class="ai-composer-toolbar-spacer" />
       <div
@@ -304,6 +305,14 @@ function confirmSavePrompt() {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.ai-composer-toolbar-separator {
+  flex-shrink: 0;
+  width: 1px;
+  height: 1.25rem;
+  margin-right: 0.25rem;
+  background: var(--p-surface-border);
 }
 
 .ai-composer-toolbar-spacer {

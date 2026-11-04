@@ -10,6 +10,8 @@ import { useObject } from '@/queries/useObjectQueries'
  * @returns {{
  *   objectId: import('vue').Ref<number|null>,
  *   object: import('vue').Ref<object|undefined>,
+ *   isLoading: import('vue').Ref<boolean>,
+ *   menuItems: import('vue').ComputedRef<object[]>,
  *   buildItems: (options?: { label?: string, before?: object[], after?: object[] }) => object[],
  * }}
  */
@@ -43,5 +45,5 @@ export function useObjectActionMenu(viewContext) {
     return items
   }
 
-  return { objectId, object, buildItems }
+  return { objectId, object, isLoading, menuItems, buildItems }
 }

@@ -30,21 +30,23 @@ export function useToolExecution() {
    * @param {object} object - { id, name }
    * @param {object} tool
    * @param {object} [inputValues]
+   * @param {object} [context]
+   * @param {number} [context.alarmId] - the alarm the tool runs for, for its macros
    * @returns {Promise<string|null>} execution ID, or null if cancelled or external
    */
-  async function executeTool(object, tool, inputValues = {}) {
+  async function executeTool(object, tool, inputValues = {}, { alarmId } = {}) {
     if (tool.type === 'url') {
-      await handleUrlTool(object, tool)
+      await handleUrlTool(object, tool, alarmId)
       return null
     }
 
     if (tool.type === 'command') {
-      await handleCommandTool(object, tool, inputValues)
+      await handleCommandTool(object, tool, inputValues, alarmId)
       return null
     }
 
     if (tool.askConfirmation) {
-      const confirmed = await showConfirmation(object, tool, inputValues)
+      const confirmed = await showConfirmation(object, tool, inputValues, alarmId)
       if (!confirmed) return null
     }
 
@@ -58,6 +60,7 @@ export function useToolExecution() {
       objectId: object.id,
       objectName: object.name,
       inputValues,
+      alarmId,
     })
 
     if (navigateFirst) {
@@ -66,7 +69,7 @@ export function useToolExecution() {
 
     try {
       executionStore.markRunning(executionId)
-      const result = await executeToolApi(object.id, tool, inputValues)
+      const result = await executeToolApi(object.id, tool, inputValues, alarmId)
 
       if (result?.wsUrl) {
         connectStream(executionId, result.wsUrl)
@@ -128,6 +131,7 @@ export function useToolExecution() {
       const result = await executeObjectTool(execution.toolId, execution.objectId, {
         inputFields,
         stream: useStream,
+        alarmId: execution.alarmId,
       })
 
       if (result?.wsUrl) {
@@ -205,13 +209,14 @@ export function useToolExecution() {
     }
   }
 
-  async function showConfirmation(object, tool, inputValues) {
+  async function showConfirmation(object, tool, inputValues, alarmId) {
     // A failed expansion falls back to the raw text (the command path aborts instead).
     const message = await expandOrFallback(
       object.id,
       tool.confirmationMessage || `Execute ${tool.name}?`,
       inputValues,
       tool.confirmationMessage || `Execute ${tool.name}?`,
+      alarmId,
     )
 
     return new Promise((resolve) => {
@@ -236,15 +241,15 @@ export function useToolExecution() {
     })
   }
 
-  async function executeToolApi(objectId, tool, inputValues) {
+  async function executeToolApi(objectId, tool, inputValues, alarmId) {
     const inputFields = Object.keys(inputValues).length > 0 ? inputValues : undefined
     const useStream = STREAMABLE_TYPES.has(tool.type)
-    return executeObjectTool(tool.id, objectId, { inputFields, stream: useStream })
+    return executeObjectTool(tool.id, objectId, { inputFields, stream: useStream, alarmId })
   }
 
-  async function handleUrlTool(object, tool) {
+  async function handleUrlTool(object, tool, alarmId) {
     try {
-      const result = await executeObjectTool(tool.id, object.id)
+      const result = await executeObjectTool(tool.id, object.id, { alarmId })
       const url = result?.url || result?.output || ''
       if (!url) return
       // Any MANAGE_TOOLS holder authors this; a javascript: URI would run in our origin.
@@ -268,11 +273,11 @@ export function useToolExecution() {
     }
   }
 
-  async function handleCommandTool(object, tool, inputValues) {
+  async function handleCommandTool(object, tool, inputValues, alarmId) {
     if (!tool.data) return
 
     // No raw-text fallback: an un-expanded `ssh://%U@%a` points at a host that does not exist.
-    const command = await expandOrFallback(object.id, tool.data, inputValues, null)
+    const command = await expandOrFallback(object.id, tool.data, inputValues, null, alarmId)
     if (command === null) {
       toast.add({
         severity: 'error',
@@ -305,11 +310,15 @@ export function useToolExecution() {
    * @param {string} text
    * @param {Record<string,string>} inputValues - for `%(name)`
    * @param {string|null} fallback - returned on failure
+   * @param {number} [alarmId] - for the alarm macros
    */
-  async function expandOrFallback(objectId, text, inputValues, fallback) {
+  async function expandOrFallback(objectId, text, inputValues, fallback, alarmId) {
     if (!text) return text
     try {
-      return await expandText(objectId, text, { inputFields: inputValues })
+      return await expandText(objectId, text, {
+        ...(alarmId ? { alarmId } : {}),
+        inputFields: inputValues,
+      })
     } catch {
       return fallback
     }

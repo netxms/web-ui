@@ -6,5 +6,15 @@
   "uptime": 864000,
   "timezone": "UTC",
   "databaseDriver": "PostgreSQL",
-  "components": ["CORE", "AI-ASSISTANT"]
+  "components": [
+    "CORE",
+    "AI-ASSISTANT"
+  ],
+  "options": {
+    "zoningEnabled": false,
+    "strictAlarmStatusFlow": false,
+    "timedAlarmAckEnabled": true,
+    "helpdeskLinkActive": false,
+    "dciAggregationEnabled": false
+  }
 }

@@ -123,7 +123,7 @@ describe('useRowSelection', () => {
     expect([...selectedIds.value]).toEqual([3])
   })
 
-  it('drops the anchor when the row list is replaced', async () => {
+  it('falls back to a plain toggle once the anchor row has left the list', async () => {
     const { api, rowsRef, selectedIds } = setup()
 
     api.toggle(click(), rowsRef.value[0], 0)
@@ -132,8 +132,68 @@ describe('useRowSelection', () => {
 
     api.toggle(click({ shiftKey: true }), rowsRef.value[2], 2)
 
-    // Replacing the rows drops the anchor but not the selection.
+    // The rows moving on leaves the selection alone.
     expect([...selectedIds.value].sort()).toEqual([1, 7])
+  })
+
+  it('keeps the anchor when a refresh reorders the rows under it', async () => {
+    const { api, rowsRef, selectedIds } = setup()
+
+    api.toggle(click(), rowsRef.value[1], 1)
+    rowsRef.value = [{ id: 9 }, { id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+    await nextTick()
+
+    api.toggle(click({ shiftKey: true }), rowsRef.value[4], 4)
+
+    expect([...selectedIds.value]).toEqual([2, 3, 4])
+  })
+
+  describe('extendTo (keyboard range)', () => {
+    it('starts the range at the origin when there is no anchor', () => {
+      const { api, rowsRef, selectedIds } = setup()
+
+      api.extendTo(rowsRef.value[1], rowsRef.value[2])
+
+      expect([...selectedIds.value]).toEqual([2, 3])
+    })
+
+    it('keeps the anchor as the range grows and shrinks', () => {
+      const { api, rowsRef, selectedIds } = setup()
+
+      api.extendTo(rowsRef.value[1], rowsRef.value[2])
+      api.extendTo(rowsRef.value[2], rowsRef.value[3])
+      expect([...selectedIds.value]).toEqual([2, 3, 4])
+
+      api.extendTo(rowsRef.value[3], rowsRef.value[2])
+      expect([...selectedIds.value]).toEqual([2, 3])
+    })
+
+    it('continues from a row selected before it', () => {
+      const { api, rowsRef, selectedIds } = setup()
+
+      api.toggle(click(), rowsRef.value[0], 0)
+      api.extendTo(rowsRef.value[0], rowsRef.value[1])
+
+      expect([...selectedIds.value]).toEqual([1, 2])
+    })
+
+    it('starts over at the origin after dropAnchor', () => {
+      const { api, rowsRef, selectedIds } = setup()
+
+      api.toggle(click(), rowsRef.value[0], 0)
+      api.dropAnchor()
+      api.extendTo(rowsRef.value[2], rowsRef.value[3])
+
+      expect([...selectedIds.value]).toEqual([3, 4])
+    })
+
+    it('skips rows that cannot be selected', () => {
+      const { api, rowsRef, selectedIds } = setup({ isSelectable: (row) => row.id !== 2 })
+
+      api.extendTo(rowsRef.value[0], rowsRef.value[2])
+
+      expect([...selectedIds.value]).toEqual([1, 3])
+    })
   })
 
   it('toggles on Enter and Space only', () => {

@@ -6,6 +6,7 @@ import ViewTabBar from '@/components/views/ViewTabBar.vue'
 import AiChatView from '@/components/ai/AiChatView.vue'
 import AiObservationsTab from '@/components/ai/AiObservationsTab.vue'
 import AiMessagesTab from '@/components/ai/AiMessagesTab.vue'
+import { useAiMessageAttention } from '@/composables/useAiMessageAttention'
 import { usePermissions } from '@/composables/usePermissions'
 import { useServerComponents } from '@/composables/useServerComponents'
 import { SERVER_COMPONENTS } from '@/config/serverComponents'
@@ -16,7 +17,7 @@ import { aiTarget } from '@/utils/routeTargets'
  *   /ai, /ai/chat            the general chat
  *   /ai/chat?incident=<id>   the chat bound to an incident ("Discuss with AI")
  *   /ai/observations         AI operator observations
- *   /ai/messages             AI messages (no WebAPI yet: placeholder)
+ *   /ai/messages             what AI tasks left for this user, approval requests included
  *
  * Chat needs "use AI assistant", observations "view event log"; unusable tabs are not offered.
  */
@@ -24,7 +25,7 @@ const PERSPECTIVE_ID = 'ai'
 const VIEWS = [
   { id: 'chat', label: 'Chat', icon: 'pi pi-sparkles', right: 'useAiAssistant' },
   { id: 'observations', label: 'Observations', icon: 'pi pi-eye', right: 'viewEventLog' },
-  { id: 'messages', label: 'AI Messages', icon: 'pi pi-inbox' },
+  { id: 'messages', label: 'Messages', icon: 'pi pi-inbox' },
 ]
 
 const NOT_AVAILABLE_MESSAGE =
@@ -39,6 +40,12 @@ const viewStore = useViewStore()
 // The rail already hides the perspective without the component; this covers a bookmark.
 const { has, isLoading: isServerInfoLoading } = useServerComponents()
 const aiAvailable = computed(() => has(SERVER_COMPONENTS.AI_ASSISTANT))
+
+// A rail click reopens the last tab, so this tab has to say what the rail's count is about.
+const { count: messageCount } = useAiMessageAttention()
+const views = computed(() =>
+  VIEWS.map((view) => (view.id === 'messages' ? { ...view, badge: messageCount.value } : view)),
+)
 
 const permittedViews = computed(() => VIEWS.filter((view) => !view.right || can.value[view.right]))
 const visibleViewIds = computed(() =>
@@ -90,7 +97,7 @@ function handleRefresh() {
   <div class="ai-view">
     <template v-if="aiAvailable">
       <ViewTabBar
-        :views="VIEWS"
+        :views="views"
         :visible-view-ids="visibleViewIds"
         :active-view="activeView"
         :allow-add-remove="false"
@@ -107,7 +114,7 @@ function handleRefresh() {
           :incident-id="incidentId"
         />
         <AiObservationsTab v-else-if="activeView === 'observations'" ref="activeTabRef" />
-        <AiMessagesTab v-else-if="activeView === 'messages'" />
+        <AiMessagesTab v-else-if="activeView === 'messages'" ref="activeTabRef" />
       </div>
     </template>
 

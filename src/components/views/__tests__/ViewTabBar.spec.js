@@ -25,6 +25,25 @@ function mountBar(props) {
   })
 }
 
+describe('ViewTabBar badges', () => {
+  it('shows a nonzero badge beside its label, in the tab name', () => {
+    const wrapper = mountBar({
+      views: [
+        { id: 'status', label: 'Status', badge: 0 },
+        { id: 'alarms', label: 'Alarms', badge: 3 },
+        { id: 'properties', label: 'Properties' },
+      ],
+    })
+
+    expect(wrapper.findAll('.view-tab').map((tab) => tab.text())).toEqual([
+      'Status',
+      'Alarms3',
+      'Properties',
+    ])
+    expect(wrapper.findAll('.view-tab-badge')).toHaveLength(1)
+  })
+})
+
 describe('ViewTabBar keyboard navigation', () => {
   it('is a single tab stop: only the active tab has tabindex 0', () => {
     const wrapper = mountBar()

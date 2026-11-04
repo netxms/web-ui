@@ -50,12 +50,15 @@ export function confirmationLabels(confirmationType) {
 }
 
 /**
- * @param {number} expiresAt - epoch seconds
+ * @param {string|number} expiresAt - ISO 8601; older servers send epoch seconds
  * @param {number} [now] - epoch milliseconds
+ * @returns {number|null} null when there is no usable deadline
  */
 export function secondsLeft(expiresAt, now = Date.now()) {
   if (!expiresAt) return null
-  return Math.max(0, Math.ceil(expiresAt - now / 1000))
+  const ms = typeof expiresAt === 'number' ? expiresAt * 1000 : new Date(expiresAt).getTime()
+  if (!Number.isFinite(ms)) return null
+  return Math.max(0, Math.ceil((ms - now) / 1000))
 }
 
 /** `m:ss`, as the legacy countdown shows it. */

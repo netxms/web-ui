@@ -46,6 +46,81 @@ beforeEach(() => {
   vi.stubGlobal('open', vi.fn())
 })
 
+describe('useToolExecution - alarm context', () => {
+  const ALARM = { alarmId: 99 }
+
+  it('sends the alarm with the tool, for its macros', async () => {
+    executeObjectTool.mockResolvedValue({ type: 'none' })
+
+    await mountHost().executeTool(NODE, { id: 3, name: 'Ping', type: 'action' }, {}, ALARM)
+
+    expect(executeObjectTool).toHaveBeenCalledWith(3, 512, expect.objectContaining(ALARM))
+  })
+
+  it('leaves the alarm out when there is none', async () => {
+    executeObjectTool.mockResolvedValue({ type: 'none' })
+
+    await mountHost().executeTool(NODE, { id: 3, name: 'Ping', type: 'action' })
+
+    expect(executeObjectTool.mock.calls[0][2].alarmId).toBeUndefined()
+  })
+
+  it('expands a confirmation message with the alarm', async () => {
+    expandText.mockResolvedValue('Sure?')
+    confirmRequire.mockImplementation(({ reject }) => reject())
+    const tool = {
+      id: 3,
+      name: 'Restart',
+      type: 'action',
+      askConfirmation: true,
+      confirmationMessage: 'Restart for %A?',
+    }
+
+    await mountHost().executeTool(NODE, tool, {}, ALARM)
+
+    expect(expandText).toHaveBeenCalledWith(512, 'Restart for %A?', {
+      alarmId: 99,
+      inputFields: {},
+    })
+  })
+
+  it('expands a command with the alarm', async () => {
+    expandText.mockResolvedValue('https://tickets/99')
+    const tool = { id: 3, name: 'Ticket', type: 'command', data: 'https://tickets/%A' }
+
+    await mountHost().executeTool(NODE, tool, {}, ALARM)
+
+    expect(expandText).toHaveBeenCalledWith(512, 'https://tickets/%A', {
+      alarmId: 99,
+      inputFields: {},
+    })
+  })
+
+  it('sends the alarm with a URL tool', async () => {
+    executeObjectTool.mockResolvedValue({ url: 'https://tickets/99' })
+
+    await mountHost().executeTool(NODE, { id: 3, name: 'Ticket', type: 'url' }, {}, ALARM)
+
+    expect(executeObjectTool).toHaveBeenCalledWith(3, 512, expect.objectContaining(ALARM))
+  })
+
+  it('keeps the alarm when the tool is run again from its result tab', async () => {
+    executeObjectTool.mockResolvedValue({ type: 'text', output: 'done' })
+    const api = mountHost()
+    const executionId = await api.executeTool(
+      NODE,
+      { id: 3, name: 'Ping', type: 'snmp-table', generatesOutput: true },
+      {},
+      ALARM,
+    )
+    executeObjectTool.mockClear()
+
+    await api.reExecute(executionId)
+
+    expect(executeObjectTool).toHaveBeenCalledWith(3, 512, expect.objectContaining(ALARM))
+  })
+})
+
 describe('useToolExecution - command tools', () => {
   const sshTool = { id: 7, name: 'SSH', type: 'command', data: 'ssh://%U@%a' }
 

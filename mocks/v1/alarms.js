@@ -2,33 +2,34 @@
  * Alternates between 10 and 11 alarms on successive polls so the alarm feed animation fires
  * during development. Remove this file to fall back to the static alarms.json.
  */
-import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const baseAlarms = JSON.parse(readFileSync(join(__dirname, 'alarms.json'), 'utf-8'))
+import { listAlarms, sourceObjectOf } from './_lib/alarms.js'
 
 let callCount = 0
 
-export default function getAlarms() {
-  callCount++
-  if (callCount % 2 === 0) {
-    return [
-      ...baseAlarms,
-      {
-        id: 9999,
-        state: 0,
-        severity: 4,
-        sourceObjectId: 999,
-        sourceObjectName: 'srv-demo-01',
-        message: 'Demo: CPU utilization exceeded 95% threshold',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        ackBy: null,
-        ackTime: null,
-      },
-    ]
+function demoAlarm() {
+  const now = new Date().toISOString()
+  return {
+    id: 9999,
+    severity: 4,
+    state: 0,
+    source: 999,
+    sourceName: 'srv-demo-01',
+    zoneUIN: 0,
+    message: 'Demo: CPU utilization exceeded 95% threshold',
+    repeatCount: 1,
+    commentCount: 0,
+    helpdeskReference: '',
+    creationTime: now,
+    lastChangeTime: now,
+    ackByUserName: '',
+    resolvedByUserName: '',
+    categories: [],
   }
-  return baseAlarms
+}
+
+export default function getAlarms(req) {
+  callCount++
+  const alarms = callCount % 2 === 0 ? [...listAlarms(), demoAlarm()] : listAlarms()
+  if (!req?.url?.includes('includeObjectDetails=true')) return alarms
+  return alarms.map((alarm) => ({ ...alarm, sourceObject: sourceObjectOf(alarm) }))
 }

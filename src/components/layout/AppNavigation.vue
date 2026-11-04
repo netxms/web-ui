@@ -3,10 +3,13 @@ import { onMounted, computed, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import Button from 'primevue/button'
 import { ChevronDown, ChevronUp, FlaskConical } from 'lucide-vue-next'
+import { useAiMessageAttention } from '@/composables/useAiMessageAttention'
+import { useAlarmAttention } from '@/composables/useAlarmAttention'
 import { useLayout } from '@/composables/useLayout'
 import { useVerticalOverflow } from '@/composables/useVerticalOverflow'
 import { useNavigationStore } from '@/stores/navigationStore'
 import { usePerspectiveStore } from '@/stores/perspectiveStore'
+import { severityConfig, severityLabels } from '@/utils/alarmDisplay'
 import { isPlainLeftClick, resolveHref } from '@/utils/navigation'
 import RestrictedDisclosure from '@/components/common/RestrictedDisclosure.vue'
 const router = useRouter()
@@ -54,6 +57,37 @@ function navigate(event, item) {
 
 function hrefFor(item) {
   return resolveHref(item.route)
+}
+
+const { count: aiMessageCount } = useAiMessageAttention()
+const { count: alarmCount, worstSeverity } = useAlarmAttention()
+
+const attention = computed(() => ({
+  '/ai': { count: aiMessageCount.value },
+  '/alarms': { count: alarmCount.value, severity: worstSeverity.value },
+}))
+
+/** @returns {string|undefined} what waits in the perspective; PrimeVue's Button takes a string */
+function badgeFor(item) {
+  const count = attention.value[item.route]?.count
+  if (!count) return undefined
+  return count > 99 ? '99+' : String(count)
+}
+
+function badgeStyleFor(item) {
+  const severity = attention.value[item.route]?.severity
+  if (!severity) return undefined
+  const { color, onFillColor } = severityConfig[severity]
+  return { '--app-nav-badge-bg': color, '--app-nav-badge-fg': onFillColor }
+}
+
+// The narrow rail drops the visible label, and a severity shows only as a color.
+function accessibleNameFor(item) {
+  const badge = badgeFor(item)
+  if (!badge) return item.label
+  const severity = attention.value[item.route]?.severity
+  const name = `${item.label} ${badge}`
+  return severity ? `${name}, worst ${severityLabels[severity]}` : name
 }
 
 // The rail's scrollbar is hidden (it clipped the labels), so fades, edge chevrons and an
@@ -118,6 +152,10 @@ onMounted(revealTarget)
                   as="a"
                   :href="hrefFor(item)"
                   :label="isNavCollapsed ? undefined : item.label"
+                  :badge="badgeFor(item)"
+                  badge-severity="warn"
+                  :style="badgeStyleFor(item)"
+                  :aria-label="accessibleNameFor(item)"
                   :text="!isActive(item)"
                   :severity="isActive(item) ? undefined : 'secondary'"
                   :aria-current="isActive(item) ? 'page' : undefined"
@@ -332,6 +370,7 @@ onMounted(revealTarget)
 }
 
 .app-nav-button {
+  position: relative;
   width: 100%;
   justify-content: flex-start;
   white-space: nowrap;
@@ -341,6 +380,34 @@ onMounted(revealTarget)
 
 .collapsed .app-nav-button {
   padding: 0.5rem 0.75rem;
+  overflow: visible;
+}
+
+/* Just past the icon's edge, so a count takes no room from the label and moves no other item. */
+.app-nav-button :deep(.p-badge) {
+  position: absolute;
+  top: 0.125rem;
+  left: calc(50% + 0.75rem);
+  min-width: 1rem;
+  height: 1rem;
+  padding: 0 0.25rem;
+  font-size: 0.625rem;
+  line-height: 1rem;
+  background: var(--app-nav-badge-bg, var(--p-badge-warn-background));
+  color: var(--app-nav-badge-fg, var(--p-badge-warn-color));
+}
+
+/* The narrow rail has no room beside the icon: it hangs over the button's edge and grows leftward,
+   so only a count of two digits or more touches the icon. */
+.collapsed .app-nav-button :deep(.p-badge) {
+  left: auto;
+  right: -0.375rem;
+}
+
+/* The active item's own colors swapped: a fixed badge color would vanish on some theme's fill. */
+.app-nav-button.active :deep(.p-badge) {
+  background: var(--app-nav-active-fg, var(--p-button-primary-color));
+  color: var(--app-nav-active-bg, var(--p-button-primary-background));
 }
 
 .app-nav-button.active {

@@ -17,9 +17,29 @@ vi.mock('@/router', () => ({
 vi.mock('primevue/usetoast', () => ({ useToast: () => ({ add: vi.fn() }) }))
 
 vi.mock('@/queries/useAlarmQueries', () => ({
-  useAcknowledgeAlarm: () => ({ mutate: vi.fn(), isPending: false }),
-  useResolveAlarm: () => ({ mutate: vi.fn(), isPending: false }),
-  useTerminateAlarm: () => ({ mutate: vi.fn(), isPending: false }),
+  useAlarmSourceObjects: () => ({ data: computed(() => new Map()) }),
+}))
+
+vi.mock('@/composables/useAlarmActions', () => ({
+  ALARM_ACTIONS: {},
+  useAlarmActions: () => ({
+    allowing: () => [],
+    availabilityOf: () => ({ acknowledge: true, resolve: true, terminate: true }),
+    run: vi.fn(),
+    isRunning: computed(() => false),
+    progressText: computed(() => null),
+  }),
+}))
+
+vi.mock('@/composables/useAlarmContextMenu', () => ({
+  useAlarmContextMenu: () => ({
+    items: computed(() => []),
+    open: vi.fn(),
+    pendingTool: computed(() => null),
+    toolInputVisible: computed(() => false),
+    submitToolInput: vi.fn(),
+    cancelToolInput: vi.fn(),
+  }),
 }))
 
 vi.mock('@/queries/useObjectQueries', () => ({
@@ -53,8 +73,9 @@ function mountTable(props = {}) {
         SmartFilterInput: FilterStub,
         ColumnChooser: true,
         RefetchIndicator: true,
-        EntityContextMenu: true,
+        ActionContextMenu: true,
         CreateIncidentDialog: true,
+        ToolInputDialog: true,
       },
       config: {
         globalProperties: {

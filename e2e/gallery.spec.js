@@ -44,6 +44,7 @@ const SCREENS = [
   ['logs', () => '/logs'],
   ['event-log', () => '/logs/EventLog'],
   ['ai', () => '/ai'],
+  ['ai-messages', () => '/ai/messages'],
   ['tools', () => '/tools'],
   ['configuration', () => '/configuration'],
   ['container', objectView('container', 'status')],
