@@ -289,6 +289,121 @@ describe('useLogLiveTail', () => {
   })
 })
 
+describe('useLogLiveTail without history', () => {
+  it('hides the seed but polls on from its newest record', async () => {
+    queryLog.mockResolvedValueOnce({ records: [{ event_id: 3 }, { event_id: 2 }] })
+    const feed = tail({ history: false })
+    await settle()
+    expect(feed.rows.value).toEqual([])
+
+    queryLog.mockResolvedValueOnce({ records: [{ event_id: 4 }] })
+    vi.advanceTimersByTime(3000)
+    await settle()
+
+    expect(queryLog.mock.calls[1][1].filters).toEqual([
+      { column: 'event_id', type: 'greater', value: 3 },
+    ])
+    expect(feed.rows.value.map((r) => r.event_id)).toEqual([4])
+    feed.stop()
+  })
+
+  it('does not bring a hidden seed row back through the timestamp cursor overlap', async () => {
+    queryLog.mockResolvedValueOnce({
+      records: [{ msg: 'old', timestamp: '2026-08-19T10:00:05.000Z' }],
+    })
+    const feed = tail({ history: false, recordIdColumn: null, timeColumn: 'timestamp' })
+    await settle()
+
+    queryLog.mockResolvedValueOnce({
+      records: [
+        { msg: 'new', timestamp: '2026-08-19T10:00:05.000Z' },
+        { msg: 'old', timestamp: '2026-08-19T10:00:05.000Z' },
+      ],
+    })
+    vi.advanceTimersByTime(3000)
+    await settle()
+
+    expect(queryLog.mock.calls[1][1].filters).toEqual([
+      { column: 'timestamp', type: 'greater', value: '2026-08-19T10:00:04Z' },
+    ])
+    expect(feed.rows.value.map((r) => r.msg)).toEqual(['new'])
+    feed.stop()
+  })
+
+  it('hides the seed of a tail that only becomes supported later', async () => {
+    const recordIdColumn = ref(null)
+    queryLog.mockResolvedValueOnce({ records: [{ event_id: 1 }] })
+    const feed = tail({ history: false, recordIdColumn })
+    await settle()
+    expect(queryLog).not.toHaveBeenCalled()
+
+    recordIdColumn.value = 'event_id'
+    await settle()
+    expect(feed.rows.value).toEqual([])
+
+    queryLog.mockResolvedValueOnce({ records: [{ event_id: 2 }] })
+    vi.advanceTimersByTime(3000)
+    await settle()
+    expect(feed.rows.value.map((r) => r.event_id)).toEqual([2])
+    feed.stop()
+  })
+
+  it('keeps what arrives after an empty seed', async () => {
+    queryLog.mockResolvedValueOnce({ records: [] })
+    const feed = tail({ history: false })
+    await settle()
+
+    queryLog.mockResolvedValueOnce({ records: [{ event_id: 1 }] })
+    vi.advanceTimersByTime(3000)
+    await settle()
+
+    expect(feed.rows.value.map((r) => r.event_id)).toEqual([1])
+    feed.stop()
+  })
+
+  it('hides a seed that lands while paused', async () => {
+    let resolveSeed
+    queryLog.mockReturnValueOnce(new Promise((resolve) => (resolveSeed = resolve)))
+    const feed = tail({ history: false })
+    feed.pause()
+    resolveSeed({ records: [{ event_id: 1 }] })
+    await settle()
+
+    expect(feed.pendingCount.value).toBe(0)
+    feed.stop()
+  })
+
+  it('hides the seed again after a restart', async () => {
+    const enabled = ref(true)
+    queryLog.mockResolvedValueOnce({ records: [{ event_id: 1 }] })
+    const feed = tail({ history: false, enabled })
+    await settle()
+
+    enabled.value = false
+    await nextTick()
+    queryLog.mockResolvedValueOnce({ records: [{ event_id: 2 }] })
+    enabled.value = true
+    await settle()
+
+    expect(feed.rows.value).toEqual([])
+    feed.stop()
+  })
+
+  it('hides a seed that only lands on the retry after a transient failure', async () => {
+    queryLog.mockRejectedValueOnce(apiError('Bad Gateway', 502))
+    const feed = tail({ history: false })
+    await settle()
+
+    queryLog.mockResolvedValueOnce({ records: [{ event_id: 1 }] })
+    vi.advanceTimersByTime(3000)
+    await settle()
+
+    expect(queryLog).toHaveBeenCalledTimes(2)
+    expect(feed.rows.value).toEqual([])
+    feed.stop()
+  })
+})
+
 describe('useLogLiveTail timestamp cursor wire format', () => {
   it('never puts milliseconds in the cursor filter', async () => {
     queryLog.mockResolvedValueOnce({

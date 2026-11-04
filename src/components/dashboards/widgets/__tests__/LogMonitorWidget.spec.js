@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import { h, nextTick, ref, toValue, watch, watchEffect } from 'vue'
+import { h, nextTick, ref, toValue, watchEffect } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import PrimeVue from 'primevue/config'
 import Tooltip from 'primevue/tooltip'
@@ -84,8 +84,6 @@ window.matchMedia =
 
 const tailCalls = []
 let tailRows
-/** Bumped to stand for "a poll landed", which is what the seed discard keys off. */
-let lastUpdate
 let tailApi
 
 vi.mock('@/queries/useLogQueries', () => ({
@@ -103,15 +101,6 @@ vi.mock('@/composables/useLogLiveTail', () => ({
       const value = toValue(request)
       if (value) tailCalls.push({ logName: toValue(logName), request: value, options })
     })
-    // Emulates the real restart on `enabled`/`request`/`logName`/`supported` emptying the buffer,
-    // so a scroll-out/scroll-in cycle can be driven.
-    watch(
-      () => toValue(options.enabled),
-      () => {
-        tailRows.value = []
-      },
-    )
-    // Real `clear` and `lastUpdate`: the widget's "no history" mode runs through them.
     const rows = tailRows
     const api = {
       rows,
@@ -123,7 +112,7 @@ vi.mock('@/composables/useLogLiveTail', () => ({
       paused: ref(false),
       pendingCount: ref(0),
       supported: ref(true),
-      lastUpdate,
+      lastUpdate: ref(null),
       pause: vi.fn(),
       resume: vi.fn(),
       togglePause: vi.fn(),
@@ -195,15 +184,8 @@ function filterFor(request, column) {
 beforeEach(() => {
   tailCalls.length = 0
   tailRows = ref([])
-  lastUpdate = ref(null)
   tailApi = null
 })
-
-async function deliverPoll(records) {
-  tailRows.value = records
-  lastUpdate.value = Date.now()
-  await nextTick()
-}
 
 describe('LogMonitorWidget', () => {
   describe('log selection', () => {
@@ -366,21 +348,9 @@ describe('LogMonitorWidget', () => {
         expect(filterFor(lastRequest(), 'event_timestamp')).toBeNull()
       })
 
-      it('discards the seed once the first poll lands', async () => {
+      it('asks the tail to hide its seed', async () => {
         await mountWidget('event-monitor', { maxEvents: 0 })
-        await deliverPoll([{ id: '1', event_message: 'history', event_code: 1 }])
-
-        expect(tailApi.clear).toHaveBeenCalledTimes(1)
-        expect(tailRows.value).toEqual([])
-      })
-
-      it('keeps everything that arrives after the seed', async () => {
-        await mountWidget('event-monitor', { maxEvents: 0 })
-        await deliverPoll([{ id: '1', event_message: 'history', event_code: 1 }])
-        await deliverPoll([{ id: '2', event_message: 'live arrival', event_code: 1 }])
-
-        expect(tailApi.clear).toHaveBeenCalledTimes(1)
-        expect(tailRows.value).toHaveLength(1)
+        expect(toValue(tailCalls.at(-1).options.history)).toBe(false)
       })
 
       it('still polls a full page, rather than asking for zero rows', async () => {
@@ -389,57 +359,16 @@ describe('LogMonitorWidget', () => {
         expect(toValue(tailCalls.at(-1).options.bufferLimit)).toBe(500)
       })
 
-      it('discards the seed again after a scroll-out and back', async () => {
-        const active = ref(true)
-        await mountWidget('event-monitor', { maxEvents: 0 }, { active })
-        await deliverPoll([{ id: '1', event_message: 'history', event_code: 1 }])
-        expect(tailApi.clear).toHaveBeenCalledTimes(1)
-
-        active.value = false
-        await nextTick()
-        active.value = true
-        await nextTick()
-
-        await deliverPoll([{ id: '2', event_message: 'old history', event_code: 1 }])
-        expect(tailApi.clear).toHaveBeenCalledTimes(2)
-        expect(tailRows.value).toEqual([])
-      })
-
-      it('does not discard live rows while the widget stays in view', async () => {
-        const active = ref(true)
-        await mountWidget('event-monitor', { maxEvents: 0 }, { active })
-        await deliverPoll([{ id: '1', event_message: 'history', event_code: 1 }])
-        expect(tailApi.clear).toHaveBeenCalledTimes(1)
-
-        await deliverPoll([{ id: '2', event_message: 'live one', event_code: 1 }])
-        await deliverPoll([{ id: '3', event_message: 'live two', event_code: 1 }])
-
-        expect(tailApi.clear).toHaveBeenCalledTimes(1)
-        expect(tailRows.value).toHaveLength(1)
-      })
-
       // A cleared InputNumber emits null, and `Number(null)` is 0.
       it('treats a cleared field as unset, not as zero', async () => {
         await mountWidget('event-monitor', { maxEvents: null })
-        await deliverPoll([{ id: '1', event_message: 'history', event_code: 1 }])
-
-        expect(tailApi.clear).not.toHaveBeenCalled()
+        expect(toValue(tailCalls.at(-1).options.history)).toBe(true)
         expect(toValue(tailCalls.at(-1).options.bufferLimit)).toBe(100)
       })
 
-      it('keeps an explicit zero meaning disabled', async () => {
-        await mountWidget('event-monitor', { maxEvents: 0 })
-        await deliverPoll([{ id: '1', event_message: 'history', event_code: 1 }])
-
-        expect(tailApi.clear).toHaveBeenCalledTimes(1)
-      })
-
-      it('does not discard the seed when history is wanted', async () => {
+      it('keeps the seed when history is wanted', async () => {
         await mountWidget('event-monitor', { maxEvents: 50 })
-        await deliverPoll([{ id: '1', event_message: 'history', event_code: 1 }])
-
-        expect(tailApi.clear).not.toHaveBeenCalled()
-        expect(tailRows.value).toHaveLength(1)
+        expect(toValue(tailCalls.at(-1).options.history)).toBe(true)
       })
     })
   })

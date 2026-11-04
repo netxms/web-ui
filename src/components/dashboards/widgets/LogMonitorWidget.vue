@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch } from 'vue'
+import { computed } from 'vue'
 import Button from 'primevue/button'
 import QueryErrorState from '@/components/common/QueryErrorState.vue'
 import LogResultsStream from '@/components/logs/LogResultsStream.vue'
@@ -94,7 +94,7 @@ const scopeObjectId = computed(() => {
   return id > 0 ? id : null
 })
 
-// 0 means no history, as in legacy ("0 to disable"); see `discardPending`.
+// 0 means no history, as in legacy ("0 to disable").
 const preloadCount = computed(() => {
   if (!isEventMonitor.value) return DEFAULT_PRELOAD_ROWS
   const max = numericConfig(config.value.maxEvents, DEFAULT_PRELOAD_ROWS)
@@ -173,33 +173,10 @@ const tail = useLogLiveTail(logName, request, {
   recordIdColumn: tailRecordIdColumn,
   timeColumn,
   bufferLimit,
+  history: () => preloadCount.value > 0,
 })
 
 const resolver = useLogValueResolver(tail.rows, resultColumns, tail.resolvedPages)
-
-/**
- * "No history": discard the seed but keep the cursor, so polling resumes from the newest record
- * the server had. A `timestamp > now` filter would compare against the browser clock and drop
- * rows written in the mount second.
- *
- * Armed on every source the tail restarts on, not only `request`: `enabled` carries
- * `widgetActive`, which flips as the widget scrolls in and out and re-seeds the tail.
- * Arming on anything that does not restart the tail would make the next `clear()` drop live rows.
- */
-let discardPending = false
-
-watch([logName, request, enabled], () => (discardPending = preloadCount.value === 0), {
-  immediate: true,
-})
-
-watch(
-  () => tail.lastUpdate.value,
-  (value) => {
-    if (value == null || !discardPending) return
-    discardPending = false
-    tail.clear()
-  },
-)
 
 // Client-side, like legacy's viewer filter: every token must appear (case-insensitive) in the
 // message, event name or source object name. A server-side LIKE on the message is narrower and

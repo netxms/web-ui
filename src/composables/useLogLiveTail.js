@@ -28,6 +28,9 @@ function isTransient(error) {
  * @param {object} [options]
  * @param {import('vue').MaybeRefOrGetter<boolean>} [options.enabled] - false drops the buffer;
  *   enabling again re-seeds from the newest records
+ * @param {import('vue').MaybeRefOrGetter<boolean>} [options.history] - false hides the seed of
+ *   every (re)start but keeps its cursor, so only later records show. A `timestamp > now` filter
+ *   instead would compare against the browser clock and drop rows written in the start second.
  * @param {import('vue').MaybeRefOrGetter<string|null>} [options.recordIdColumn]
  * @param {import('vue').MaybeRefOrGetter<string|null>} [options.timeColumn]
  * @param {number} [options.intervalMs]
@@ -40,6 +43,7 @@ export function useLogLiveTail(logName, request, options = {}) {
     timeColumn = null,
     intervalMs = 3000,
     bufferLimit = 2000,
+    history = true,
   } = options
 
   /** Newest first. */
@@ -60,6 +64,8 @@ export function useLogLiveTail(logName, request, options = {}) {
   // cursor and can never come back.
   let seen = new Set()
   let cursor = null
+  // Not `cursor !== null`: an empty seed leaves the cursor unset.
+  let seeded = false
   let timer = null
   // Not `timer !== null`: that is false while a request is in flight, and resume() would start
   // a second loop.
@@ -220,6 +226,7 @@ export function useLogLiveTail(logName, request, options = {}) {
 
     const mine = generation
     const seeding = cursor === null
+    const hideSeed = !seeded && !toValue(history)
     isFetching.value = true
     try {
       const page = await logsApi.queryLog(name, body)
@@ -227,6 +234,7 @@ export function useLogLiveTail(logName, request, options = {}) {
       const records = page?.records ?? []
       const taken = accept(records)
       mergeResolved(page?.resolvedValues)
+      if (hideSeed) clear()
 
       if (!seeding && isFullPage(records, body)) {
         if (!(await catchUp(name, body, records, taken, mine))) return
@@ -234,6 +242,7 @@ export function useLogLiveTail(logName, request, options = {}) {
 
       // Only on success, so a retry after a transient failure asks the same question again.
       advanceCursor(records)
+      seeded = true
       error.value = null
       failureCount.value = 0
       lastUpdate.value = Date.now()
@@ -285,6 +294,7 @@ export function useLogLiveTail(logName, request, options = {}) {
     resolved.value = { objects: {}, users: {} }
     seen = new Set()
     cursor = null
+    seeded = false
     error.value = null
     failureCount.value = 0
 
