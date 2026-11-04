@@ -157,7 +157,7 @@ export function useLogLiveTail(logName, request, options = {}) {
       const key = identify(record)
       if (seen.has(key)) continue
       seen.add(key)
-      fresh.push({ ...record, id: key, arrivedAt: cursor === null ? null : Date.now() })
+      fresh.push({ ...record, id: key, arrivedAt: seeded ? Date.now() : null })
     }
     if (fresh.length === 0) return 0
     fresh.reverse()
@@ -224,8 +224,8 @@ export function useLogLiveTail(logName, request, options = {}) {
     if (!name || !body) return
 
     const mine = generation
-    const seeding = cursor === null
-    const hideSeed = !seeded && !toValue(history)
+    const seeding = !seeded
+    const hideSeed = seeding && !toValue(history)
     isFetching.value = true
     try {
       const page = await logsApi.queryLog(name, body)

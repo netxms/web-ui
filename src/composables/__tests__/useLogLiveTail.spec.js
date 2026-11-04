@@ -468,6 +468,42 @@ describe('useLogLiveTail catching up on a burst', () => {
     return Array.from({ length: count }, (_, i) => ({ event_id: from - i }))
   }
 
+  /** Serves `available` (newest first) the way the server pages it: cursor filters, then limit. */
+  function serve(available) {
+    queryLog.mockImplementation(async (_name, body) => {
+      let records = available.value
+      for (const f of body.filters ?? []) {
+        if (f.type === 'greater') records = records.filter((r) => r.event_id > f.value)
+        if (f.type === 'less') records = records.filter((r) => r.event_id < f.value)
+      }
+      return { records: records.slice(0, body.limit) }
+    })
+  }
+
+  it.each([true, false])(
+    'catches up on a burst after an empty seed, with history %s',
+    async (history) => {
+      const available = ref([])
+      serve(available)
+      const feed = tail({ history })
+      await settle()
+
+      available.value = page(250, 250)
+      vi.advanceTimersByTime(3000)
+      await settle()
+
+      expect(feed.rows.value).toHaveLength(250)
+      expect(feed.rows.value.every((r) => typeof r.arrivedAt === 'number')).toBe(true)
+
+      vi.advanceTimersByTime(3000)
+      await settle()
+      expect(queryLog.mock.calls.at(-1)[1].filters).toEqual([
+        { column: 'event_id', type: 'greater', value: 250 },
+      ])
+      feed.stop()
+    },
+  )
+
   it('does not page below the seed, which is the newest page by definition', async () => {
     queryLog.mockResolvedValueOnce({ records: page(100, 100) })
     const feed = tail()
