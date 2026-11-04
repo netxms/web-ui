@@ -46,6 +46,12 @@ const ROW_GAP = 8
 /** Floor for a row holding a card-chrome widget; inline widgets (labels, separators) have none. */
 const MIN_CARD_ROW = 60
 
+// Row fill states, in rank order: a fill pass only ever raises a row's state.
+const FILL_UNTOUCHED = 0
+const FILL_CONTENT = 1
+const FILL_CLAIMABLE = 2
+const FILL_GROWS = 3
+
 /** The WebAPI emits layout flags as either a boolean or the string 'true'/'false'. */
 function layoutBool(value, fallback) {
   if (value === true || value === 'true') return true
@@ -78,8 +84,7 @@ export function computeRowTracks(widgets, isInline, { scrollable = false, rowHei
 
   const floors = Array.from({ length: rowCount }, () => 0)
   const hints = Array.from({ length: rowCount }, () => 0)
-  // 0 = untouched, 1 = content-sized, 2 = claimable by a multi-row grabber, 3 = grows
-  const fill = Array.from({ length: rowCount }, () => 0)
+  const fill = Array.from({ length: rowCount }, () => FILL_UNTOUCHED)
 
   const rowsOf = (w) => {
     const rows = []
@@ -113,24 +118,26 @@ export function computeRowTracks(widgets, isInline, { scrollable = false, rowHei
   }
 
   for (const { grab, rows } of entries) {
-    if (grab && rows.length === 1) fill[rows[0]] = 3
+    if (grab && rows.length === 1) fill[rows[0]] = FILL_GROWS
   }
   for (const { grab, rows } of entries) {
-    if (!grab) for (const r of rows) if (fill[r] < 3) fill[r] = 1
+    if (!grab) for (const r of rows) if (fill[r] < FILL_GROWS) fill[r] = FILL_CONTENT
   }
   for (const { grab, rows } of entries) {
-    if (grab && rows.length > 1) for (const r of rows) if (fill[r] === 0) fill[r] = 2
+    if (grab && rows.length > 1) {
+      for (const r of rows) if (fill[r] === FILL_UNTOUCHED) fill[r] = FILL_CLAIMABLE
+    }
   }
   for (const { grab, rows } of entries) {
     if (!grab || rows.length <= 1) continue
-    const claimable = rows.filter((r) => fill[r] >= 2)
-    if (claimable.length) for (const r of claimable) fill[r] = 3
-    else if (rows.length) fill[rows[0]] = 3
+    const claimable = rows.filter((r) => fill[r] >= FILL_CLAIMABLE)
+    if (claimable.length) for (const r of claimable) fill[r] = FILL_GROWS
+    else if (rows.length) fill[rows[0]] = FILL_GROWS
   }
 
   return fill.map((state, r) => {
     if (scrollable) return `${Math.max(hints[r] || rowHeight, floors[r])}px`
-    if (state === 3) return `minmax(${floors[r]}px, 1fr)`
+    if (state === FILL_GROWS) return `minmax(${floors[r]}px, 1fr)`
     const min = Math.max(hints[r], floors[r])
     return min > 0 ? `minmax(${min}px, auto)` : 'auto'
   })
