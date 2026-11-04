@@ -1,4 +1,4 @@
-import { get, post, put, del } from './client'
+import { get, post, put } from './client'
 
 /**
  * Incident management endpoints.
@@ -194,22 +194,4 @@ export function assignIncident(id, body) {
  */
 export function addIncidentComment(id, body) {
   return post(`/v1/incidents/${id}/comments`, body).then(normalizeIncident)
-}
-
-/**
- * @param {number} id
- * @param {{ alarmId: number }} body
- * @returns {Promise<Incident>}
- */
-export function linkAlarm(id, body) {
-  return post(`/v1/incidents/${id}/alarms`, body).then(normalizeIncident)
-}
-
-/**
- * @param {number} id
- * @param {number} alarmId
- * @returns {Promise<Incident>}
- */
-export function unlinkAlarm(id, alarmId) {
-  return del(`/v1/incidents/${id}/alarms/${alarmId}`).then(normalizeIncident)
 }

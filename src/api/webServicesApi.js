@@ -4,10 +4,6 @@ export function getWebServiceDefinitions() {
   return get('/v1/web-service-definitions')
 }
 
-export function getWebServiceDefinition(id) {
-  return get(`/v1/web-service-definitions/${id}`)
-}
-
 export function createWebServiceDefinition(data) {
   return post('/v1/web-service-definitions', data)
 }

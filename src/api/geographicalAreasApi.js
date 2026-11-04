@@ -60,10 +60,6 @@ export function getAreas() {
   return get('/v1/geo-areas').then((list) => list.map(normalizeArea))
 }
 
-export function getArea(id) {
-  return get(`/v1/geo-areas/${id}`).then(normalizeArea)
-}
-
 export function createArea({ name, comments, geoJson }) {
   const body = {
     name,

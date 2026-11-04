@@ -380,16 +380,6 @@ export function getLinkWidth(link) {
   return link.type === LINK_TYPES.MULTILINK ? 4 : 2
 }
 
-/**
- * DCI value takes precedence over the manual label.
- * @param {object} link
- * @returns {string|null}
- */
-export function getLinkLabel(link) {
-  if (link.dciData?.value) return link.dciData.value
-  return link.label ?? null
-}
-
 // Legacy LinkConfig style/width/colour with map-level defaults, resolved into render values.
 
 /** SWT LINE_* style code -> SVG stroke-dasharray ('0' meaning solid). */
@@ -508,21 +498,6 @@ export function linkLabelFraction(location, labelPosition = 50) {
   const partStart = { OBJECT1: 1, CENTER: 4, OBJECT2: 7 }[location] ?? 4
   const clamped = Math.min(100, Math.max(0, labelPosition))
   return segment * partStart + segment * 3 * (clamped / 100)
-}
-
-/**
- * @param {{x: number, y: number}} source
- * @param {{x: number, y: number}} target
- * @param {'CENTER'|'OBJECT1'|'OBJECT2'} location
- * @param {number} [labelPosition] 0-100
- * @returns {{ x: number, y: number }}
- */
-export function linkLabelPoint(source, target, location, labelPosition = 50) {
-  const t = linkLabelFraction(location, labelPosition)
-  return {
-    x: source.x + (target.x - source.x) * t,
-    y: source.y + (target.y - source.y) * t,
-  }
 }
 
 /**
@@ -651,59 +626,6 @@ export function getHeatmapWidth(rawValue, maxValue) {
 
 /**
  * @param {object[]} elements
- * @returns {Record<string, object>}
- */
-export function elementsToNodes(elements) {
-  const nodes = {}
-  for (const elem of elements) {
-    if (elem.type !== 'object') continue
-    nodes[elem.id] = {
-      name: elem.objectName,
-      objectId: elem.objectId,
-      objectClass: elem.objectClass,
-      objectStatus: elem.objectStatus,
-    }
-  }
-  return nodes
-}
-
-/**
- * @param {object[]} elements
- * @returns {{ nodes: Record<string, { x: number, y: number }> }}
- */
-export function elementsToLayouts(elements) {
-  const nodePositions = {}
-  for (const elem of elements) {
-    if (elem.type !== 'object') continue
-    nodePositions[elem.id] = { x: elem.x, y: elem.y }
-  }
-  return { nodes: nodePositions }
-}
-
-/**
- * Dangling links are kept in the map data for lossless saves but skipped here.
- * @param {object[]} links
- * @returns {Record<string, object>}
- */
-export function linksToEdges(links) {
-  const edges = {}
-  for (const link of links) {
-    if (!link.from || !link.to) continue
-    edges[link.id] = {
-      source: link.from,
-      target: link.to,
-      type: link.type,
-      label: link.label,
-      color: link.color,
-      customColor: link.customColor,
-      dciData: link.dciData,
-    }
-  }
-  return edges
-}
-
-/**
- * @param {object[]} elements
  * @returns {object[]}
  */
 export function getDecorations(elements) {
@@ -780,15 +702,6 @@ export function resolveMapBackdrop(mapData) {
       : 'default'
   // Original-case GUID, to match the image-library lookup key.
   return { type: 'image', guid: raw.background, mode, page: { w, h } }
-}
-
-/**
- * @param {number} status
- * @returns {{ fill: string, stroke: string }}
- */
-export function getNodeStatusColors(status) {
-  const color = getStatusHexColor(status)
-  return { fill: color, stroke: color }
 }
 
 /**

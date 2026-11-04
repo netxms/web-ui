@@ -4,10 +4,6 @@ export function getNotificationChannels() {
   return get('/v1/notification-channels')
 }
 
-export function getNotificationChannel(name) {
-  return get(`/v1/notification-channels/${encodeURIComponent(name)}`)
-}
-
 export function createNotificationChannel(data) {
   return post('/v1/notification-channels', data)
 }

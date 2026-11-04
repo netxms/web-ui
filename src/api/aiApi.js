@@ -35,10 +35,6 @@ export function clearAiChat(chatId) {
   return post(`/v1/ai/chat/${chatId}/clear`)
 }
 
-export function deleteAiChat(chatId) {
-  return del(`/v1/ai/chat/${chatId}`)
-}
-
 export function getAiSkillsAndFunctions() {
   return get('/v1/ai/skills-and-functions')
 }

@@ -6,7 +6,6 @@ import { MODERATE_TIER } from './config'
 export const webServiceKeys = {
   all: () => ['web-service-definitions'],
   list: () => ['web-service-definitions', 'list'],
-  detail: (id) => ['web-service-definitions', 'detail', id],
 }
 
 /**
@@ -17,18 +16,6 @@ export function useWebServiceDefinitions(enabled = true) {
     queryKey: webServiceKeys.list(),
     queryFn: () => webServicesApi.getWebServiceDefinitions(),
     enabled: computed(() => toValue(enabled)),
-    ...MODERATE_TIER,
-  })
-}
-
-/**
- * @param {import('vue').MaybeRefOrGetter<number|null>} id
- */
-export function useWebServiceDefinition(id) {
-  return useQuery({
-    queryKey: computed(() => webServiceKeys.detail(toValue(id))),
-    queryFn: () => webServicesApi.getWebServiceDefinition(toValue(id)),
-    enabled: computed(() => !!toValue(id)),
     ...MODERATE_TIER,
   })
 }
@@ -45,9 +32,8 @@ export function useUpdateWebServiceDefinition() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ id, data }) => webServicesApi.updateWebServiceDefinition(id, data),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: webServiceKeys.detail(id) })
-      queryClient.invalidateQueries({ queryKey: webServiceKeys.list() })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: webServiceKeys.all() })
     },
   })
 }

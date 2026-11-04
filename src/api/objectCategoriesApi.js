@@ -28,10 +28,6 @@ export function getObjectCategories() {
   return get('/v1/object-categories').then((list) => list.map(fromApi))
 }
 
-export function getObjectCategory(id) {
-  return get(`/v1/object-categories/${id}`).then(fromApi)
-}
-
 export function createObjectCategory(data) {
   return post('/v1/object-categories', toApi(data)).then(fromApi)
 }

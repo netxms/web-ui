@@ -8,10 +8,6 @@ export function getTwoFactorMethods() {
   return get('/v1/2fa/methods')
 }
 
-export function getTwoFactorMethod(name) {
-  return get(`/v1/2fa/methods/${encodeURIComponent(name)}`)
-}
-
 export function createTwoFactorMethod(data) {
   return post('/v1/2fa/methods', data)
 }

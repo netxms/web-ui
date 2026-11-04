@@ -4,10 +4,6 @@ export function getSshKeys(includePublicKey = false) {
   return get(`/v1/ssh-keys?includePublicKey=${includePublicKey}`)
 }
 
-export function getSshKey(keyId) {
-  return get(`/v1/ssh-keys/${keyId}`)
-}
-
 export function createSshKey(data) {
   return post('/v1/ssh-keys', data)
 }

@@ -104,15 +104,3 @@ export function useAddIncidentComment() {
     incidentsApi.addIncidentComment(incidentId, { text }),
   )
 }
-
-export function useLinkIncidentAlarm() {
-  return useIncidentMutation(({ incidentId, alarmId }) =>
-    incidentsApi.linkAlarm(incidentId, { alarmId }),
-  )
-}
-
-export function useUnlinkIncidentAlarm() {
-  return useIncidentMutation(({ incidentId, alarmId }) =>
-    incidentsApi.unlinkAlarm(incidentId, alarmId),
-  )
-}

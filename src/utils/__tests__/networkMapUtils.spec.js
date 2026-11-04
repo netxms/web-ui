@@ -4,13 +4,8 @@ import {
   getLinkColor,
   getLinkDash,
   getLinkWidth,
-  getLinkLabel,
   getHeatmapColor,
   getHeatmapWidth,
-  getNodeStatusColors,
-  elementsToNodes,
-  elementsToLayouts,
-  linksToEdges,
   getDecorations,
   getCanvasBackground,
   DEFAULT_LINK_COLOR,
@@ -20,7 +15,6 @@ import {
   resolveLinkColor,
   linkStatus,
   getLinkUtilizationColor,
-  linkLabelPoint,
   linkLabelFraction,
   linkDciLines,
   linkDataDirection,
@@ -281,35 +275,6 @@ describe('bendPointsToSegments', () => {
   })
 })
 
-describe('linkLabelPoint', () => {
-  const s = { x: 0, y: 0 }
-  const t = { x: 1100, y: 0 }
-
-  it('centers the CENTER label on the midpoint at labelPosition 50', () => {
-    expect(linkLabelPoint(s, t, 'CENTER', 50).x).toBeCloseTo(550)
-  })
-
-  it('orders OBJECT1 before CENTER before OBJECT2', () => {
-    const o1 = linkLabelPoint(s, t, 'OBJECT1', 50).x
-    const c = linkLabelPoint(s, t, 'CENTER', 50).x
-    const o2 = linkLabelPoint(s, t, 'OBJECT2', 50).x
-    expect(o1).toBeLessThan(c)
-    expect(c).toBeLessThan(o2)
-  })
-
-  it('keeps each label inside its own three-segment part', () => {
-    // OBJECT1 owns segments 1..4 of 11 → x between 100 and 400.
-    expect(linkLabelPoint(s, t, 'OBJECT1', 0).x).toBeCloseTo(100)
-    expect(linkLabelPoint(s, t, 'OBJECT1', 100).x).toBeCloseTo(400)
-  })
-
-  it('interpolates on both axes for a diagonal link', () => {
-    const p = linkLabelPoint({ x: 0, y: 0 }, { x: 1100, y: 1100 }, 'CENTER', 50)
-    expect(p.x).toBeCloseTo(550)
-    expect(p.y).toBeCloseTo(550)
-  })
-})
-
 // Thin space: the desktop DataFormatter's separator before a unit.
 const T = '\u2009'
 
@@ -496,24 +461,6 @@ describe('getLinkWidth', () => {
   })
 })
 
-describe('getLinkLabel', () => {
-  it('returns DCI value when present', () => {
-    expect(getLinkLabel({ dciData: { value: '42%' }, label: 'manual' })).toBe('42%')
-  })
-
-  it('returns label when no DCI value', () => {
-    expect(getLinkLabel({ dciData: null, label: 'my label' })).toBe('my label')
-  })
-
-  it('returns null when neither DCI value nor label', () => {
-    expect(getLinkLabel({ dciData: null, label: null })).toBeNull()
-  })
-
-  it('returns null when dciData exists but value is empty/falsy', () => {
-    expect(getLinkLabel({ dciData: { value: '' }, label: 'fallback' })).toBe('fallback')
-  })
-})
-
 describe('getHeatmapColor', () => {
   it('returns green at 0% utilization', () => {
     expect(getHeatmapColor(0, 100)).toBe('#22c55e')
@@ -572,132 +519,6 @@ describe('getHeatmapWidth', () => {
 
   it('clamps above maxValue to 6', () => {
     expect(getHeatmapWidth(200, 100)).toBe(6)
-  })
-})
-
-describe('getNodeStatusColors', () => {
-  it('returns an object with fill and stroke properties', () => {
-    const result = getNodeStatusColors(0)
-    expect(result).toHaveProperty('fill')
-    expect(result).toHaveProperty('stroke')
-  })
-
-  it('fill and stroke are the same hex color', () => {
-    const result = getNodeStatusColors(4)
-    expect(result.fill).toBe(result.stroke)
-    expect(result.fill).toMatch(/^#/)
-  })
-
-  it('returns different colors for different status codes', () => {
-    const normal = getNodeStatusColors(0)
-    const critical = getNodeStatusColors(4)
-    expect(normal.fill).not.toBe(critical.fill)
-  })
-})
-
-describe('elementsToNodes', () => {
-  const elements = [
-    {
-      id: 'e-1',
-      type: 'object',
-      objectId: 10,
-      objectName: 'srv-01',
-      objectClass: 'Node',
-      objectStatus: 0,
-    },
-    {
-      id: 'e-2',
-      type: 'object',
-      objectId: 11,
-      objectName: 'sw-01',
-      objectClass: 'Interface',
-      objectStatus: 1,
-    },
-    { id: 'e-3', type: 'decoration', objectId: null, objectName: '' },
-  ]
-
-  it('excludes decoration elements', () => {
-    const nodes = elementsToNodes(elements)
-    expect('e-3' in nodes).toBe(false)
-  })
-
-  it('includes object elements keyed by id', () => {
-    const nodes = elementsToNodes(elements)
-    expect('e-1' in nodes).toBe(true)
-    expect('e-2' in nodes).toBe(true)
-  })
-
-  it('node values contain name, objectId, objectClass, objectStatus', () => {
-    const nodes = elementsToNodes(elements)
-    expect(nodes['e-1']).toMatchObject({
-      name: 'srv-01',
-      objectId: 10,
-      objectClass: 'Node',
-      objectStatus: 0,
-    })
-  })
-
-  it('returns empty object for empty input', () => {
-    expect(elementsToNodes([])).toEqual({})
-  })
-})
-
-describe('elementsToLayouts', () => {
-  const elements = [
-    { id: 'e-1', type: 'object', x: 100, y: 200 },
-    { id: 'e-2', type: 'decoration', x: 50, y: 50 },
-  ]
-
-  it('returns only object elements in nodes positions', () => {
-    const layout = elementsToLayouts(elements)
-    expect('e-1' in layout.nodes).toBe(true)
-    expect('e-2' in layout.nodes).toBe(false)
-  })
-
-  it('node positions have x and y', () => {
-    const layout = elementsToLayouts(elements)
-    expect(layout.nodes['e-1']).toEqual({ x: 100, y: 200 })
-  })
-})
-
-describe('linksToEdges', () => {
-  const links = [
-    {
-      id: 'l-0',
-      from: 'e-1',
-      to: 'e-2',
-      type: LINK_TYPES.NORMAL,
-      label: 'link1',
-      color: 'default',
-      customColor: null,
-      dciData: null,
-    },
-  ]
-
-  it('keys edges by link id', () => {
-    const edges = linksToEdges(links)
-    expect('l-0' in edges).toBe(true)
-  })
-
-  it('edge has source and target', () => {
-    const edges = linksToEdges(links)
-    expect(edges['l-0'].source).toBe('e-1')
-    expect(edges['l-0'].target).toBe('e-2')
-  })
-
-  it('preserves type, label, color, customColor, dciData', () => {
-    const edges = linksToEdges(links)
-    expect(edges['l-0']).toMatchObject({
-      type: LINK_TYPES.NORMAL,
-      label: 'link1',
-      color: 'default',
-      customColor: null,
-      dciData: null,
-    })
-  })
-
-  it('returns empty object for empty input', () => {
-    expect(linksToEdges([])).toEqual({})
   })
 })
 
@@ -937,7 +758,6 @@ describe('adaptApiNetworkMap', () => {
     expect(result.links).toHaveLength(1)
     expect(result.links[0].from).toBe('e-1')
     expect(result.links[0].to).toBeNull()
-    expect(linksToEdges(result.links)).toEqual({})
   })
 
   it('sets null background when backgroundColor is null', () => {
