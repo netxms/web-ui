@@ -91,8 +91,8 @@ describe('compileObjectFilter — search modes', () => {
   })
 
   it('uses no deprecated NXSL functions, which compile with warnings', () => {
-    const { script } = compileObjectFilter({ text: 'x' })
-    expect(script).not.toMatch(/\b(index|lower)\(/)
+    const { script } = compileObjectFilter({ text: 'x', ipFrom: '10.0.0.1', ipTo: '10.0.0.99' })
+    expect(script).not.toMatch(/\b(index|lower|AddrInRange)\(/)
   })
 
   it('casts safe dereferences in regexp mode too, since imatch rejects NULL as well', () => {
@@ -145,11 +145,9 @@ describe('compileObjectFilter — zone filter', () => {
 })
 
 describe('compileObjectFilter — IP range', () => {
-  it('passes ipAddr straight to AddrInRange, because it is already a string', () => {
-    // NXSL_NetObjClass::getAttr returns getPrimaryIpAddress().toString() for `ipAddr`, not an
-    // InetAddress object - `ipAddr->address` raises "no such attribute" on every object.
+  it('tests the range on an address rebuilt from ipAddr, not on the masked ipAddress', () => {
     const { script } = compileObjectFilter({ ipFrom: '10.0.0.1', ipTo: '10.0.0.99' })
-    expect(script).toBe('AddrInRange(ipAddr, "10.0.0.1", "10.0.0.99")')
+    expect(script).toBe('new InetAddress(ipAddr).inRange("10.0.0.1", "10.0.0.99")')
   })
 
   it('needs both ends of the range', () => {
@@ -172,7 +170,7 @@ describe('compileObjectFilter — combination and fields', () => {
     expect(lines).toHaveLength(4)
     expect(lines[0]).toBe('type == NODE')
     expect(lines[1]).toContain('zoneUIN')
-    expect(lines[2]).toContain('AddrInRange')
+    expect(lines[2]).toContain('inRange')
     expect(lines[3]).toContain('ilike "sw"')
   })
 

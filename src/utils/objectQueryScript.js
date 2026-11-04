@@ -8,7 +8,8 @@
  *   bare. Class-specific ones go through `?.`, which yields NULL instead of aborting the query.
  * - That NULL must be cast with `string(...)`: `ilike`, `imatch` and String methods fail on NULL,
  *   aborting the whole query; NULL casts to "". `==` is NULL-tolerant.
- * - `AddrInRange` takes strings, and `ipAddr` already is one (there is no `->address`).
+ * - The IP range rebuilds the address from the `ipAddr` string: `ipAddress` keeps an interface's
+ *   or subnet's mask, and `inRange` compares mask bits, so the lower bound itself would not match.
  *
  * Unlike legacy, the searched attributes are a fixed list, and the IP range tests the primary
  * address only.
@@ -160,7 +161,7 @@ function zoneClause(zones) {
 
 function ipClause(ipFrom, ipTo) {
   if (!ipFrom || !ipTo) return null
-  return `AddrInRange(ipAddr, ${nxslString(ipFrom)}, ${nxslString(ipTo)})`
+  return `new InetAddress(ipAddr).inRange(${nxslString(ipFrom)}, ${nxslString(ipTo)})`
 }
 
 /**

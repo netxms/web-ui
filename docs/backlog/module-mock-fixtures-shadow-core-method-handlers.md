@@ -1,6 +1,6 @@
 ---
 worth: later
-where: vite-plugin-mock-api.js:143
+where: vite-plugin-mock-api.js:132
 added: 2026-10-28
 ---
 # module mock fixtures shadow core method handlers
