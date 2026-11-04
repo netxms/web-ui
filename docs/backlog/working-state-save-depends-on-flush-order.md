@@ -1,6 +1,6 @@
 ---
 worth: yes
-where: src/composables/useWorkingState.js:97
+where: src/composables/useWorkingState.js
 added: 2026-11-03
 ---
 # working-state save depends on unmount vs post-flush order

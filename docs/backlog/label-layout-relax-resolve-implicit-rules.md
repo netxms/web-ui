@@ -1,6 +1,6 @@
 ---
 worth: yes
-where: src/utils/networkMapLabelLayout.js:395
+where: src/utils/networkMapLabelLayout.js
 added: 2026-11-03
 ---
 # label layout relax/resolve rules are implicit

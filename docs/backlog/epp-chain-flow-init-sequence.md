@@ -1,6 +1,6 @@
 ---
 worth: yes
-where: src/components/epp/EppChainFlow.vue:437
+where: src/components/epp/EppChainFlow.vue
 added: 2026-11-03
 ---
 # EPP chain flow cytoscape init order is a workaround

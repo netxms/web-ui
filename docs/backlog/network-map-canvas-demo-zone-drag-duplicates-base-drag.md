@@ -1,6 +1,6 @@
 ---
 worth: yes
-where: src/components/network-maps/NetworkMapCanvas.vue:969
+where: src/components/network-maps/NetworkMapCanvas.vue
 added: 2026-11-03
 ---
 # demo zone/image drag and resize duplicate the base element code

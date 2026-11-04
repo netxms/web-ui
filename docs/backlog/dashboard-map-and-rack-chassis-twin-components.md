@@ -6,9 +6,9 @@ added: 2026-11-04
 
 Near-copies that differ in names, icons and labels:
 
-- `dashboards/DashboardGroupDetailView.vue` vs `network-maps/NetworkMapGroupDetailView.vue` and the two `*RootDetailView.vue`: 161/165 lines, 0.94 similar. `*GroupStatusView` / `*RootStatusView` 0.76–0.79; `DashboardContentsTable.vue` vs `MapContentsTable.vue` 0.80. ~450 lines.
-- `rack/RackElementPanel.vue` vs `chassis/ChassisElementPanel.vue` 0.89 (298/292); `AddRackElementDialog` vs `AddChassisElementDialog` 0.57; `RackView.vue` vs `ChassisView.vue` share ~460 lines. The canvases differ (0.27) and stay separate. ~500–700 lines.
-- `TemplatesView` / `BusinessServicesView` / `AssetsView` (630/527/485) share ~400 lines pairwise: sidebar tree, filter, create menu, context menu, deletion navigation, tab bar. ~800–1,000 lines with one perspective shell. `ObjectsView` overlaps little; leave it.
+- `dashboards/DashboardGroupDetailView.vue` vs `network-maps/NetworkMapGroupDetailView.vue` and the two `*RootDetailView.vue`: near-identical. `*GroupStatusView` / `*RootStatusView` and `DashboardContentsTable.vue` vs `MapContentsTable.vue`: mostly shared.
+- `rack/RackElementPanel.vue` vs `chassis/ChassisElementPanel.vue`: near-identical. `AddRackElementDialog` vs `AddChassisElementDialog` and `RackView.vue` vs `ChassisView.vue`: largely shared. The canvases differ and stay separate.
+- `TemplatesView` / `BusinessServicesView` / `AssetsView` share most of their structure pairwise: sidebar tree, filter, create menu, context menu, deletion navigation, tab bar. One perspective shell would carry it. `ObjectsView` overlaps little; leave it.
 
 Open: whether these pairs will keep evolving together. If the legacy client keeps them identical, parametrize by kind; if they are about to diverge (e.g. dashboard-only group actions), merging now just adds flags. Check against the legacy views before starting.
 
