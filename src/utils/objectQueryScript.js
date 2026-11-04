@@ -115,11 +115,11 @@ export function nxslString(value) {
   return `"${escaped}"`
 }
 
-/** `normal` wraps the text in `*` so a glob match behaves like the legacy substring search. */
+/** `normal` is a literal substring match, as in legacy; NXSL `ilike` cannot escape `*` or `?`. */
 function matchExpression(attribute, text, mode) {
   if (mode === SEARCH_MODE.REGEXP) return `${attribute} imatch ${nxslString(text)}`
-  const pattern = mode === SEARCH_MODE.PATTERN ? text : `*${text}*`
-  return `${attribute} ilike ${nxslString(pattern)}`
+  if (mode === SEARCH_MODE.PATTERN) return `${attribute} ilike ${nxslString(text)}`
+  return `index(lower(${attribute}), lower(${nxslString(text)})) > 0`
 }
 
 function anyOf(expressions) {

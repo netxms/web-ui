@@ -32,9 +32,15 @@ describe('nxslString', () => {
 })
 
 describe('compileObjectFilter — search modes', () => {
-  it('wraps a normal search in globs so it behaves as a substring match', () => {
+  it('matches a normal search as a case-insensitive substring', () => {
     const { script } = compileObjectFilter({ text: 'sw', mode: SEARCH_MODE.NORMAL })
-    expect(script).toContain('name ilike "*sw*"')
+    expect(script).toContain('index(lower(name), lower("sw")) > 0')
+  })
+
+  it('treats * and ? in a normal search literally', () => {
+    const { script } = compileObjectFilter({ text: 'a*b?', mode: SEARCH_MODE.NORMAL })
+    expect(script).toContain('index(lower(name), lower("a*b?")) > 0')
+    expect(script).not.toContain('ilike')
   })
 
   it('passes a pattern search through unwrapped', () => {
@@ -51,11 +57,11 @@ describe('compileObjectFilter — search modes', () => {
 
   it('escapes the search string rather than letting it reach the script as syntax', () => {
     const { script } = compileObjectFilter({ text: '" || true || "', mode: SEARCH_MODE.NORMAL })
-    expect(script).toContain('name ilike "*\\" || true || \\"*"')
+    expect(script).toContain('lower("\\" || true || \\"")')
   })
 
   it('searches base attributes bare and class-specific ones through safe dereference', () => {
-    const { script } = compileObjectFilter({ text: 'x' })
+    const { script } = compileObjectFilter({ text: 'x', mode: SEARCH_MODE.PATTERN })
     expect(script).toContain('name ilike')
     expect(script).toContain('alias ilike')
     expect(script).toContain('comments ilike')
@@ -69,11 +75,19 @@ describe('compileObjectFilter — search modes', () => {
     // `?.` yields NULL on a class without the attribute, and NXSL's ILIKE is not one of the
     // NULL-tolerant opcodes (libnxsl/vm.cpp) - it raises "Invalid operation with NULL value"
     // and kills the whole query on the first non-Node object.
-    const { script } = compileObjectFilter({ text: 'x' })
+    const { script } = compileObjectFilter({ text: 'x', mode: SEARCH_MODE.PATTERN })
     for (const attr of SEARCH_ATTRIBUTES.optional) {
       expect(script).toContain(`string($object?.${attr}) ilike`)
     }
     expect(script).not.toMatch(/\$object\?\.\w+ ilike/)
+  })
+
+  it('casts safe dereferences in normal mode too, since lower rejects NULL as well', () => {
+    const { script } = compileObjectFilter({ text: 'x' })
+    for (const attr of SEARCH_ATTRIBUTES.optional) {
+      expect(script).toContain(`lower(string($object?.${attr}))`)
+    }
+    expect(script).not.toMatch(/lower\(\$object\?\./)
   })
 
   it('casts safe dereferences in regexp mode too, since imatch rejects NULL as well', () => {
