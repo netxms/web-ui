@@ -1071,6 +1071,10 @@ function onHeaderPointerDown(event, col) {
   color: var(--p-text-muted-color);
 }
 
+.app-table > :deep(tbody > * > td.app-table__state-cell) {
+  white-space: normal;
+}
+
 .app-table__state-cell :deep(.query-error-state) {
   justify-content: center;
 }
