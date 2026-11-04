@@ -182,109 +182,30 @@ export function summarizeSeries(values) {
 }
 
 /**
- * Comma-separated `o` param. Each entry is `[name, isSet(model), apply(model)]`; a flag is
- * emitted only when it differs from the default, and `apply` moves the model off that default.
+ * Comma-separated `o` param. Each entry is `[name, path, value]`: a flag is emitted when the
+ * model field at `path` holds `value`, which always differs from the default.
  */
 const FLAGS = [
-  [
-    'area',
-    (m) => m.render.area,
-    (m) => {
-      m.render.area = true
-    },
-  ],
-  [
-    'stacked',
-    (m) => m.render.stacked,
-    (m) => {
-      m.render.stacked = true
-    },
-  ],
-  [
-    'log',
-    (m) => m.render.log,
-    (m) => {
-      m.render.log = true
-    },
-  ],
-  [
-    'translucent',
-    (m) => m.render.translucent,
-    (m) => {
-      m.render.translucent = true
-    },
-  ],
-  [
-    'nogrid',
-    (m) => !m.render.showGrid,
-    (m) => {
-      m.render.showGrid = false
-    },
-  ],
-  [
-    'nolegend',
-    (m) => m.render.legend === 'none',
-    (m) => {
-      m.render.legend = 'none'
-    },
-  ],
-  [
-    'legendright',
-    (m) => m.render.legend === 'right',
-    (m) => {
-      m.render.legend = 'right'
-    },
-  ],
-  [
-    'legendleft',
-    (m) => m.render.legend === 'left',
-    (m) => {
-      m.render.legend = 'left'
-    },
-  ],
-  [
-    'legendtop',
-    (m) => m.render.legend === 'top',
-    (m) => {
-      m.render.legend = 'top'
-    },
-  ],
-  [
-    'brief',
-    (m) => !m.render.extendedLegend,
-    (m) => {
-      m.render.extendedLegend = false
-    },
-  ],
-  [
-    'p95',
-    (m) => m.percentile === 95,
-    (m) => {
-      m.percentile = 95
-    },
-  ],
-  [
-    'band',
-    (m) => m.band,
-    (m) => {
-      m.band = true
-    },
-  ],
-  [
-    'raw',
-    (m) => m.raw,
-    (m) => {
-      m.raw = true
-    },
-  ],
-  [
-    'live',
-    (m) => m.live,
-    (m) => {
-      m.live = true
-    },
-  ],
-]
+  ['area', 'render.area', true],
+  ['stacked', 'render.stacked', true],
+  ['log', 'render.log', true],
+  ['translucent', 'render.translucent', true],
+  ['nogrid', 'render.showGrid', false],
+  ['nolegend', 'render.legend', 'none'],
+  ['legendright', 'render.legend', 'right'],
+  ['legendleft', 'render.legend', 'left'],
+  ['legendtop', 'render.legend', 'top'],
+  ['brief', 'render.extendedLegend', false],
+  ['p95', 'percentile', 95],
+  ['band', 'band', true],
+  ['raw', 'raw', true],
+  ['live', 'live', true],
+].map(([name, path, value]) => {
+  const keys = path.split('.')
+  const field = keys.pop()
+  const owner = (m) => keys.reduce((o, k) => o[k], m)
+  return [name, (m) => owner(m)[field] === value, (m) => (owner(m)[field] = value)]
+})
 
 /**
  * Only non-default values are emitted.
