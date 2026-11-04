@@ -1,6 +1,6 @@
 ---
 worth: later
-where: src/layouts/DefaultLayout.vue:173
+where: src/layouts/DefaultLayout.vue:149
 added: 2026-11-03
 ---
 # object views scroll sideways below about 1386 px
