@@ -112,7 +112,6 @@ vi.mock('@/composables/useLogLiveTail', () => ({
       paused: ref(false),
       pendingCount: ref(0),
       supported: ref(true),
-      lastUpdate: ref(null),
       pause: vi.fn(),
       resume: vi.fn(),
       togglePause: vi.fn(),

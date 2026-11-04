@@ -56,7 +56,6 @@ export function useLogLiveTail(logName, request, options = {}) {
   const isFetching = ref(false)
   /** Terminal failures only; transient ones show as `reconnecting`. */
   const error = ref(null)
-  const lastUpdate = ref(null)
   const failureCount = ref(0)
 
   // Trimmed with the buffer, oldest first (Set iteration order). Unbounded, it leaked: for
@@ -245,7 +244,6 @@ export function useLogLiveTail(logName, request, options = {}) {
       seeded = true
       error.value = null
       failureCount.value = 0
-      lastUpdate.value = Date.now()
     } catch (err) {
       if (mine !== generation) return
       if (isTransient(err)) {
@@ -358,7 +356,6 @@ export function useLogLiveTail(logName, request, options = {}) {
     paused,
     pendingCount,
     supported,
-    lastUpdate,
     pause,
     resume,
     togglePause,
