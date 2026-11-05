@@ -5,6 +5,7 @@
  * `authStore.sessionGuid` themselves are not listed.
  */
 import { useScriptStore } from '@/stores/scriptStore'
+import { useSshTerminalStore } from '@/stores/sshTerminalStore'
 import { useToolExecutionStore } from '@/stores/toolExecutionStore'
 import { usePollExecutionStore } from '@/stores/pollExecutionStore'
 import { useSelectionStore } from '@/stores/selectionStore'
@@ -24,6 +25,7 @@ export function resetSessionState() {
   // Sockets first: their close handlers write to the execution store, and the writes are
   // no-ops once the executions are gone.
   closeAllToolStreams()
+  useSshTerminalStore().reset()
 
   useScriptStore().reset()
   useToolExecutionStore().reset()

@@ -510,7 +510,11 @@ function handleDiscard() {
     </div>
   </div>
 
-  <ActionContextMenu ref="sidebarTreeMenuRef" :items="sidebarTreeContextMenu.menuItems.value" />
+  <ActionContextMenu
+    ref="sidebarTreeMenuRef"
+    :items="sidebarTreeContextMenu.menuItems.value"
+    @hide="treeRef?.clearMenuRow()"
+  />
   <StatusExplanationDialog
     v-if="explainStatusVisible"
     visible

@@ -18,6 +18,10 @@
  */
 import router from '@/router'
 import { objectTarget, toolTarget } from '@/utils/routeTargets'
+import { SYSTEM_RIGHTS } from '@/auth/systemRights'
+import { usePermissions } from '@/composables/usePermissions'
+import { useSshTerminalStore } from '@/stores/sshTerminalStore'
+import { hasUsablePrimaryIp } from '@/utils/sshTerminalProtocol'
 import { resolveHref } from '@/utils/navigation'
 import { setObjectMaintenance, wakeUpObject } from '@/api/objectsApi'
 import { setInterfaceExpectedStateFor, setObjectManagedStateFor } from './objectStateCommands'
@@ -430,6 +434,23 @@ const objectActions = [
         // Ad-hoc script execution has its own right, not MODIFY.
         requiredObjectRight: 'EXECUTE_SCRIPT',
         command: ({ actionContext }) => openObjectView(actionContext.object, 'script'),
+      },
+      {
+        id: 'object.tools.sshTerminal',
+        label: 'SSH terminal',
+        icon: 'pi pi-desktop',
+        priority: 0,
+        objectClasses: ['Node'],
+        requiredObjectRight: 'CONTROL',
+        isApplicable: (ctx) =>
+          usePermissions().hasRight(SYSTEM_RIGHTS.SETUP_TCP_PROXY) &&
+          hasUsablePrimaryIp(ctx.object),
+        // `url` makes ctrl/middle click open it in a new tab, which lands on the connect form.
+        url: resolveHref(objectViewTarget(ctx.object, 'ssh:1')),
+        command: ({ actionContext }) => {
+          const viewId = useSshTerminalStore().openFromMenu(actionContext.object)
+          openObjectView(actionContext.object, viewId)
+        },
       },
       {
         id: 'object.tools.deployPackage',

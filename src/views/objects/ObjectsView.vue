@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, provide, onMounted, onUnmounted } from 'vue'
+import { ref, computed, defineAsyncComponent, watch, provide, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import SidebarHeader from '@/components/layout/SidebarHeader.vue'
@@ -45,6 +45,7 @@ import { usePageTitle } from '@/composables/usePageTitle'
 import { useSelectionStore } from '@/stores/selectionStore'
 import { useViewStore } from '@/stores/viewStore'
 import { useToolExecutionStore } from '@/stores/toolExecutionStore'
+import { useSshTerminalStore } from '@/stores/sshTerminalStore'
 import { storeToRefs } from 'pinia'
 import { useObjectTreeStore } from '@/stores/objectTreeStore'
 import { useConnectionStore } from '@/stores/connectionStore'
@@ -64,6 +65,7 @@ import { buildToolsContent, getToolTypeIcon, injectToolsIntoMenu } from '@/utils
 import { objectTreeFilterDefs } from '@/filterDefs/objectTreeFilterDefs'
 import { buildCreateMenuItems, dispatchCreateObject } from '@/utils/createMenuItems'
 import { configTarget, objectTarget } from '@/utils/routeTargets'
+import { parseSshViewId } from '@/utils/sshTerminalProtocol'
 import { chartTabLabel, parseFromQuery } from '@/utils/dciChartModel'
 import {
   getObjectViewGroups,
@@ -101,6 +103,7 @@ const router = useRouter()
 const selectionStore = useSelectionStore()
 const viewStore = useViewStore()
 const toolExecutionStore = useToolExecutionStore()
+const sshTerminalStore = useSshTerminalStore()
 const { executeTool } = useToolExecution()
 
 // Several open infrastructure tabs stay tellable apart.
@@ -655,22 +658,41 @@ const activeToolExecution = computed(() => {
   return toolExecutionStore.getExecution(activeExecutionId.value)
 })
 
-// Keyed by tool API ID for stable URLs
+const isSshTab = computed(() => !!viewIdFromRoute.value?.startsWith('ssh:'))
+
+const activeSshSession = computed(() => {
+  if (!isSshTab.value || !objectIdFromRoute.value) return null
+  return sshTerminalStore.getSession(
+    sshTerminalStore.sessionKey(Number(objectIdFromRoute.value), viewIdFromRoute.value),
+  )
+})
+
+const SSH_TAB_STATUS = { connecting: 'running', reconnecting: 'running' }
+
+// Keyed by tool API ID for stable URLs; a terminal by its view id, which carries its own prefix.
 const toolTabs = computed(() => {
   const objectId = objectIdFromRoute.value ? Number(objectIdFromRoute.value) : null
   if (!objectId) return []
-  return toolExecutionStore.getExecutionsForObject(objectId).map((exec) => ({
+  const toolResults = toolExecutionStore.getExecutionsForObject(objectId).map((exec) => ({
     id: String(exec.toolId),
     label: `${exec.toolName} [${exec.objectName}]`,
     icon: getToolTypeIcon(exec.toolType),
     status: exec.status,
   }))
+  const terminals = sshTerminalStore.sessionsForObject(objectId).map((session) => ({
+    id: session.viewId,
+    label: session.label,
+    icon: 'pi pi-desktop',
+    status: SSH_TAB_STATUS[session.phase] ?? (session.message?.severity === 'error' ? 'error' : ''),
+    closeTitle: 'Close terminal (Delete)',
+  }))
+  return [...toolResults, ...terminals]
 })
 
 const activeView = computed(() => {
   const viewId = viewIdFromRoute.value
 
-  if (isToolTab.value) return null
+  if (isToolTab.value || isSshTab.value) return null
 
   const allViewIds = allViews.value.map((v) => v.id)
 
@@ -933,8 +955,9 @@ useObjectDeletionNavigation({
   ],
 })
 
-function handleTreeContextMenu(event, node, { selection } = {}) {
+function handleTreeContextMenu(event, node, { selection, path } = {}) {
   contextMenuTargetObject.value = node
+  menuRowPath = path
   // A right click outside a multi-selection has already collapsed the range, so the tree
   // reports no selection.
   treeContextMenu.contextRef.value = {
@@ -946,6 +969,7 @@ function handleTreeContextMenu(event, node, { selection } = {}) {
 }
 
 const contextMenuTargetObject = ref(null)
+let menuRowPath = null
 
 function handleToggleExpand(path) {
   if (expandedIds.value.has(path)) {
@@ -1065,7 +1089,7 @@ function viewTabTarget(viewId) {
 
 /** Tool tab URLs re-run the tool on load, so they are meaningful in a fresh tab. */
 function toolTabTarget(toolId) {
-  return viewTabTarget(`tool:${toolId}`)
+  return viewTabTarget(parseSshViewId(toolId) ? toolId : `tool:${toolId}`)
 }
 
 function handleViewSelect(viewId) {
@@ -1119,6 +1143,16 @@ function handleToolTabSelect(toolId) {
 }
 
 function handleToolTabClose(toolId) {
+  if (parseSshViewId(toolId)) {
+    sshTerminalStore.closeSession(
+      sshTerminalStore.sessionKey(Number(objectIdFromRoute.value), toolId),
+    )
+    if (viewIdFromRoute.value === toolId) {
+      router.push(viewTabTarget(viewStore.getActiveView(PERSPECTIVE_ID) || 'status'))
+    }
+    return
+  }
+
   const executionId = `${objectIdFromRoute.value}-${toolId}`
   toolExecutionStore.removeExecution(executionId)
   if (activeToolId.value === String(toolId)) {
@@ -1133,6 +1167,8 @@ function handleToolTabClose(toolId) {
 function handleRefresh() {
   refreshSignal.value++
 }
+
+const SshTerminalView = defineAsyncComponent(() => import('./subviews/SshTerminalView.vue'))
 
 const viewComponents = {
   status: () => import('./subviews/StatusView.vue'),
@@ -1195,6 +1231,15 @@ watch(
       if (networkRootObject.value) selectionStore.selectPrimary(networkRootObject.value)
       return
     }
+
+    // An action from a row's menu opens the object at that row, not at its first branch.
+    if (
+      selectedPath.value?.split('-').at(-1) !== String(numericId) &&
+      menuRowPath?.split('-').at(-1) === String(numericId)
+    ) {
+      selectedPath.value = menuRowPath
+    }
+    menuRowPath = null
 
     // A click has already set selectedPath for that location.
     if (selectedPath.value?.split('-').at(-1) === String(numericId)) {
@@ -1393,6 +1438,22 @@ watch([() => resolvedObjectDetails.value, routeViewModuleState, routeViewFits], 
   }
 })
 
+// A terminal URL names a tab, not a live shell: a reload or a link lands on its connect form.
+watch(
+  [viewIdFromRoute, objectIdFromRoute, () => selectionStore.primaryObject],
+  ([viewId, objectIdStr, object]) => {
+    if (!viewId?.startsWith('ssh:') || !objectIdStr || String(object?.id) !== String(objectIdStr)) {
+      return
+    }
+    if (object.class !== 'Node' || !parseSshViewId(viewId)) {
+      router.replace(viewTabTarget('status'))
+      return
+    }
+    sshTerminalStore.ensureSession(object, viewId)
+  },
+  { immediate: true },
+)
+
 // Tool URLs are shareable: revisiting tool:42 re-runs the tool if no execution exists yet.
 watch(
   [viewIdFromRoute, objectIdFromRoute, selectedObjectToolsData, () => selectionStore.primaryObject],
@@ -1512,7 +1573,7 @@ watch(
       :active-view="activeView"
       :addable-count="addableViewCount"
       :tool-tabs="toolTabs"
-      :active-tool-tab="activeToolId"
+      :active-tool-tab="activeToolId ?? activeSshSession?.viewId ?? null"
       :target-for="viewTabTarget"
       :tool-target-for="toolTabTarget"
       @select="handleViewSelect"
@@ -1528,6 +1589,12 @@ watch(
     <ToolResultView
       v-if="selectionStore.primaryObject && isToolTab && activeToolExecution"
       :execution="activeToolExecution"
+    />
+    <SshTerminalView
+      v-else-if="selectionStore.primaryObject && activeSshSession"
+      :key="activeSshSession.key"
+      :object="selectionStore.primaryObject"
+      :session-key="activeSshSession.key"
     />
     <DciChartView
       v-else-if="selectionStore.primaryObject && isChartTab"
@@ -1576,7 +1643,11 @@ watch(
     @select="handleViewSelect"
   />
 
-  <ActionContextMenu ref="treeMenuRef" :items="treeContextMenuItems" />
+  <ActionContextMenu
+    ref="treeMenuRef"
+    :items="treeContextMenuItems"
+    @hide="treeRef?.clearMenuRow()"
+  />
 
   <ToolInputDialog
     v-model:visible="toolInputVisible"

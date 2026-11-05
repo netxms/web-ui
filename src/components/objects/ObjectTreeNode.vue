@@ -19,6 +19,8 @@ const props = defineProps({
   selectedPaths: { type: Object, default: null },
   /** @type {import('vue').PropType<{ first: string, last: string }|null>} */
   rangeEdges: { type: Object, default: null },
+  /** The row whose context menu is open. */
+  menuPath: { type: String, default: null },
   parentPath: { type: String, default: '' },
   expandedIds: { type: Object, required: true },
   /**
@@ -143,13 +145,10 @@ function handleDblClick(event) {
 
 function handleContextMenu(event) {
   event.preventDefault()
-  // Inside a multi-selection, act on the whole selection rather than re-selecting this row.
-  if (!props.selectedPaths?.has(nodePath.value)) emit('select', props.node, nodePath.value)
   emit('contextmenu', event, props.node, nodePath.value)
 }
 
 function handleOverflowClick(event) {
-  emit('select', props.node, nodePath.value)
   emit('contextmenu', anchorEventAt(event.currentTarget, event), props.node, nodePath.value)
 }
 </script>
@@ -160,7 +159,10 @@ function handleOverflowClick(event) {
     <!-- eslint-disable-next-line vuejs-accessibility/interactive-supports-focus -->
     <div
       class="tree-node-row"
-      :class="[{ selected: isSelected, sticky: stickyOffset != null }, rangeClass]"
+      :class="[
+        { selected: isSelected, sticky: stickyOffset != null, 'menu-target': menuPath === nodePath },
+        rangeClass,
+      ]"
       :style="rowStyle"
       v-bind="rowBindings"
       :data-path="nodePath"
@@ -231,6 +233,7 @@ function handleOverflowClick(event) {
         :selected-path="selectedPath"
         :selected-paths="selectedPaths"
         :range-edges="rangeEdges"
+        :menu-path="menuPath"
         :parent-path="nodePath"
         :expanded-ids="expandedIds"
         :target-for="targetFor"

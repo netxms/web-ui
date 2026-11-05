@@ -51,6 +51,8 @@ useStuckRowMarker(containerRef)
 // Shift+click anchor: `selectedPath` can lag a click by a navigation when derived from the route.
 const lastClickedPath = ref(null)
 
+const menuPath = ref(null)
+
 const multiSelect = useTreeMultiSelect({
   containerRef,
   anchorFallback: () => lastClickedPath.value ?? props.selectedPath,
@@ -69,8 +71,8 @@ function onSelect(node, path, event) {
   emit('select', node, path, event)
 }
 
-// A right click outside the range collapses it. ObjectTreeNode rows already reset through
-// `select`; this explicit reset covers the root rows.
+// Inside a range the menu acts on the whole range; outside, it collapses it. Either way no row
+// opens: selecting one navigates.
 function onContextMenu(event, node, path) {
   const range = multiSelect.selectedPaths.value
   if (range && !range.has(path)) multiSelect.reset()
@@ -78,7 +80,8 @@ function onContextMenu(event, node, path) {
   const selection = stillRanged
     ? [...stillRanged].map(props.resolvePath).filter(Boolean)
     : undefined
-  emit('contextmenu', event, node, { selection })
+  menuPath.value = path
+  emit('contextmenu', event, node, { selection, path })
 }
 
 // Views also select programmatically (e.g. moving to the neighbour after a delete), which
@@ -159,7 +162,6 @@ function onRootDblClick(event, root) {
 
 function onRootOverflowClick(event, root) {
   if (!root.object) return
-  onSelect(root.object, rootPath(root), null)
   onContextMenu(anchorEventAt(event.currentTarget, event), root.object, rootPath(root))
 }
 
@@ -185,6 +187,10 @@ const emptyText = computed(() => props.roots.find((root) => root.emptyText)?.emp
 
 defineExpose({
   reset: multiSelect.reset,
+  /** The host owns the menu, so it reports when the menu closes. */
+  clearMenuRow: () => {
+    menuPath.value = null
+  },
   focus: () => containerRef.value?.focus({ preventScroll: true }),
   containerRef,
 })
@@ -211,7 +217,10 @@ defineExpose({
         <!-- eslint-disable-next-line vuejs-accessibility/interactive-supports-focus -->
         <div
           class="tree-node-row root-tree-node"
-          :class="[{ selected: isRowSelected(rootPath(root)) }, rootRangeClass(rootPath(root))]"
+          :class="[
+            { selected: isRowSelected(rootPath(root)), 'menu-target': menuPath === rootPath(root) },
+            rootRangeClass(rootPath(root)),
+          ]"
           v-bind="rootBindings(root)"
           :data-path="rootPath(root)"
           role="treeitem"
@@ -276,6 +285,7 @@ defineExpose({
             :selected-path="selectedPath"
             :selected-paths="multiSelect.selectedPaths.value"
             :range-edges="multiSelect.rangeEdges.value"
+            :menu-path="menuPath"
             :parent-path="''"
             :expanded-ids="expandedIds"
             :target-for="targetFor"

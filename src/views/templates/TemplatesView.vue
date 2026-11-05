@@ -550,7 +550,11 @@ watch([viewIdFromRoute, currentObjectClass], ([viewId, objectClass]) => {
     </div>
   </Teleport>
 
-  <ActionContextMenu ref="treeMenuRef" :items="treeContextMenu.menuItems.value" />
+  <ActionContextMenu
+    ref="treeMenuRef"
+    :items="treeContextMenu.menuItems.value"
+    @hide="treeRef?.clearMenuRow()"
+  />
 
   <!-- Triggered via the object:explainStatus DOM event -->
   <StatusExplanationDialog

@@ -141,6 +141,7 @@ const chartOption = computed(() => {
   const axisNameBand = cfg.yAxisLabel || unit ? 22 : 0
 
   return {
+    animation: false,
     tooltip: {
       trigger: 'axis',
       confine: true,

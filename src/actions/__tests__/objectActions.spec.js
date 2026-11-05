@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
 
 vi.mock('@/router', () => ({
   default: {
@@ -9,6 +10,9 @@ vi.mock('@/router', () => ({
 }))
 
 const objectActions = (await import('@/actions/objectActions')).default
+const { default: router } = await import('@/router')
+const { useAuthStore } = await import('@/stores/authStore')
+const { useSshTerminalStore } = await import('@/stores/sshTerminalStore')
 const { resolveActions } = await import('@/composables/useActions')
 const { OBJECT_ACCESS_RIGHTS } = await import('@/auth/objectAccessRights')
 
@@ -52,6 +56,10 @@ const INTERFACE = {
   expectedState: 0,
   peerInterfaceId: 0,
 }
+
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 describe('object action skeleton', () => {
   it('never introduces a top-level id outside the skeleton', () => {
@@ -633,5 +641,61 @@ describe('interface actions', () => {
       const ids = itemsOf(menuFor(object), 'object.open').map((i) => i.id)
       expect(ids).toContain('object.open.effectiveRights')
     }
+  })
+})
+
+describe('Tools > SSH terminal', () => {
+  const SSH_NODE = { ...NODE, ipAddress: '10.0.0.1' }
+  const TCP_PROXY_RIGHT = (1n << 40n).toString()
+
+  function sshItem(object) {
+    const tools = menuFor(object).find((i) => i.id === 'object.tools')
+    return tools?.items.find((i) => i.id === 'object.tools.sshTerminal')
+  }
+
+  beforeEach(() => {
+    useAuthStore().user = { systemAccessRights: TCP_PROXY_RIGHT }
+    router.push.mockClear()
+  })
+
+  it('is offered on a node to a user who may open TCP proxy sessions', () => {
+    expect(sshItem(SSH_NODE)).toBeDefined()
+  })
+
+  it('is hidden without the system right, which the server also checks', () => {
+    useAuthStore().user = { systemAccessRights: '0' }
+    expect(sshItem(SSH_NODE)).toBeUndefined()
+  })
+
+  it('is hidden without Control on the node, which the server also checks', () => {
+    expect(sshItem({ ...SSH_NODE, effectiveRights: { control: false } })).toBeUndefined()
+  })
+
+  it('is hidden on a node with no primary IP address, as in the legacy menu', () => {
+    expect(sshItem({ ...NODE, ipAddress: null })).toBeUndefined()
+    expect(sshItem({ ...NODE, ipAddress: '0.0.0.0' })).toBeUndefined()
+  })
+
+  it('is not offered on other classes', () => {
+    expect(sshItem({ ...CONTAINER, ipAddress: '10.0.0.1' })).toBeUndefined()
+  })
+
+  it('sits next to Execute script, as in the legacy menu', () => {
+    const tools = menuFor(SSH_NODE).find((i) => i.id === 'object.tools')
+    const ids = tools.items.filter((i) => !i.separator).map((i) => i.id)
+    expect(ids.indexOf('object.tools.sshTerminal')).toBe(
+      ids.indexOf('object.tools.executeScript') + 1,
+    )
+  })
+
+  it('opens a tab that connects by itself, and a link that does not need the store', () => {
+    const item = sshItem(SSH_NODE)
+    expect(item.url).toContain('ssh:1')
+
+    item.command({})
+
+    expect(router.push.mock.calls[0][0].params.viewId).toBe('ssh:1')
+    const [session] = useSshTerminalStore().sessionsForObject(SSH_NODE.id)
+    expect(session.autoConnect).toBe(true)
   })
 })

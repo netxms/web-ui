@@ -223,7 +223,11 @@
                 "isInMaintenanceMode": false,
                 "isMaintenanceApplicable": false
               }
-            ]
+            ],
+            "ipAddress": {
+              "family": 2,
+              "address": "10.10.1.11"
+            }
           },
           {
             "id": 505,
@@ -261,7 +265,11 @@
                 "isInMaintenanceMode": false,
                 "isMaintenanceApplicable": false
               }
-            ]
+            ],
+            "ipAddress": {
+              "family": 2,
+              "address": "10.10.1.12"
+            }
           }
         ]
       },
@@ -313,7 +321,11 @@
                 "isInMaintenanceMode": false,
                 "isMaintenanceApplicable": false
               }
-            ]
+            ],
+            "ipAddress": {
+              "family": 2,
+              "address": "10.10.1.21"
+            }
           },
           {
             "id": 512,
@@ -339,7 +351,11 @@
                 "isInMaintenanceMode": false,
                 "isMaintenanceApplicable": false
               }
-            ]
+            ],
+            "ipAddress": {
+              "family": 2,
+              "address": "10.10.1.22"
+            }
           }
         ]
       },
@@ -391,7 +407,11 @@
                     "isInMaintenanceMode": false,
                     "isMaintenanceApplicable": false
                   }
-                ]
+                ],
+                "ipAddress": {
+                  "family": 2,
+                  "address": "10.10.1.31"
+                }
               },
               {
                 "id": 518,
@@ -417,7 +437,11 @@
                     "isInMaintenanceMode": false,
                     "isMaintenanceApplicable": false
                   }
-                ]
+                ],
+                "ipAddress": {
+                  "family": 2,
+                  "address": "10.10.1.32"
+                }
               }
             ]
           }
@@ -496,7 +520,11 @@
                 "isInMaintenanceMode": false,
                 "isMaintenanceApplicable": false
               }
-            ]
+            ],
+            "ipAddress": {
+              "family": 2,
+              "address": "192.168.200.1"
+            }
           }
         ]
       },

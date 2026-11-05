@@ -1,12 +1,11 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { useQueryClient } from '@tanstack/vue-query'
 import * as authApi from '@/api/authApi'
+import { queryClient } from '@/queries/config'
 import { resetSessionState } from '@/utils/sessionReset'
 import { syncUserPreferences } from '@/utils/userPreferencesSync'
 
 export const useAuthStore = defineStore('auth', () => {
-  const queryClient = useQueryClient()
   const sessionGuid = ref(localStorage.getItem('sessionGuid'))
   const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
   const error = ref(null)

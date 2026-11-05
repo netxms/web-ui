@@ -257,6 +257,7 @@ describe('context views', () => {
   it('treats context view ids as ad-hoc', () => {
     expect(isAdHocViewId('dashboard:5')).toBe(true)
     expect(isAdHocViewId('map:5')).toBe(true)
+    expect(isAdHocViewId('ssh:1')).toBe(true)
   })
 })
 

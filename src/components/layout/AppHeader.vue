@@ -8,6 +8,7 @@ import { useServerComponents } from '@/composables/useServerComponents'
 import { SERVER_COMPONENTS } from '@/config/serverComponents'
 import { brand } from '@/brands'
 import { useGlobalSearchStore } from '@/stores/globalSearchStore'
+import SshSessionsIndicator from '@/components/ssh-terminal/SshSessionsIndicator.vue'
 import ProfilePanel from './ProfilePanel.vue'
 import AboutDialog from './AboutDialog.vue'
 import AiChatPanel from './AiChatPanel.vue'
@@ -66,6 +67,7 @@ const aiAvailable = computed(() => has(SERVER_COMPONENTS.AI_ASSISTANT))
         v-tooltip.bottom="'AI Assistant'"
         @click="toggleAiChat"
       />
+      <SshSessionsIndicator />
       <div class="header-sep" />
       <Button
         :icon="themeIcon"

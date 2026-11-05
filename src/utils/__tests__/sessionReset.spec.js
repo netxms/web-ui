@@ -34,6 +34,7 @@ vi.mock('primevue/usetoast', () => ({ useToast: () => ({ add: vi.fn() }) }))
 
 import { resetSessionState } from '@/utils/sessionReset'
 import { useScriptStore } from '@/stores/scriptStore'
+import { useSshTerminalStore } from '@/stores/sshTerminalStore'
 import { useToolExecutionStore } from '@/stores/toolExecutionStore'
 import { usePollExecutionStore } from '@/stores/pollExecutionStore'
 import { useSelectionStore } from '@/stores/selectionStore'
@@ -139,6 +140,16 @@ describe('resetSessionState', () => {
 
     expect(FakeWebSocket.instances[0].closed).toEqual({ code: 1000, reason: 'session ended' })
     expect(executions.getExecutionsForObject(42)).toEqual([])
+  })
+
+  it('ends SSH terminals, whose shells would otherwise outlive the sign-out', () => {
+    const terminals = useSshTerminalStore()
+    terminals.openFromMenu({ id: 42, name: 'core-sw-1' })
+    expect(terminals.sessionsForObject(42)).toHaveLength(1)
+
+    resetSessionState()
+
+    expect(terminals.sessionsForObject(42)).toEqual([])
   })
 
   it('drops poll logs and the object selection', () => {

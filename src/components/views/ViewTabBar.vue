@@ -28,7 +28,7 @@ const props = defineProps({
     type: String,
     default: null,
   },
-  /** @type {Array<{ id: string, label: string, icon: string, status: string }>} */
+  /** @type {Array<{ id: string, label: string, icon: string, status: string, closeTitle?: string }>} */
   toolTabs: {
     type: Array,
     default: () => [],
@@ -430,7 +430,7 @@ function resetDrag() {
           <div
             class="view-tab-bar-tools"
             role="tablist"
-            aria-label="Tool results"
+            aria-label="Tool results and terminals"
             aria-orientation="horizontal"
             tabindex="-1"
           >
@@ -464,7 +464,7 @@ function resetDrag() {
               <span class="view-tab-label">{{ tab.label }}</span>
               <button
                 class="view-tab-close"
-                title="Close tool result (Delete)"
+                :title="tab.closeTitle ?? 'Close tool result (Delete)'"
                 aria-hidden="true"
                 tabindex="-1"
                 @click="handleCloseToolTab($event, tab.id)"

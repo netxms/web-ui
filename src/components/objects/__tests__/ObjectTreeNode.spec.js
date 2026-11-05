@@ -89,12 +89,28 @@ describe('ObjectTreeNode new-tab gestures', () => {
     expect(window.open).toHaveBeenCalledWith('/infrastructure/7', '_blank')
   })
 
-  it('still opens the context menu on right click', async () => {
+  it('opens the context menu on right click without opening the object', async () => {
     const wrapper = mountNode(NODE, { targetFor })
     await wrapper.find('.tree-node-row').trigger('contextmenu')
 
     expect(wrapper.emitted('contextmenu')).toHaveLength(1)
+    expect(wrapper.emitted('select')).toBeUndefined()
     expect(window.open).not.toHaveBeenCalled()
+  })
+
+  it('opens the context menu from the overflow button without opening the object', async () => {
+    const wrapper = mountNode(NODE, { targetFor })
+    wrapper.findComponent({ name: 'ActionOverflowButton' }).vm.$emit('click', {
+      detail: 0,
+      pageX: 0,
+      pageY: 0,
+      currentTarget: { getBoundingClientRect: () => ({ left: 0, bottom: 0 }) },
+      preventDefault: () => {},
+      stopPropagation: () => {},
+    })
+
+    expect(wrapper.emitted('contextmenu')).toHaveLength(1)
+    expect(wrapper.emitted('select')).toBeUndefined()
   })
 
   it('leaves Ctrl alone in trees that select rather than navigate', async () => {
@@ -162,11 +178,20 @@ describe('ObjectTreeNode multi-selection', () => {
     expect(wrapper.emitted('contextmenu')).toHaveLength(1)
   })
 
-  it('selects a row outside the range before opening the menu on it', async () => {
+  it('does not select a row outside the range when the menu opens on it', async () => {
     const wrapper = mountNode(NODE, { selectedPaths: new Set(['99']) })
     await wrapper.find('.tree-node-row').trigger('contextmenu')
 
-    expect(wrapper.emitted('select')).toHaveLength(1)
+    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(wrapper.emitted('contextmenu')).toHaveLength(1)
+  })
+
+  it('marks only the row its menu is open on', () => {
+    const marked = mountNode(NODE, { menuPath: '7' })
+    expect(marked.find('.tree-node-row').classes()).toContain('menu-target')
+
+    const other = mountNode(NODE, { menuPath: '99' })
+    expect(other.find('.tree-node-row').classes()).not.toContain('menu-target')
   })
 
   it('squares the corners it shares with the rest of the range', () => {

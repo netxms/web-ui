@@ -82,6 +82,72 @@ describe('ObjectSidebarTree', () => {
     expect(meta.selection).toBeUndefined()
   })
 
+  it('does not open a row when its menu opens', async () => {
+    const wrapper = mountTree({ selectedPath: '10' })
+    const rows = wrapper.findAll('[role="treeitem"]')
+    await rows[2].trigger('contextmenu')
+
+    expect(wrapper.emitted('select')).toBeUndefined()
+    const [, node, meta] = wrapper.emitted('contextmenu').at(-1)
+    expect(node.id).toBe(11)
+    expect(meta.path).toBe('11')
+  })
+
+  it('does not open a row from its overflow button, on node and root rows alike', async () => {
+    const wrapper = mountTree({ selectedPath: '10' })
+    const buttons = wrapper.findAllComponents({ name: 'ActionOverflowButton' })
+    const click = {
+      detail: 0,
+      pageX: 0,
+      pageY: 0,
+      currentTarget: { getBoundingClientRect: () => ({ left: 0, bottom: 0 }) },
+      preventDefault: () => {},
+      stopPropagation: () => {},
+    }
+    buttons[0].vm.$emit('click', click)
+    buttons[2].vm.$emit('click', click)
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(wrapper.emitted('contextmenu')).toHaveLength(2)
+  })
+
+  it('keeps the range when the overflow button of a row inside it is used', async () => {
+    const wrapper = mountTree()
+    const rows = wrapper.findAll('[role="treeitem"]')
+    await rows[1].trigger('click')
+    await rows[2].trigger('click', { shiftKey: true })
+
+    wrapper.findAllComponents({ name: 'ActionOverflowButton' })[2].vm.$emit('click', {
+      detail: 0,
+      pageX: 0,
+      pageY: 0,
+      currentTarget: { getBoundingClientRect: () => ({ left: 0, bottom: 0 }) },
+      preventDefault: () => {},
+      stopPropagation: () => {},
+    })
+    await wrapper.vm.$nextTick()
+
+    const [, , meta] = wrapper.emitted('contextmenu').at(-1)
+    expect(meta.selection.map((o) => o.id)).toEqual([10, 11])
+  })
+
+  it('marks the row the menu is on until the view reports the menu closed', async () => {
+    const wrapper = mountTree({ selectedPath: '10' })
+    const rows = wrapper.findAll('[role="treeitem"]')
+
+    await rows[2].trigger('contextmenu')
+    expect(rows[2].classes()).toContain('menu-target')
+
+    await rows[0].trigger('contextmenu')
+    expect(rows[2].classes()).not.toContain('menu-target')
+    expect(rows[0].classes()).toContain('menu-target')
+
+    wrapper.vm.clearMenuRow()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.findAll('.menu-target')).toHaveLength(0)
+  })
+
   it('drops the range when the view opens a different row programmatically', async () => {
     // As useObjectDeletionNavigation does after a delete.
     const wrapper = mountTree()

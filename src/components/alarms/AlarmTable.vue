@@ -808,6 +808,10 @@ function onActionsClick(event, rowData) {
   border-radius: 1rem;
 }
 
+html.app-dark .count-badge {
+  background: var(--p-surface-700);
+}
+
 .helpdesk-link {
   color: var(--p-primary-color);
 }

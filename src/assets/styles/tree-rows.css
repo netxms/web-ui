@@ -20,6 +20,13 @@
   outline-offset: -2px;
 }
 
+/* The row a context menu acts on, which is usually not the open object. Thinner than the focus
+   ring so the two stay tellable apart. */
+.tree-node-row.menu-target {
+  outline: 1px solid var(--p-primary-color);
+  outline-offset: -1px;
+}
+
 /*
  * Focus on a selected row (the common case): a ring in the contrast colour would cut lines
  * across a range, so it is a short bar centred in the fill, the accent-bar pattern of the nav

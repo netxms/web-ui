@@ -2270,7 +2270,11 @@ function handleEdgeContextMenu(event, edgeData) {
   </div>
 
   <ActionContextMenu ref="mapContextMenuRef" :items="mapContextMenuItems" />
-  <ActionContextMenu ref="sidebarTreeMenuRef" :items="sidebarTreeContextMenu.menuItems.value" />
+  <ActionContextMenu
+    ref="sidebarTreeMenuRef"
+    :items="sidebarTreeContextMenu.menuItems.value"
+    @hide="treeRef?.clearMenuRow()"
+  />
   <StatusExplanationDialog
     v-if="explainStatusVisible"
     visible
