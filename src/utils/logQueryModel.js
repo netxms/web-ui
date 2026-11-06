@@ -132,16 +132,23 @@ export function createColumnFilter(column) {
  * @param {string} columnName - the log's `objectIdColumn`
  * @param {number} objectId
  * @param {string} [objectName]
- * @param {boolean} [locked]
+ * @param {{locked?: boolean, includeChildren?: boolean}} [options] - `includeChildren` also
+ *   matches every object below this one
  * @returns {LogColumnFilter}
  */
-export function createObjectFilter(columnName, objectId, objectName, locked = false) {
+export function createObjectFilter(columnName, objectId, objectName, options = {}) {
+  const { locked = false, includeChildren = false } = options
+  const display = objectName ?? null
+  const conditions = [{ id: uid(), operatorId: 'is', value: objectId, display }]
+  if (includeChildren) {
+    conditions.push({ id: uid(), operatorId: 'below', value: objectId, display })
+  }
   return {
     id: uid(),
     column: columnName,
     operation: 'or',
     ...(locked ? { locked: true } : {}),
-    conditions: [{ id: uid(), operatorId: 'is', value: objectId, display: objectName ?? null }],
+    conditions,
   }
 }
 
@@ -176,7 +183,8 @@ export function isOmnibarColumn(column, primaryTimeColumnName) {
 }
 
 /**
- * `hidden`: conditions the omnibar cannot express; `locked`: imposed by the embedding context.
+ * `hidden`: one entry per condition the omnibar cannot express; `locked`: one entry per filter
+ * the embedding context imposes.
  *
  * @param {LogQueryModel} model
  * @param {import('@/api/logsApi').LogColumn[]} columns
@@ -190,17 +198,45 @@ export function projectToOmnibar(model, columns) {
 
   for (const filter of model.filters) {
     const column = byName[filter.column]
+    if (filter.locked) {
+      if (filter.conditions.length > 0) {
+        locked.push(summarize(filter.column, column, describeFilterConditions(filter, column)))
+      }
+      continue
+    }
     for (const condition of filter.conditions) {
-      if (filter.locked) {
-        locked.push(summarizeCondition(filter.column, condition, column))
-      } else if (isTokenRepresentable(condition, column)) {
+      if (isTokenRepresentable(condition, column)) {
         tokens.push({ key: filter.column, value: conditionValueToText(condition, column) })
       } else {
-        hidden.push(summarizeCondition(filter.column, condition, column))
+        hidden.push(summarize(filter.column, column, describeCondition(condition, column)))
       }
     }
   }
   return { tokens, hidden, locked }
+}
+
+/**
+ * One phrase for all of a filter's conditions; "is X" plus "is below X" (an object and its
+ * subtree) reads as "is X or below".
+ *
+ * @param {LogColumnFilter} filter
+ * @param {import('@/api/logsApi').LogColumn} column
+ */
+export function describeFilterConditions(filter, column) {
+  const { conditions } = filter
+  const self = conditions.find((c) => c.operatorId === 'is')
+  const below = conditions.find((c) => c.operatorId === 'below')
+  if (
+    conditions.length === 2 &&
+    filter.operation === 'or' &&
+    self &&
+    below &&
+    self.value === below.value
+  ) {
+    return `${describeCondition(self, column)} or below`
+  }
+  const joiner = filter.operation === 'and' ? ' and ' : ' or '
+  return conditions.map((c) => describeCondition(c, column)).join(joiner)
 }
 
 /**
@@ -210,9 +246,8 @@ export function projectToOmnibar(model, columns) {
  * @property {string} label - operator and operands, without the column
  * @property {string} text - the full readable sentence, column included
  */
-function summarizeCondition(columnName, condition, column) {
+function summarize(columnName, column, label) {
   const columnLabel = getColumnLabel(column) || columnName
-  const label = describeCondition(condition, column)
   return { key: columnName, columnLabel, label, text: `${columnLabel} ${label}` }
 }
 

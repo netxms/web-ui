@@ -4,9 +4,11 @@ import {
   DEFAULT_TIME_PRESET,
   applyOmnibarTokens,
   buildLogQueryRequest,
+  createObjectFilter,
   createQueryModel,
   defaultOrderBy,
   describeCondition,
+  describeFilterConditions,
   parseFromQuery,
   projectToOmnibar,
   serializeToQuery,
@@ -283,6 +285,24 @@ describe('buildLogQueryRequest - column filters', () => {
     ])
   })
 
+  it('scopes an object filter to the object and its subtree when asked', () => {
+    const model = noTime(createQueryModel(auditColumns))
+    model.filters = [
+      createObjectFilter('object_id', 42, 'Servers', { locked: true, includeChildren: true }),
+    ]
+    expect(buildLogQueryRequest(model, auditColumns).filters).toEqual([
+      {
+        column: 'object_id',
+        type: 'set',
+        operation: 'or',
+        filters: [
+          { type: 'equals', value: 42 },
+          { type: 'childOf', value: 42 },
+        ],
+      },
+    ])
+  })
+
   it('applies paging defaults', () => {
     const request = buildLogQueryRequest(createQueryModel(auditColumns), auditColumns)
     expect(request.offset).toBe(0)
@@ -349,6 +369,16 @@ describe('omnibar projection', () => {
     expect(locked[0].text).toBe('Subsystem contains Objects')
   })
 
+  it('summarises a locked object-and-subtree filter as one phrase', () => {
+    const model = createQueryModel(auditColumns)
+    model.filters = [
+      createObjectFilter('object_id', 42, 'Servers', { locked: true, includeChildren: true }),
+    ]
+    const { locked } = projectToOmnibar(model, auditColumns)
+    expect(locked).toHaveLength(1)
+    expect(locked[0].text).toBe('Object is Servers or below')
+  })
+
   it('turns repeated tokens on one key into an OR set on that column', () => {
     const model = createQueryModel(alarmColumns)
     model.filters = applyOmnibarTokens(
@@ -412,6 +442,34 @@ describe('omnibar projection', () => {
   it('ignores tokens naming a column the log does not have', () => {
     const model = createQueryModel(alarmColumns)
     expect(applyOmnibarTokens(model, [{ key: 'nope', value: 'x' }], alarmColumns)).toEqual([])
+  })
+})
+
+describe('describeFilterConditions', () => {
+  const subsystem = auditColumns.find((c) => c.name === 'subsystem')
+  const objectColumn = auditColumns.find((c) => c.name === 'object_id')
+
+  it('joins conditions with the filter match mode', () => {
+    const conditions = [
+      condition({ operatorId: 'contains', value: 'a' }),
+      condition({ id: 2, operatorId: 'contains', value: 'b' }),
+    ]
+    expect(describeFilterConditions({ operation: 'or', conditions }, subsystem)).toBe(
+      'contains a or contains b',
+    )
+    expect(describeFilterConditions({ operation: 'and', conditions }, subsystem)).toBe(
+      'contains a and contains b',
+    )
+  })
+
+  it('keeps both objects when "is" and "is below" name different ones', () => {
+    const conditions = [
+      condition({ operatorId: 'is', value: 1, display: 'web-01' }),
+      condition({ id: 2, operatorId: 'below', value: 2, display: 'Servers' }),
+    ]
+    expect(describeFilterConditions({ operation: 'or', conditions }, objectColumn)).toBe(
+      'is web-01 or is below Servers',
+    )
   })
 })
 

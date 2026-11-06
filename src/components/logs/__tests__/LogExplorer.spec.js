@@ -104,6 +104,7 @@ vi.mock('primevue/usetoast', () => ({ useToast: () => ({ add: vi.fn() }) }))
 const LogExplorer = (await import('@/components/logs/LogExplorer.vue')).default
 const LogTimeRangePicker = (await import('@/components/logs/LogTimeRangePicker.vue')).default
 const AppTable = (await import('@/components/common/AppTable.vue')).default
+const LogResultsStream = (await import('@/components/logs/LogResultsStream.vue')).default
 const { RESULT_MODE, useLogPrefsStore } = await import('@/stores/logPrefsStore')
 
 const router = createRouter({
@@ -215,6 +216,11 @@ describe('LogExplorer', () => {
     })
   })
 
+  it('tells its cells which object embeds it, so they skip the link to it', async () => {
+    const wrapper = await mountExplorer({ compact: true, ownerObjectId: 10 })
+    expect(wrapper.findComponent(LogResultsStream).props('resolver').ownerObjectId).toBe(10)
+  })
+
   it('offers Load more only while the server keeps filling the page', async () => {
     expect((await mountExplorer()).text()).toContain('End of results')
 
@@ -279,6 +285,33 @@ describe('LogExplorer', () => {
     expect(card.exists()).toBe(true)
     expect(card.text()).toContain('core-sw')
     expect(card.find('.condition-row').exists()).toBe(false)
+  })
+
+  it('reads an object-and-subtree scope as one chip and as joined lines on its card', async () => {
+    const wrapper = await mountExplorer({
+      compact: true,
+      lockedFilters: [
+        {
+          column: 'source_object_id',
+          operation: 'or',
+          conditions: [
+            { id: 1, operatorId: 'is', value: 7, display: 'core-sw' },
+            { id: 2, operatorId: 'below', value: 7, display: 'core-sw' },
+          ],
+        },
+      ],
+    })
+
+    expect(wrapper.find('.explorer-scope').text()).toBe('Source is core-sw or below')
+
+    await wrapper.find('.explorer-filters button:last-child').trigger('click')
+    await nextTick()
+
+    const lines = wrapper.findAll('.filter-card--locked .filter-card-readonly')
+    expect(lines.map((line) => line.text().replace(/\s+/g, ' '))).toEqual([
+      'is core-sw',
+      'or is below core-sw',
+    ])
   })
 
   it('rewrites ?object= into the canonical filter parameter and drops the shorthand', async () => {

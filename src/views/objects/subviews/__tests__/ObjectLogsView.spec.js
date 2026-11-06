@@ -34,6 +34,7 @@ const LogExplorerStub = {
     switchableLogs: Array,
     lockedFilters: Array,
     compact: Boolean,
+    ownerObjectId: Number,
   },
   template: '<div class="explorer-stub" />',
 }
@@ -74,7 +75,7 @@ describe('ObjectLogsView', () => {
     expect(names).not.toContain('WindowsEventLog')
   })
 
-  it('pins the object with a locked filter on that log related-object column', async () => {
+  it('pins the object and everything below it with a locked filter', async () => {
     const wrapper = mountView({ id: 42, name: 'web-01', class: 'Node' })
     await flushPromises()
 
@@ -82,11 +83,27 @@ describe('ObjectLogsView', () => {
       expect.objectContaining({
         column: 'source_object_id',
         locked: true,
-        conditions: [expect.objectContaining({ operatorId: 'is', value: 42, display: 'web-01' })],
+        operation: 'or',
+        conditions: [
+          expect.objectContaining({ operatorId: 'is', value: 42, display: 'web-01' }),
+          expect.objectContaining({ operatorId: 'below', value: 42, display: 'web-01' }),
+        ],
       }),
     ])
     expect(explorer(wrapper).props('compact')).toBe(true)
+    expect(explorer(wrapper).props('ownerObjectId')).toBe(42)
   })
+
+  it.each(['Interface', 'AccessPoint', 'MobileDevice', 'Sensor', 'BusinessService'])(
+    'pins a %s to its own records only, as the legacy viewer does',
+    async (objectClass) => {
+      const wrapper = mountView({ id: 42, name: 'x', class: objectClass })
+      await flushPromises()
+
+      const [filter] = explorer(wrapper).props('lockedFilters')
+      expect(filter.conditions.map((c) => c.operatorId)).toEqual(['is'])
+    },
+  )
 
   it('re-targets the locked filter when the switcher changes log', async () => {
     const wrapper = mountView({ id: 42, name: 'web-01', class: 'Node' })

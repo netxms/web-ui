@@ -78,6 +78,23 @@ describe('LogCell', () => {
     expect(wrapper.emitted('rowclick')).toHaveLength(1)
   })
 
+  it('shows the owner object without a link and keeps links to other objects', () => {
+    const owned = {
+      ...resolver,
+      objectsById: new Map([
+        ...resolver.objectsById,
+        [11, { id: 11, class: 'Node', name: 'db-01' }],
+      ]),
+      ownerObjectId: 10,
+    }
+    const self = mountCell({ value: 10, column: { name: 'o', type: 'objectId' }, resolver: owned })
+    expect(self.find('a').exists()).toBe(false)
+    expect(self.find('.log-cell--owner').text()).toContain('web-01')
+
+    const other = mountCell({ value: 11, column: { name: 'o', type: 'objectId' }, resolver: owned })
+    expect(other.find('a').attributes('href')).toContain('/infrastructure/11')
+  })
+
   it('treats object id zero as "no object", not as an unresolved id', () => {
     const wrapper = mountCell({ value: 0, column: { name: 'o', type: 'objectId' }, resolver })
     expect(wrapper.find('a').exists()).toBe(false)

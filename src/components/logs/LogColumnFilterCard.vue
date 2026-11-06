@@ -78,7 +78,14 @@ function addCondition() {
 
     <div class="filter-card-body">
       <template v-if="filter.locked">
-        <p v-for="condition in filter.conditions" :key="condition.id" class="filter-card-readonly">
+        <p
+          v-for="(condition, index) in filter.conditions"
+          :key="condition.id"
+          class="filter-card-readonly"
+        >
+          <span v-if="index > 0" class="filter-card-joiner">
+            {{ filter.operation === 'and' ? 'and' : 'or' }}
+          </span>
           {{ describeCondition(condition, column) }}
         </p>
       </template>
@@ -162,6 +169,12 @@ function addCondition() {
   margin: 0;
   font-size: 0.8125rem;
   color: var(--p-text-muted-color);
+}
+
+.filter-card-joiner {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 .filter-card-add {

@@ -58,6 +58,15 @@ const jsonText = computed(() =>
   <span v-else-if="kind === COLUMN_KIND.OBJECT && !value" class="log-cell log-cell--empty">
     &mdash;
   </span>
+  <!-- The object the explorer is embedded in: a link would only reopen the current view. -->
+  <span
+    v-else-if="kind === COLUMN_KIND.OBJECT && object && value === resolver.ownerObjectId"
+    class="log-cell log-cell--owner"
+    :title="object.name"
+  >
+    <ObjectIcon :object="object" class="log-cell-icon" />
+    {{ object.name }}
+  </span>
   <!-- Stops the click so it does not also open the record drawer. -->
   <AppLink
     v-else-if="kind === COLUMN_KIND.OBJECT && object"

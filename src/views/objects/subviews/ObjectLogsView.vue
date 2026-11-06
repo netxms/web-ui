@@ -65,7 +65,16 @@ const selectedLog = computed(
   () => available.value.find((log) => log.name === selected.value) ?? null,
 )
 
-/** `equals`, not `childOf`: the legacy object log viewer shows this object's records only. */
+// As in the legacy object log viewer: these classes show their own records, every other class
+// its own and those of every object below it.
+const SELF_ONLY_CLASSES = new Set([
+  'Interface',
+  'AccessPoint',
+  'MobileDevice',
+  'Sensor',
+  'BusinessService',
+])
+
 const lockedFilters = computed(() =>
   selectedLog.value?.objectIdColumn
     ? [
@@ -73,7 +82,7 @@ const lockedFilters = computed(() =>
           selectedLog.value.objectIdColumn,
           props.object.id,
           props.object.name,
-          true,
+          { locked: true, includeChildren: !SELF_ONLY_CLASSES.has(props.object.class) },
         ),
       ]
     : [],
@@ -109,6 +118,7 @@ if (refreshSignal) watch(refreshSignal, () => refreshKey.value++)
       :log="selectedLog"
       :switchable-logs="available"
       :locked-filters="lockedFilters"
+      :owner-object-id="object.id"
       compact
       @switch-log="selectLog"
     />

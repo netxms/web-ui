@@ -50,6 +50,8 @@ const props = defineProps({
   lockedFilters: { type: Array, default: () => [] },
   /** Embedded mode: no URL sync, tighter chrome. */
   compact: { type: Boolean, default: false },
+  /** The object whose view embeds the explorer; its own references render without a link. */
+  ownerObjectId: { type: Number, default: null },
 })
 
 const emit = defineEmits(['switch-log'])
@@ -279,11 +281,13 @@ const isLoading = computed(() => (live.value ? tail.isLoading.value : pagedLoadi
 const isFetching = computed(() => (live.value ? tail.isFetching.value : pagedFetching.value))
 const queryError = computed(() => (live.value ? tail.error.value : pagedError.value))
 
-const resolver = useLogValueResolver(
+const valueResolver = useLogValueResolver(
   rows,
   resultColumns,
   computed(() => (live.value ? tail.resolvedPages.value : pagedResolved.value)),
 )
+
+const resolver = computed(() => ({ ...valueResolver.value, ownerObjectId: props.ownerObjectId }))
 
 function retry() {
   if (live.value) tail.resume()
@@ -745,8 +749,33 @@ const scopeSummary = computed(() =>
   }
 }
 
+/* Embedded in an object tab with no padding of its own: chrome is inset, results run edge to edge. */
+.log-explorer--compact {
+  gap: 0;
+}
+
 .log-explorer--compact .explorer-toolbar,
 .log-explorer--compact .explorer-filters {
   gap: 0.375rem;
+}
+
+.log-explorer--compact .explorer-toolbar {
+  padding: 0.75rem 0.75rem 0.5rem;
+}
+
+.log-explorer--compact .explorer-filters {
+  padding: 0 0.75rem 0.75rem;
+  border-bottom: 1px solid var(--p-surface-border);
+}
+
+.log-explorer--compact .explorer-advanced {
+  padding-inline: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-top: none;
+}
+
+.log-explorer--compact .explorer-footer {
+  padding: 0.375rem 0.75rem;
+  border-top: 1px solid var(--p-surface-border);
 }
 </style>
