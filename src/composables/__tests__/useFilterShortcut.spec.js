@@ -206,10 +206,62 @@ describe('useFilterShortcut', () => {
       expect(document.activeElement).toBe(el('row'))
     })
 
-    it('does nothing when the field was reached some other way', () => {
-      el('sidebar-filter').focus()
+    it('leaves a field reached some other way', () => {
+      el('view-filter').focus()
       press('Escape')
-      expect(document.activeElement).toBe(el('sidebar-filter'))
+      expect(document.activeElement).toBe(document.body)
+    })
+
+    it('still clears before leaving a field reached some other way', () => {
+      el('view-filter').focus()
+      el('view-filter').value = 'core'
+      press('Escape')
+      expect(document.activeElement).toBe(el('view-filter'))
+    })
+
+    // A real browser re-renders between listeners, so the field already looks empty here.
+    it('stays in a field that its own Escape handler has just cleared', () => {
+      const field = el('view-filter')
+      field.dataset.filterInput = 'active'
+      field.addEventListener('keydown', () => {
+        field.dataset.filterInput = ''
+      })
+      field.focus()
+      press('Escape')
+      expect(document.activeElement).toBe(field)
+
+      press('Escape')
+      expect(document.activeElement).toBe(document.body)
+    })
+
+    it('brings `/` back to the filter it left, not the first one on the page', () => {
+      el('view-filter').focus()
+      press('Escape')
+      press('/')
+      expect(document.activeElement).toBe(el('view-filter'))
+    })
+
+    it('leaves the field when the place the shortcut came from is gone', () => {
+      el('row').focus()
+      press('/')
+      el('row').remove()
+      press('Escape')
+      expect(document.activeElement).toBe(document.body)
+    })
+
+    it('yields to an overlay that already moved focus on Escape', () => {
+      el('view-filter').addEventListener('keydown', () => el('view-btn').focus())
+      el('view-filter').focus()
+      press('Escape')
+      expect(document.activeElement).toBe(el('view-btn'))
+    })
+
+    it('ignores a text field that is not a filter', () => {
+      const other = document.createElement('input')
+      el('view').append(other)
+      other.focus()
+      press('Escape')
+      expect(document.activeElement).toBe(other)
     })
   })
 

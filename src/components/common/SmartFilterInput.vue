@@ -49,6 +49,8 @@ const isFocused = ref(false)
 const pendingKey = ref(null)
 const activeIndex = ref(-1)
 let debounceTimer = null
+// Escape on an empty box leaves it (useFilterShortcut); that blur needs no grace period.
+let escapePressed = false
 
 const tokens = computed(() => props.modelValue?.tokens ?? [])
 
@@ -125,9 +127,14 @@ function focusInput() {
 
 function onFocus() {
   isFocused.value = true
+  escapePressed = false
 }
 
 function onBlur() {
+  if (escapePressed) {
+    isFocused.value = false
+    return
+  }
   // Delay so a mousedown on a dropdown item lands first; skip if the input was re-focused
   // meanwhile (the search icon blurs and re-focuses it).
   setTimeout(() => {
@@ -217,6 +224,7 @@ function onInput() {
 }
 
 function onKeydown(event) {
+  escapePressed = event.key === 'Escape'
   const isShowingKey = showKeyDropdown.value && filteredKeySuggestions.value.length > 0
   const isShowingVal = showValueDropdown.value && filteredValueOptions.value.length > 0
   const isShowingAny = isShowingKey || isShowingVal
@@ -330,8 +338,10 @@ watch(
   },
 )
 
+// The path, not `contains`: picking a key swaps the dropdown before this listener runs (the
+// browser runs microtasks between listeners), so the clicked row is already detached.
 function onDocumentMousedown(event) {
-  if (containerRef.value && !containerRef.value.contains(event.target)) {
+  if (containerRef.value && !event.composedPath().includes(containerRef.value)) {
     isFocused.value = false
   }
 }

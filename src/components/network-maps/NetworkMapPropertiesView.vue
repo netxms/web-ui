@@ -251,8 +251,12 @@ const anySaving = computed(() => isSaving.value || objEditor.isSaving.value)
 const anyError = computed(() => saveError.value || objEditor.saveError.value)
 
 async function saveAll() {
-  await objEditor.save()
-  await save()
+  const objectSaved = await objEditor.save()
+  const settingsSaved = await save()
+  return objectSaved && settingsSaved
+}
+async function saveAllAndClose() {
+  if (await saveAll()) emit('close')
 }
 function cancelAll() {
   objEditor.cancel()
@@ -366,7 +370,7 @@ onBeforeUnmount(() => {
           </div>
           <div class="footer-actions">
             <Button
-              label="Cancel"
+              label="Discard"
               severity="secondary"
               text
               size="small"
@@ -374,11 +378,20 @@ onBeforeUnmount(() => {
               @click="cancelAll"
             />
             <Button
-              label="Save"
+              label="Apply"
+              severity="secondary"
+              outlined
               size="small"
               :disabled="!anyDirty"
               :loading="anySaving"
               @click="saveAll"
+            />
+            <Button
+              label="Save & Close"
+              size="small"
+              :disabled="!anyDirty"
+              :loading="anySaving"
+              @click="saveAllAndClose"
             />
           </div>
         </div>
@@ -523,5 +536,6 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-shrink: 0;
 }
 </style>

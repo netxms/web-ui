@@ -1096,25 +1096,45 @@ function handleViewSelect(viewId) {
   router.push(viewTabTarget(viewId))
 }
 
-function handleViewClose(viewId) {
-  // The chart tab has no stored preference; closing it means leaving its route.
-  if (viewId === 'chart') {
-    const fallback = viewStore.getActiveView(PERSPECTIVE_ID) || visibleViewIds.value[0] || 'status'
-    router.push(viewTabTarget(fallback))
-    return
-  }
+// Route view ids, most recently used first, so closing the active tab returns to the one before.
+let recentTabIds = []
 
-  viewStore.removeView(PERSPECTIVE_ID, viewId, DEFAULT_VISIBLE_VIEW_IDS)
-  if (activeView.value === viewId) {
-    const remaining = visibleViewIds.value.filter((id) => id !== viewId)
-    if (remaining.length > 0 && objectIdFromRoute.value) {
-      router.push({
-        name: 'infrastructure',
-        params: { objectId: objectIdFromRoute.value, viewId: remaining[0] },
-      })
-    }
+function isTabOpen(routeViewId) {
+  if (routeViewId.startsWith('tool:')) {
+    const toolId = routeViewId.slice('tool:'.length)
+    return toolTabs.value.some((tab) => tab.id === toolId)
   }
+  if (parseSshViewId(routeViewId)) return toolTabs.value.some((tab) => tab.id === routeViewId)
+  return compatibleVisibleViewIds.value.includes(routeViewId)
 }
+
+/** The most recently used tab still open, else the first one; null when none is left. */
+function tabAfterClosing(closingId) {
+  const isCandidate = (id) => id !== closingId && isTabOpen(id)
+  return recentTabIds.find(isCandidate) ?? compatibleVisibleViewIds.value.find(isCandidate) ?? null
+}
+
+function handleViewClose(viewId) {
+  // The chart tab has no stored preference. A locked tab only gets here through Save & Close,
+  // and stays on the bar.
+  if (viewId !== 'chart' && !lockedViewIds.value.includes(viewId)) {
+    viewStore.removeView(PERSPECTIVE_ID, viewId, DEFAULT_VISIBLE_VIEW_IDS)
+  }
+  if (activeView.value !== viewId) return
+  // The chart tab exists only on its own route, so closing it always leaves.
+  const next = tabAfterClosing(viewId) ?? (viewId === 'chart' ? 'status' : null)
+  if (next) router.push(viewTabTarget(next))
+}
+
+const activeViewProps = computed(() =>
+  activeView.value === 'properties'
+    ? {
+        object: selectionStore.primaryObject,
+        closable: true,
+        onClose: () => handleViewClose('properties'),
+      }
+    : { object: selectionStore.primaryObject },
+)
 
 function handleViewToggle(viewId) {
   viewStore.toggleView(PERSPECTIVE_ID, viewId, DEFAULT_VISIBLE_VIEW_IDS)
@@ -1143,25 +1163,19 @@ function handleToolTabSelect(toolId) {
 }
 
 function handleToolTabClose(toolId) {
-  if (parseSshViewId(toolId)) {
+  const isSsh = !!parseSshViewId(toolId)
+  const routeViewId = isSsh ? toolId : `tool:${toolId}`
+  const next =
+    viewIdFromRoute.value === routeViewId ? (tabAfterClosing(routeViewId) ?? 'status') : null
+
+  if (isSsh) {
     sshTerminalStore.closeSession(
       sshTerminalStore.sessionKey(Number(objectIdFromRoute.value), toolId),
     )
-    if (viewIdFromRoute.value === toolId) {
-      router.push(viewTabTarget(viewStore.getActiveView(PERSPECTIVE_ID) || 'status'))
-    }
-    return
+  } else {
+    toolExecutionStore.removeExecution(`${objectIdFromRoute.value}-${toolId}`)
   }
-
-  const executionId = `${objectIdFromRoute.value}-${toolId}`
-  toolExecutionStore.removeExecution(executionId)
-  if (activeToolId.value === String(toolId)) {
-    const fallbackView = viewStore.getActiveView(PERSPECTIVE_ID) || 'status'
-    router.push({
-      name: 'infrastructure',
-      params: { objectId: objectIdFromRoute.value, viewId: fallbackView },
-    })
-  }
+  if (next) router.push(viewTabTarget(next))
 }
 
 function handleRefresh() {
@@ -1366,6 +1380,7 @@ watch(networkSubTreeData, () => {
 watch(
   viewIdFromRoute,
   (viewId) => {
+    if (viewId) recentTabIds = [viewId, ...recentTabIds.filter((id) => id !== viewId)]
     if (!viewId || !objectIdFromRoute.value) return
 
     // Ad-hoc tabs are not registered views: tool tabs run via the auto-exec watch, chart tabs
@@ -1617,7 +1632,7 @@ watch(
       :component="activeViewComponent"
       :key="activeView"
       :state-key="activeView"
-      :view-props="{ object: selectionStore.primaryObject }"
+      :view-props="activeViewProps"
     />
     <EmptyState
       v-else-if="objectIdFromRoute && objectUnresolvable"

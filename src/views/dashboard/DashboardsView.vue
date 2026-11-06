@@ -464,7 +464,11 @@ function handleDiscard() {
         subtitle="Dashboard Properties"
         @back="showProperties = false"
       />
-      <PropertiesView :object="{ id: selectedDashboardId, class: 'Dashboard' }" />
+      <PropertiesView
+        :object="{ id: selectedDashboardId, class: 'Dashboard' }"
+        closable
+        @close="showProperties = false"
+      />
     </div>
 
     <template v-else-if="dashboardData">

@@ -26,7 +26,7 @@ import { objectToApiPayload, objectToStatusCalcPayload } from '@/api/objectAdapt
  *   isDirty: import('vue').ComputedRef<boolean>,
  *   isSaving: import('vue').Ref<boolean>,
  *   saveError: import('vue').Ref<string|null>,
- *   save: () => Promise<void>,
+ *   save: () => Promise<boolean>,
  *   cancel: () => void,
  * }}
  */

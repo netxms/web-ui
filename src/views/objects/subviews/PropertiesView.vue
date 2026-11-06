@@ -42,7 +42,11 @@ import { interfacePropertiesPatch, isValidMacAddress } from '@/utils/interfaceDi
 
 const props = defineProps({
   object: { type: Object, required: true },
+  /** The host can close the view: the footer offers Apply and Save & Close instead of Save. */
+  closable: { type: Boolean, default: false },
 })
+
+const emit = defineEmits(['close'])
 
 const route = useRoute()
 const router = useRouter()
@@ -258,7 +262,7 @@ function dashboardFieldsDirty(data, orig) {
   )
 }
 
-const { draft, isDirty, isSaving, saveError, save, apply, cancel } = usePropertyEditor(details, {
+const { draft, isDirty, isSaving, saveError, save, cancel } = usePropertyEditor(details, {
   onSave: async (data) => {
     // Mock dashboard IDs have no backing object to PATCH; only the dashboard save applies.
     if (isMockDashboard.value) {
@@ -536,6 +540,10 @@ function handleSectionSelect(sectionId) {
   // Stepping back through sections is not useful history.
   router.replace(sectionTarget(sectionId))
 }
+
+async function saveAndClose() {
+  if (await save()) emit('close')
+}
 </script>
 
 <template>
@@ -582,23 +590,33 @@ function handleSectionSelect(sectionId) {
           </div>
           <div class="footer-actions">
             <Button
-              label="Cancel"
+              label="Discard"
               severity="secondary"
               text
               size="small"
               :disabled="!isDirty || isSaving"
               @click="cancel"
             />
+            <template v-if="closable">
+              <Button
+                label="Apply"
+                severity="secondary"
+                outlined
+                size="small"
+                :disabled="!isDirty"
+                :loading="isSaving"
+                @click="save"
+              />
+              <Button
+                label="Save & Close"
+                size="small"
+                :disabled="!isDirty"
+                :loading="isSaving"
+                @click="saveAndClose"
+              />
+            </template>
             <Button
-              label="Apply"
-              severity="secondary"
-              outlined
-              size="small"
-              :disabled="!isDirty"
-              :loading="isSaving"
-              @click="apply"
-            />
-            <Button
+              v-else
               label="Save"
               size="small"
               :disabled="!isDirty"
@@ -699,5 +717,6 @@ function handleSectionSelect(sectionId) {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-shrink: 0;
 }
 </style>

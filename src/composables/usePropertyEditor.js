@@ -41,8 +41,9 @@ export function usePropertyEditor(objectRef, options = {}) {
     { immediate: true },
   )
 
+  /** @returns {Promise<boolean>} false when the save failed or was cancelled */
   async function save() {
-    if (!isDirty.value) return
+    if (!isDirty.value) return true
     isSaving.value = true
     saveError.value = null
     try {
@@ -50,16 +51,14 @@ export function usePropertyEditor(objectRef, options = {}) {
         await options.onSave(draft.value)
       }
       savedSnapshot.value = JSON.stringify(draft.value)
+      return true
     } catch (err) {
       // A user-cancelled save (e.g. declining a confirmation) leaves the draft dirty, no error.
       if (!err?.cancelled) saveError.value = err.message
+      return false
     } finally {
       isSaving.value = false
     }
-  }
-
-  async function apply() {
-    await save()
   }
 
   function cancel() {
@@ -77,7 +76,6 @@ export function usePropertyEditor(objectRef, options = {}) {
     isSaving,
     saveError,
     save,
-    apply,
     cancel,
     resetDraft,
   }

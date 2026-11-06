@@ -6,7 +6,8 @@ import { focusWithRing } from '@/utils/focusRing'
  * `/` focuses the filter field nearest to where the user is, searching outward from the focused
  * element (or the last click that focused nothing, e.g. on a canvas). Inside a dialog only the
  * dialog's filter is reachable. Escape on an empty field returns focus to where `/` took it from,
- * except inside a dialog, where Escape closes the dialog.
+ * or just leaves the field when it was reached some other way, except inside a dialog, where
+ * Escape closes the dialog.
  *
  * Filter fields are marked with `data-filter-input`; disabled, read-only and hidden ones are
  * skipped.
@@ -41,6 +42,12 @@ function usableField(marked) {
 // but Escape must still clear the filter.
 function isNarrowing(field) {
   return field.closest(FILTER_FIELD_SELECTOR)?.dataset.filterInput === 'active'
+}
+
+function isEmptyFilter(target) {
+  const marked = target instanceof Element ? target.closest(FILTER_FIELD_SELECTOR) : null
+  if (!marked || usableField(marked) !== target) return false
+  return target.value === '' && !isNarrowing(target)
 }
 
 function fieldWithin(root) {
@@ -80,21 +87,22 @@ export function useFilterShortcut() {
   let field = null
   let returnTo = null
 
-  // Clicking a canvas surface (network map, chart) moves focus nowhere, so the last click that
-  // focused nothing says where the user is. Cleared by the next `focusin`; the pointer listener
-  // captures so that ordering holds even where the surface focuses itself on `pointerdown`.
-  let pointedAt = null
+  // Where the user is while focus says nothing: the last click that focused nothing (a canvas
+  // surface such as a network map or chart), or the filter Escape just left. Cleared by the next
+  // `focusin`; the pointer listener captures so that ordering holds even where the surface focuses
+  // itself on `pointerdown`.
+  let anchor = null
 
   function rememberPointer(event) {
-    pointedAt = event.target instanceof Element ? event.target : null
+    anchor = event.target instanceof Element ? event.target : null
   }
 
-  function forgetPointer() {
-    pointedAt = null
+  function forgetAnchor() {
+    anchor = null
   }
 
   function origin() {
-    if (pointedAt?.isConnected) return pointedAt
+    if (anchor?.isConnected) return anchor
     return document.activeElement
   }
 
@@ -111,40 +119,58 @@ export function useFilterShortcut() {
     target.select?.()
   }
 
-  // Only on an empty field, so the first Escape still belongs to the filter's own "clear".
-  function releaseFilter() {
-    if (!field || document.activeElement !== field) return
-    if (field.value !== '' || isNarrowing(field)) return
-    if (field.closest(MODAL_SELECTOR)) return
+  // Read before the field's own handlers: by the time the bubbling listener runs, a filter's clear
+  // has already re-rendered it empty (the browser runs microtasks between listeners of a key).
+  let emptyOnEscape = null
 
-    const destination = returnTo
+  function noteEscape(event) {
+    emptyOnEscape = event.key === 'Escape' && isEmptyFilter(event.target) ? event.target : null
+  }
+
+  // Only on a field that was empty, so the first Escape still belongs to the filter's own "clear".
+  // The focus check yields to an overlay that already handled Escape (a popover refocuses its
+  // button).
+  function releaseFilter(target) {
+    const wasEmpty = target === emptyOnEscape
+    emptyOnEscape = null
+    if (!wasEmpty || document.activeElement !== target) return
+    if (target.closest(MODAL_SELECTOR)) return
+
+    const destination = target === field ? returnTo : null
     field = null
     returnTo = null
-    if (!destination?.isConnected || !isRendered(destination)) return
-    // Focus moved by script does not match `:focus-visible` on its own.
-    focusWithRing(destination)
+    if (destination?.isConnected && isRendered(destination)) {
+      // Focus moved by script does not match `:focus-visible` on its own.
+      focusWithRing(destination)
+      return
+    }
+    target.blur()
+    anchor = target
   }
 
   function handleKeydown(event) {
     if (event.ctrlKey || event.metaKey || event.altKey) return
     // In a text field `/` is just a character (`10.0.0.0/24` is a valid filter).
     if (isTypingTarget(event.target)) {
-      if (event.key === 'Escape') releaseFilter()
+      if (event.key === 'Escape') releaseFilter(event.target)
       return
     }
     if (event.key === '/') focusFilter(event)
   }
 
   onMounted(() => {
+    window.addEventListener('keydown', noteEscape, true)
     window.addEventListener('keydown', handleKeydown)
     window.addEventListener('pointerdown', rememberPointer, true)
-    document.addEventListener('focusin', forgetPointer)
+    document.addEventListener('focusin', forgetAnchor)
   })
   onUnmounted(() => {
+    window.removeEventListener('keydown', noteEscape, true)
     window.removeEventListener('keydown', handleKeydown)
     window.removeEventListener('pointerdown', rememberPointer, true)
-    document.removeEventListener('focusin', forgetPointer)
-    pointedAt = null
+    document.removeEventListener('focusin', forgetAnchor)
+    anchor = null
+    emptyOnEscape = null
     field = null
     returnTo = null
   })

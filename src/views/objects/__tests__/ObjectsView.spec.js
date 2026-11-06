@@ -86,6 +86,7 @@ vi.mock('primevue/usetoast', () => ({ useToast: () => ({ add: vi.fn() }) }))
 const ObjectsView = (await import('@/views/objects/ObjectsView.vue')).default
 const ViewTabBar = (await import('@/components/views/ViewTabBar.vue')).default
 const ViewAddMenu = (await import('@/components/views/ViewAddMenu.vue')).default
+const ViewContainer = (await import('@/components/views/ViewContainer.vue')).default
 const { moduleRegistry } = await import('@/modules')
 
 async function mountAt(location) {
@@ -240,5 +241,77 @@ describe('ObjectsView - manage views', () => {
     const missing = menuViewIds(wrapper).filter((id) => !tabIds(wrapper).includes(id))
     expect(missing.length).toBeGreaterThan(0)
     expect(wrapper.findComponent(ViewTabBar).props('addableCount')).toBe(missing.length)
+  })
+})
+
+describe('ObjectsView - closing tabs', () => {
+  const viewIdInRoute = (router) => router.currentRoute.value.params.viewId
+  const tabBar = (wrapper) => wrapper.findComponent(ViewTabBar)
+  const tabIds = (wrapper) => tabBar(wrapper).props('visibleViewIds')
+  const viewProps = (wrapper) => wrapper.findComponent(ViewContainer).props('viewProps')
+
+  async function visit(router, objectId, viewId) {
+    await router.push({ name: 'infrastructure', params: { objectId, viewId } })
+    await flushPromises()
+  }
+
+  async function closeTab(wrapper, viewId) {
+    tabBar(wrapper).vm.$emit('close', viewId)
+    await flushPromises()
+  }
+
+  it('returns to the tab used before the closed one', async () => {
+    const { wrapper, router } = await mountAt('/infrastructure/108/alarms')
+    await visit(router, '108', 'dcis')
+    await visit(router, '108', 'properties')
+
+    await closeTab(wrapper, 'properties')
+
+    expect(viewIdInRoute(router)).toBe('dcis')
+    expect(tabIds(wrapper)).not.toContain('properties')
+  })
+
+  it('skips a recent tab that has been closed since', async () => {
+    const { wrapper, router } = await mountAt('/infrastructure/108/alarms')
+    await visit(router, '108', 'dcis')
+    await visit(router, '108', 'properties')
+
+    await closeTab(wrapper, 'dcis')
+    expect(viewIdInRoute(router)).toBe('properties')
+    await closeTab(wrapper, 'properties')
+
+    expect(viewIdInRoute(router)).toBe('alarms')
+  })
+
+  it('stays on the object picked while the closed tab was open', async () => {
+    const { wrapper, router } = await mountAt('/infrastructure/108/alarms')
+    await visit(router, '108', 'properties')
+    await visit(router, '109', 'properties')
+
+    await closeTab(wrapper, 'properties')
+
+    expect(router.currentRoute.value.params).toMatchObject({ objectId: '109', viewId: 'alarms' })
+  })
+
+  it('falls back to the first tab when no earlier tab is open', async () => {
+    const { wrapper, router } = await mountAt('/infrastructure/108/properties')
+
+    await closeTab(wrapper, 'properties')
+
+    expect(viewIdInRoute(router)).toBe('status')
+  })
+
+  it('gives only Properties a close, which leaves a locked tab on the bar', async () => {
+    const { wrapper, router } = await mountAt('/infrastructure/108/alarms')
+    expect(viewProps(wrapper).closable).toBeUndefined()
+
+    await visit(router, '108', 'properties')
+    tabBar(wrapper).vm.$emit('toggle-lock', 'properties')
+    expect(viewProps(wrapper).closable).toBe(true)
+    viewProps(wrapper).onClose()
+    await flushPromises()
+
+    expect(viewIdInRoute(router)).toBe('alarms')
+    expect(tabIds(wrapper)).toContain('properties')
   })
 })
