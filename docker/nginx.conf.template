@@ -1,6 +1,6 @@
 # Site config of the Docker image. The nginx image substitutes ${NETXMS_WEBAPI} at start.
 
-include snippets/netxms-console-http.conf;
+include snippets/web-ui-http.conf;
 
 upstream netxms_webapi {
     server ${NETXMS_WEBAPI};
@@ -11,5 +11,5 @@ server {
     listen 80;
     root /usr/share/nginx/html;
 
-    include snippets/netxms-console-app.conf;
+    include snippets/web-ui-app.conf;
 }

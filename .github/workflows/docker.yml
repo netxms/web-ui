@@ -55,9 +55,9 @@ jobs:
         platform: [linux/amd64, linux/arm64]
         include:
           - target: console
-            image: netxms-console
+            image: web-ui
           - target: demo
-            image: netxms-console-demo
+            image: web-ui-demo
           - platform: linux/amd64
             arch: amd64
             runner: ubuntu-24.04
@@ -115,7 +115,7 @@ jobs:
       contents: read
       packages: write
     env:
-      IMAGE: ${{ needs.prepare.outputs.registry }}/netxms-console
+      IMAGE: ${{ needs.prepare.outputs.registry }}/web-ui
     steps:
       - uses: actions/download-artifact@v8
         with:

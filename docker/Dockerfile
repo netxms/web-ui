@@ -2,10 +2,10 @@
 #
 # Build from the repository root. Two images:
 #
-#   docker build -f docker/Dockerfile -t netxms-console .
+#   docker build -f docker/Dockerfile -t web-ui .
 #     Release bundle on nginx, proxying /api to the netxmsd WebAPI at NETXMS_WEBAPI (host:port).
 #
-#   docker build -f docker/Dockerfile --target demo -t netxms-console-demo .
+#   docker build -f docker/Dockerfile --target demo -t web-ui-demo .
 #     Demo bundle on the mock data in mocks/, no server needed.
 #
 # VITE_MODULES and VITE_FORCE_MODULES (build arguments) compile in enterprise modules.

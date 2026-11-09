@@ -5,7 +5,7 @@ netxmsd WebAPI.
 
 | File | Use |
 | --- | --- |
-| `nginx/netxms-console.conf` | Site config for an nginx host, with TLS |
+| `nginx/web-ui.conf` | Site config for an nginx host, with TLS |
 | `nginx/snippets/` | `/api` proxy, SPA fallback, caching, security headers, sign-in rate limit; also used by the console Docker image |
 
 Docker images: [`docker/README.md`](../docker/README.md).
@@ -28,16 +28,16 @@ present.
 
 ## Release bundles
 
-Download `netxms-console-<version>.tar.gz` and its `.sha256` file from
+Download `web-ui-<version>.tar.gz` and its `.sha256` file from
 [GitHub Releases](https://github.com/netxms/web-ui/releases). Verify and extract them in the same
 directory, replacing `0.9.0` with the downloaded version:
 
 ```sh
-sha256sum -c netxms-console-0.9.0.tar.gz.sha256
-tar -xzf netxms-console-0.9.0.tar.gz
+sha256sum -c web-ui-0.9.0.tar.gz.sha256
+tar -xzf web-ui-0.9.0.tar.gz
 ```
 
-The bundle's files are inside `netxms-console-0.9.0/`; copy that directory's contents into the
+The bundle's files are inside `web-ui-0.9.0/`; copy that directory's contents into the
 web root in place of `dist/.` in the deployment steps below.
 
 To publish a release, bump `package.json`'s `version`, commit the change, and tag that commit
@@ -70,20 +70,20 @@ Steps:
    open still load from them.
 
    ```sh
-   sudo mkdir -p /var/www/netxms-console
-   sudo cp -r dist/. /var/www/netxms-console/
+   sudo mkdir -p /var/www/web-ui
+   sudo cp -r dist/. /var/www/web-ui/
    ```
 
 2. Install the snippets and the site config, then change it at every `EDIT` mark.
 
    ```sh
    sudo cp deploy/nginx/snippets/*.conf /etc/nginx/snippets/
-   sudo cp deploy/nginx/netxms-console.conf /etc/nginx/conf.d/
+   sudo cp deploy/nginx/web-ui.conf /etc/nginx/conf.d/
    ```
 
 3. If geo maps use a tile server other than `tile.netxms.org` (server configuration variable
    `Client.TileServerURL`), add its host to `img-src` in
-   `/etc/nginx/snippets/netxms-console-app.conf`.
+   `/etc/nginx/snippets/web-ui-app.conf`.
 
 4. Reload nginx and check.
 
@@ -111,7 +111,7 @@ address, and on the netxmsd host `ss -ltn | grep 8000` and "Web API initialized 
 
 **Sign-in says "Too many sign-in attempts".** The limit is 10 attempts a minute per client
 address after a burst of 20. Many users behind one NAT address can reach it; raise `rate` in
-`snippets/netxms-console-http.conf`.
+`snippets/web-ui-http.conf`.
 
 **Geo maps show no tiles.** The tile host is missing from the CSP `img-src`, or
 `Client.TileServerURL` is `http://`, which browsers block on an HTTPS page.

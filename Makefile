@@ -1,5 +1,5 @@
-IMAGE ?= netxms-console
-DEMO_IMAGE ?= netxms-console-demo
+IMAGE ?= web-ui
+DEMO_IMAGE ?= web-ui-demo
 PORT ?= 8080
 NETXMS_WEBAPI ?= host.docker.internal:8000
 VITE_MODULES ?=

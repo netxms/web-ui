@@ -123,7 +123,7 @@ Check these instead of working from memory when touching an endpoint or mirrorin
 - `deploy/`: nginx host config and the snippets the console image shares; runbook
   `deploy/README.md`. `docker/`: Dockerfile (console image; `--target demo` = mock-data demo on
   `docker/demo-server.js`, which reuses `createMockHandler`). A new external origin (images,
-  frames, fetches) needs a CSP entry in `deploy/nginx/snippets/netxms-console-app.conf`.
+  frames, fetches) needs a CSP entry in `deploy/nginx/snippets/web-ui-app.conf`.
 - Theme = full 50-950 PrimeVue primary palette + `--app-header-*`, `--app-nav-*`,
   `--app-nav-active-*` + `headerTone`. Defined in `src/brands/netxms/themes.js`, served by
   `src/themes/index.js`.

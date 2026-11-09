@@ -41,7 +41,7 @@ jobs:
       - name: Package release
         run: |
           version=$(jq -r .version package.json)
-          bundle="netxms-console-$version"
+          bundle="web-ui-$version"
           mkdir -p "$RUNNER_TEMP/release/$bundle"
           cp -a dist/. "$RUNNER_TEMP/release/$bundle/"
           tar -czf "$RUNNER_TEMP/release/$bundle.tar.gz" -C "$RUNNER_TEMP/release" "$bundle"
@@ -53,7 +53,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          bundle="netxms-console-${GITHUB_REF_NAME#v}"
+          bundle="web-ui-${GITHUB_REF_NAME#v}"
           args=()
           if [[ "$GITHUB_REF_NAME" == *-* ]]; then
             args+=(--prerelease)

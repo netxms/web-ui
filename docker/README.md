@@ -22,10 +22,10 @@ the demo image is for development and is built locally.
 
 | Image | Tags |
 | --- | --- |
-| `ghcr.io/netxms/netxms-console` | `main`, `sha-<commit>`; `<version>`, `<major>.<minor>`, `latest` from a `v<version>` tag, only `<version>` from a prerelease tag (`v1.0.0-rc.1`) |
+| `ghcr.io/netxms/web-ui` | `main`, `sha-<commit>`; `<version>`, `<major>.<minor>`, `latest` from a `v<version>` tag, only `<version>` from a prerelease tag (`v1.0.0-rc.1`) |
 
 ```sh
-docker run -d --name netxms-console -p 8080:80 -e NETXMS_WEBAPI=10.0.0.5:8000 ghcr.io/netxms/netxms-console:latest
+docker run -d --name web-ui -p 8080:80 -e NETXMS_WEBAPI=10.0.0.5:8000 ghcr.io/netxms/web-ui:latest
 ```
 
 It is built without enterprise modules.
@@ -43,11 +43,11 @@ Port = 8000
 ```
 
 ```sh
-docker build -f docker/Dockerfile -t netxms-console .
-docker run -d --name netxms-console -p 8080:80 -e NETXMS_WEBAPI=10.0.0.5:8000 netxms-console
+docker build -f docker/Dockerfile -t web-ui .
+docker run -d --name web-ui -p 8080:80 -e NETXMS_WEBAPI=10.0.0.5:8000 web-ui
 ```
 
-If the container exits right after start and `docker logs netxms-console` shows
+If the container exits right after start and `docker logs web-ui` shows
 `host not found in upstream`, `NETXMS_WEBAPI` does not resolve inside the container. The rest of
 the nginx setup and its troubleshooting: [`deploy/README.md`](../deploy/README.md).
 
@@ -57,8 +57,8 @@ The demo bundle on the mock data in `mocks/`, with no server. Any user name and 
 in. Most edits are not saved; the few the mocks support last until the container restarts.
 
 ```sh
-docker build -f docker/Dockerfile --target demo -t netxms-console-demo .
-docker run -d --name netxms-console-demo -p 8080:80 netxms-console-demo
+docker build -f docker/Dockerfile --target demo -t web-ui-demo .
+docker run -d --name web-ui-demo -p 8080:80 web-ui-demo
 ```
 
 ## Enterprise modules

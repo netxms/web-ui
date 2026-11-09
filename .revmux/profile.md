@@ -21,7 +21,7 @@
 - Server load: unbounded request fan-out (per object on a map or tree), polling never torn down,
   refetch loops.
 - Unsanitized HTML from object names, comments, alarm messages, NXSL output (DOMPurify/marked are the
-  sanctioned paths); anything weakening the CSP in `deploy/nginx/snippets/netxms-console-app.conf`.
+  sanctioned paths); anything weakening the CSP in `deploy/nginx/snippets/web-ui-app.conf`.
 - Build boundaries: enterprise module code (`src/modules/<id>/`) or a non-default brand in the default
   bundle; demo content (`VITE_DEMO_CONTENT`, mocks) in a release build.
 - A customer name, internal hostname or private repository in a tracked file.
