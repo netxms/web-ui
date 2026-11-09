@@ -11,8 +11,9 @@ are stubs behind an "under construction" overlay.
 
 ## Requirements
 
-- Node.js `^20.19.0 || >=22.12.0`
-- Yarn 4 (via Corepack — `corepack enable`)
+- Node.js `^22.22.2 || ^24.15.0 || >=26.0.0` (the `engines` range in `package.json`)
+- Yarn 4 via Corepack: `corepack enable`; on Node 25+ install Corepack first with
+  `npm install -g corepack@0.36.0`
 - A reachable NetXMS server with the WebAPI component enabled
 
 ## Setup

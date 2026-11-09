@@ -12,8 +12,10 @@ Docker images: [`docker/README.md`](../docker/README.md).
 
 ## How to build a bundle
 
-Prerequisites: Node `^20.19.0 || >=22.12.0`, `corepack enable`, and a clean checkout. Vite
-applies `.env.local` to builds too, so a developer's local settings would ship in the bundle.
+Prerequisites: Node `^22.22.2 || ^24.15.0 || >=26.0.0` (the `engines` range in `package.json`),
+Corepack, and a clean checkout. Run `corepack enable` before using Yarn. On Node 25+, install
+Corepack first with `npm install -g corepack@0.36.0`. CI uses Node 26 and that Corepack version.
+Vite applies `.env.local` to builds too, so a developer's local settings would ship in the bundle.
 
 ```sh
 yarn install --immutable   # never regenerate yarn.lock: Vue is pinned to a beta through it
@@ -23,6 +25,34 @@ yarn build                 # release bundle; `yarn build --mode demo` adds demo 
 The result is in `dist/`. Enterprise modules are cloned at `src/modules/<id>/` and named on the
 command line: `VITE_MODULES=<id> yarn build`. Public bundles are built without module folders
 present.
+
+## Release bundles
+
+Download `netxms-console-<version>.tar.gz` and its `.sha256` file from
+[GitHub Releases](https://github.com/netxms/web-ui/releases). Verify and extract them in the same
+directory, replacing `0.9.0` with the downloaded version:
+
+```sh
+sha256sum -c netxms-console-0.9.0.tar.gz.sha256
+tar -xzf netxms-console-0.9.0.tar.gz
+```
+
+The bundle's files are inside `netxms-console-0.9.0/`; copy that directory's contents into the
+web root in place of `dist/.` in the deployment steps below.
+
+To publish a release, bump `package.json`'s `version`, commit the change, and tag that commit
+with the matching `v<version>` (for example, `v0.9.0`). Push the commit and tag:
+
+```sh
+git push origin main
+git push origin v0.9.0
+```
+
+The release workflow rejects a tag that differs from `package.json`, runs lint and build, and
+publishes the bundle, checksum, and generated release notes. The Docker workflow checks the
+version independently and publishes the [console image](../docker/README.md#published-images). A tag
+such as `v1.0.0-rc.1` creates a GitHub prerelease and keeps the latest release on the last final
+version.
 
 ## How to deploy on an nginx host
 

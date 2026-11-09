@@ -14,6 +14,22 @@ The root `Makefile` wraps the commands below: `make image`, `make demo`, `make r
 against netxmsd on the Docker host, or `NETXMS_WEBAPI=host:port`), `make run-demo`. `PORT`
 (default 8080), `VITE_MODULES` and `VITE_FORCE_MODULES` are passed through.
 
+## Published images
+
+`.github/workflows/docker.yml` builds both images for `linux/amd64` and `linux/arm64` on every
+push and pull request. Only the console image is published, from `main` and from release tags;
+the demo image is for development and is built locally.
+
+| Image | Tags |
+| --- | --- |
+| `ghcr.io/netxms/netxms-console` | `main`, `sha-<commit>`; `<version>`, `<major>.<minor>`, `latest` from a `v<version>` tag, only `<version>` from a prerelease tag (`v1.0.0-rc.1`) |
+
+```sh
+docker run -d --name netxms-console -p 8080:80 -e NETXMS_WEBAPI=10.0.0.5:8000 ghcr.io/netxms/netxms-console:latest
+```
+
+It is built without enterprise modules.
+
 ## Console
 
 The release bundle on nginx, proxying `/api` to netxmsd. The WebAPI must be reachable from the
