@@ -494,7 +494,7 @@ function onActionsClick(event, rowData) {
       :selected-ids="selectedIds"
       expandable
       striped
-      size="small"
+      size="dense"
       resize-fit
       class="alarms-table"
       @selection-change="selectedIds = $event"

@@ -51,7 +51,7 @@ const props = defineProps({
   fitColumns: { type: Boolean, default: false },
   /** Fill the container width but keep drag-to-resize: a drag adjusts the right neighbor. */
   resizeFit: { type: Boolean, default: false },
-  /** `'small'` or `'normal'`. */
+  /** `'dense'` (small with tighter rows), `'small'` or `'normal'`. */
   size: { type: String, default: 'small' },
   /** @type {((row: Object) => string | Object | Array) | null} */
   rowClass: { type: Function, default: null },
@@ -972,7 +972,8 @@ function onHeaderPointerDown(event, col) {
   width: 100%;
 }
 
-.app-table--small {
+.app-table--small,
+.app-table--dense {
   font-size: 0.8125rem;
 }
 
@@ -995,7 +996,8 @@ function onHeaderPointerDown(event, col) {
     color 0.15s;
 }
 
-.app-table--small thead th {
+.app-table--small thead th,
+.app-table--dense thead th {
   padding: 0.25rem 0.5rem;
 }
 
@@ -1062,6 +1064,10 @@ function onHeaderPointerDown(event, col) {
 
 /* Body rows render in AppTableRow, hence :deep(). `tbody > *` keeps the specificity of
    `tbody > td`; child combinators keep the rules off tables nested in expansion rows. */
+
+.app-table--dense > :deep(tbody > * > td) {
+  padding: 0.2rem 0.75rem;
+}
 
 .app-table--small > :deep(tbody > * > td) {
   padding: 0.3rem 0.75rem;

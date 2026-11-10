@@ -26,7 +26,7 @@ import FormField from '@/components/common/FormField.vue'
 const { colorTheme, setColorTheme, THEMES, themeIcon, toggleTheme, themeLabel, isRtl, toggleRtl } =
   useTheme()
 
-const SYSTEM_LABEL = 'System stack (current)'
+const SHIPPED_LABEL = 'Shipped stack (current)'
 const SIZE_OPTIONS = FONT_SIZES.map((size) => ({ label: `${size}px`, value: size }))
 const COMPARE_OPTIONS = [
   { label: 'UI fonts', value: 'ui' },
@@ -53,7 +53,7 @@ const MONO_SPECIMEN = [
   '2026-10-23 18:04:11.237 [poll] node 168 status 2 -> 0',
 ].join('\n')
 
-// The values without the override, for the "System stack" entries and the default size.
+// The values without the override, for the "Shipped stack" entries and the default size.
 const shipped = {
   ui: shippedValue('ui'),
   mono: shippedValue('mono'),
@@ -73,7 +73,7 @@ const families = computed(() => ({
 
 function fontOptions(kind) {
   return [
-    { label: SYSTEM_LABEL, value: null },
+    { label: SHIPPED_LABEL, value: null },
     ...families.value[kind].map((family) => ({ label: family, value: family })),
   ]
 }
@@ -142,7 +142,7 @@ const compareCards = computed(() => {
   return [null, ...families.value[kind]].map((family) => ({
     family,
     kind,
-    label: family ?? SYSTEM_LABEL,
+    label: family ?? SHIPPED_LABEL,
     stack: stackFor(family, kind),
     status: family ? fontStatus.value[family] : 'ready',
     active: typography.value[kind] === family,

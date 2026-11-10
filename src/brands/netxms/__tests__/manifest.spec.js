@@ -7,11 +7,11 @@ describe('netxms brand', () => {
     expect(() => validateBrand(netxms)).not.toThrow()
   })
 
-  it('keeps the console as it was before brands existed', () => {
+  it('has the default brand settings', () => {
     expect(netxms.productName).toBe('NetXMS')
     expect(netxms.defaultTheme).toBe('flame')
     expect(Object.keys(netxms.themes)).toEqual(['emerald', 'flame', 'crimson', 'ocean', 'blue'])
-    expect(netxms.login.logo).toBeNull()
+    expect(netxms.login.logo).toBe('color')
     expect(netxms.header.divider).toBe(false)
     expect(netxms.whatsNew).toBe(true)
     expect(netxms.vendorMark).toBe(false)

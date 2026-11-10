@@ -1,0 +1,10 @@
+/*
+ * NetXMS brand variables, imported from ./index.js. `html:root` because this file is injected
+ * before main.css, which defines the same variables on :root.
+ */
+html:root {
+  /* Self-hosted (fontsource), so closed networks and the `font-src 'self'` CSP get it too.
+     Arial right behind it: Arimo shares its metrics, so text measured before the webfont has
+     loaded (network map labels) keeps its size. */
+  --app-font-family: 'Arimo Variable', Arial, sans-serif;
+}
