@@ -1,0 +1,1129 @@
+{
+  "2090000101": [
+    {
+      "id": 2090001001,
+      "objectClass": 2,
+      "name": "a01-sw01",
+      "status": 0,
+      "rackPosition": 40,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001005,
+      "objectClass": 2,
+      "name": "a01-sv01",
+      "status": 0,
+      "rackPosition": 19,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001004,
+      "objectClass": 2,
+      "name": "a01-st02",
+      "status": 0,
+      "rackPosition": 18,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001003,
+      "objectClass": 2,
+      "name": "a01-st01",
+      "status": 0,
+      "rackPosition": 14,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001002,
+      "objectClass": 28,
+      "name": "a01-bl01",
+      "status": 0,
+      "rackPosition": 10,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "2090000102": [
+    {
+      "id": 2090001006,
+      "objectClass": 2,
+      "name": "a02-sw01",
+      "status": 0,
+      "rackPosition": 40,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001011,
+      "objectClass": 2,
+      "name": "a02-sv02",
+      "status": 0,
+      "rackPosition": 21,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001010,
+      "objectClass": 2,
+      "name": "a02-sv01",
+      "status": 0,
+      "rackPosition": 20,
+      "rackHeight": 2,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001009,
+      "objectClass": 2,
+      "name": "a02-st02",
+      "status": 0,
+      "rackPosition": 18,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001008,
+      "objectClass": 2,
+      "name": "a02-st01",
+      "status": 0,
+      "rackPosition": 14,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001007,
+      "objectClass": 28,
+      "name": "a02-bl01",
+      "status": 0,
+      "rackPosition": 10,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "2090000103": [
+    {
+      "id": 2090001012,
+      "objectClass": 2,
+      "name": "a03-sw01",
+      "status": 0,
+      "rackPosition": 40,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001016,
+      "objectClass": 2,
+      "name": "a03-sv01",
+      "status": 0,
+      "rackPosition": 25,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001015,
+      "objectClass": 2,
+      "name": "a03-st01",
+      "status": 0,
+      "rackPosition": 24,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001014,
+      "objectClass": 28,
+      "name": "a03-bl02",
+      "status": 0,
+      "rackPosition": 20,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001013,
+      "objectClass": 28,
+      "name": "a03-bl01",
+      "status": 0,
+      "rackPosition": 10,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "2090000104": [
+    {
+      "id": 2090001017,
+      "objectClass": 2,
+      "name": "a04-sw01",
+      "status": 0,
+      "rackPosition": 40,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001022,
+      "objectClass": 2,
+      "name": "a04-sv01",
+      "status": 0,
+      "rackPosition": 23,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001021,
+      "objectClass": 2,
+      "name": "a04-st03",
+      "status": 0,
+      "rackPosition": 22,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001020,
+      "objectClass": 2,
+      "name": "a04-st02",
+      "status": 0,
+      "rackPosition": 18,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001019,
+      "objectClass": 2,
+      "name": "a04-st01",
+      "status": 0,
+      "rackPosition": 14,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001018,
+      "objectClass": 28,
+      "name": "a04-bl01",
+      "status": 0,
+      "rackPosition": 10,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "2090000105": [
+    {
+      "id": 2090001023,
+      "objectClass": 2,
+      "name": "a05-sw01",
+      "status": 0,
+      "rackPosition": 40,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001028,
+      "objectClass": 2,
+      "name": "a05-sv01",
+      "status": 0,
+      "rackPosition": 35,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001027,
+      "objectClass": 2,
+      "name": "a05-st01",
+      "status": 0,
+      "rackPosition": 34,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001026,
+      "objectClass": 28,
+      "name": "a05-bl03",
+      "status": 0,
+      "rackPosition": 30,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001025,
+      "objectClass": 28,
+      "name": "a05-bl02",
+      "status": 0,
+      "rackPosition": 20,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001024,
+      "objectClass": 28,
+      "name": "a05-bl01",
+      "status": 0,
+      "rackPosition": 10,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "2090000106": [
+    {
+      "id": 2090001029,
+      "objectClass": 2,
+      "name": "a06-sw01",
+      "status": 0,
+      "rackPosition": 40,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001034,
+      "objectClass": 2,
+      "name": "a06-sv02",
+      "status": 0,
+      "rackPosition": 21,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001033,
+      "objectClass": 2,
+      "name": "a06-sv01",
+      "status": 0,
+      "rackPosition": 20,
+      "rackHeight": 2,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001032,
+      "objectClass": 2,
+      "name": "a06-st02",
+      "status": 0,
+      "rackPosition": 18,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001031,
+      "objectClass": 2,
+      "name": "a06-st01",
+      "status": 0,
+      "rackPosition": 14,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001030,
+      "objectClass": 28,
+      "name": "a06-bl01",
+      "status": 0,
+      "rackPosition": 10,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "2090000107": [
+    {
+      "id": 2090001035,
+      "objectClass": 2,
+      "name": "a07-sw01",
+      "status": 0,
+      "rackPosition": 40,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001039,
+      "objectClass": 2,
+      "name": "a07-sv02",
+      "status": 0,
+      "rackPosition": 17,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001038,
+      "objectClass": 2,
+      "name": "a07-sv01",
+      "status": 0,
+      "rackPosition": 16,
+      "rackHeight": 2,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001037,
+      "objectClass": 2,
+      "name": "a07-st01",
+      "status": 0,
+      "rackPosition": 14,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001036,
+      "objectClass": 28,
+      "name": "a07-bl01",
+      "status": 0,
+      "rackPosition": 10,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "2090000108": [
+    {
+      "id": 2090001040,
+      "objectClass": 2,
+      "name": "a08-sw01",
+      "status": 0,
+      "rackPosition": 40,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001044,
+      "objectClass": 2,
+      "name": "a08-sv01",
+      "status": 0,
+      "rackPosition": 13,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001043,
+      "objectClass": 2,
+      "name": "a08-st03",
+      "status": 0,
+      "rackPosition": 12,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001042,
+      "objectClass": 2,
+      "name": "a08-st02",
+      "status": 0,
+      "rackPosition": 8,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001041,
+      "objectClass": 2,
+      "name": "a08-st01",
+      "status": 0,
+      "rackPosition": 4,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "2090000111": [
+    {
+      "id": 2090001045,
+      "objectClass": 2,
+      "name": "b01-sw01",
+      "status": 0,
+      "rackPosition": 40,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001047,
+      "objectClass": 2,
+      "name": "b01-st01",
+      "status": 0,
+      "rackPosition": 14,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001046,
+      "objectClass": 28,
+      "name": "b01-bl01",
+      "status": 0,
+      "rackPosition": 10,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "2090000112": [
+    {
+      "id": 2090001048,
+      "objectClass": 2,
+      "name": "b02-sw01",
+      "status": 0,
+      "rackPosition": 40,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001052,
+      "objectClass": 2,
+      "name": "b02-sv02",
+      "status": 0,
+      "rackPosition": 17,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001051,
+      "objectClass": 2,
+      "name": "b02-sv01",
+      "status": 0,
+      "rackPosition": 16,
+      "rackHeight": 2,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001050,
+      "objectClass": 2,
+      "name": "b02-st01",
+      "status": 0,
+      "rackPosition": 14,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001049,
+      "objectClass": 28,
+      "name": "b02-bl01",
+      "status": 0,
+      "rackPosition": 10,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "2090000113": [
+    {
+      "id": 2090001053,
+      "objectClass": 2,
+      "name": "b03-sw01",
+      "status": 0,
+      "rackPosition": 40,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001058,
+      "objectClass": 2,
+      "name": "b03-sv01",
+      "status": 0,
+      "rackPosition": 23,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001057,
+      "objectClass": 2,
+      "name": "b03-st03",
+      "status": 0,
+      "rackPosition": 22,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001056,
+      "objectClass": 2,
+      "name": "b03-st02",
+      "status": 0,
+      "rackPosition": 18,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001055,
+      "objectClass": 2,
+      "name": "b03-st01",
+      "status": 0,
+      "rackPosition": 14,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001054,
+      "objectClass": 28,
+      "name": "b03-bl01",
+      "status": 0,
+      "rackPosition": 10,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "2090000114": [
+    {
+      "id": 2090001059,
+      "objectClass": 2,
+      "name": "b04-sw01",
+      "status": 0,
+      "rackPosition": 40,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001062,
+      "objectClass": 2,
+      "name": "b04-st01",
+      "status": 0,
+      "rackPosition": 24,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001061,
+      "objectClass": 28,
+      "name": "b04-bl02",
+      "status": 0,
+      "rackPosition": 20,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001060,
+      "objectClass": 28,
+      "name": "b04-bl01",
+      "status": 0,
+      "rackPosition": 10,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "2090000115": [
+    {
+      "id": 2090001063,
+      "objectClass": 2,
+      "name": "b05-sw01",
+      "status": 0,
+      "rackPosition": 40,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001069,
+      "objectClass": 2,
+      "name": "b05-sv02",
+      "status": 0,
+      "rackPosition": 31,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001068,
+      "objectClass": 2,
+      "name": "b05-sv01",
+      "status": 0,
+      "rackPosition": 30,
+      "rackHeight": 2,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001067,
+      "objectClass": 2,
+      "name": "b05-st02",
+      "status": 0,
+      "rackPosition": 28,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001066,
+      "objectClass": 2,
+      "name": "b05-st01",
+      "status": 0,
+      "rackPosition": 24,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001065,
+      "objectClass": 28,
+      "name": "b05-bl02",
+      "status": 0,
+      "rackPosition": 20,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001064,
+      "objectClass": 28,
+      "name": "b05-bl01",
+      "status": 0,
+      "rackPosition": 10,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "2090000116": [
+    {
+      "id": 2090001070,
+      "objectClass": 2,
+      "name": "b06-sw01",
+      "status": 0,
+      "rackPosition": 40,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001075,
+      "objectClass": 2,
+      "name": "b06-sv02",
+      "status": 0,
+      "rackPosition": 21,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001074,
+      "objectClass": 2,
+      "name": "b06-sv01",
+      "status": 0,
+      "rackPosition": 20,
+      "rackHeight": 2,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001073,
+      "objectClass": 2,
+      "name": "b06-st02",
+      "status": 0,
+      "rackPosition": 18,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001072,
+      "objectClass": 2,
+      "name": "b06-st01",
+      "status": 0,
+      "rackPosition": 14,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001071,
+      "objectClass": 28,
+      "name": "b06-bl01",
+      "status": 0,
+      "rackPosition": 10,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "2090000117": [
+    {
+      "id": 2090001076,
+      "objectClass": 2,
+      "name": "b07-sw01",
+      "status": 0,
+      "rackPosition": 40,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001082,
+      "objectClass": 2,
+      "name": "b07-sv01",
+      "status": 0,
+      "rackPosition": 39,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001081,
+      "objectClass": 2,
+      "name": "b07-st02",
+      "status": 0,
+      "rackPosition": 38,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001080,
+      "objectClass": 2,
+      "name": "b07-st01",
+      "status": 0,
+      "rackPosition": 34,
+      "rackHeight": 4,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001079,
+      "objectClass": 28,
+      "name": "b07-bl03",
+      "status": 0,
+      "rackPosition": 30,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001078,
+      "objectClass": 28,
+      "name": "b07-bl02",
+      "status": 0,
+      "rackPosition": 20,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001077,
+      "objectClass": 28,
+      "name": "b07-bl01",
+      "status": 0,
+      "rackPosition": 10,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "2090000118": [
+    {
+      "id": 2090001083,
+      "objectClass": 2,
+      "name": "b08-sw01",
+      "status": 0,
+      "rackPosition": 40,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001084,
+      "objectClass": 28,
+      "name": "b08-bl01",
+      "status": 0,
+      "rackPosition": 10,
+      "rackHeight": 10,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "2090000121": [
+    {
+      "id": 2090001085,
+      "objectClass": 2,
+      "name": "mmr01-sw01",
+      "status": 0,
+      "rackPosition": 43,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001089,
+      "objectClass": 2,
+      "name": "mmr01-sv01",
+      "status": 0,
+      "rackPosition": 7,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001088,
+      "objectClass": 2,
+      "name": "mmr01-rtr03",
+      "status": 0,
+      "rackPosition": 6,
+      "rackHeight": 2,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001087,
+      "objectClass": 2,
+      "name": "mmr01-rtr02",
+      "status": 0,
+      "rackPosition": 4,
+      "rackHeight": 2,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001086,
+      "objectClass": 2,
+      "name": "mmr01-rtr01",
+      "status": 0,
+      "rackPosition": 2,
+      "rackHeight": 2,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "2090000122": [
+    {
+      "id": 2090001090,
+      "objectClass": 2,
+      "name": "mmr02-sw01",
+      "status": 0,
+      "rackPosition": 43,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001093,
+      "objectClass": 2,
+      "name": "mmr02-sv01",
+      "status": 0,
+      "rackPosition": 5,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001092,
+      "objectClass": 2,
+      "name": "mmr02-rtr02",
+      "status": 0,
+      "rackPosition": 4,
+      "rackHeight": 2,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001091,
+      "objectClass": 2,
+      "name": "mmr02-rtr01",
+      "status": 0,
+      "rackPosition": 2,
+      "rackHeight": 2,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "2090000123": [
+    {
+      "id": 2090001094,
+      "objectClass": 2,
+      "name": "mmr03-sw01",
+      "status": 0,
+      "rackPosition": 43,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001099,
+      "objectClass": 2,
+      "name": "mmr03-sv01",
+      "status": 0,
+      "rackPosition": 9,
+      "rackHeight": 1,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001098,
+      "objectClass": 2,
+      "name": "mmr03-rtr04",
+      "status": 0,
+      "rackPosition": 8,
+      "rackHeight": 2,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001097,
+      "objectClass": 2,
+      "name": "mmr03-rtr03",
+      "status": 0,
+      "rackPosition": 6,
+      "rackHeight": 2,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001096,
+      "objectClass": 2,
+      "name": "mmr03-rtr02",
+      "status": 0,
+      "rackPosition": 4,
+      "rackHeight": 2,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "id": 2090001095,
+      "objectClass": 2,
+      "name": "mmr03-rtr01",
+      "status": 0,
+      "rackPosition": 2,
+      "rackHeight": 2,
+      "rackOrientation": 0,
+      "rackImageFront": "00000000-0000-0000-0000-000000000000",
+      "rackImageRear": "00000000-0000-0000-0000-000000000000"
+    }
+  ]
+}

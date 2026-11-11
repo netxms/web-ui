@@ -39,6 +39,8 @@ import {
   objectToPhysicalPlacementPayload,
 } from '@/api/objectAdapters'
 import { interfacePropertiesPatch, isValidMacAddress } from '@/utils/interfaceDisplay'
+import { propertyGroupPatch, rackCabinetPatch } from '@/utils/dataCenterProperties'
+import { useUpdateDataCenterGroup } from '@/queries/useDataCenterQueries'
 
 const props = defineProps({
   object: { type: Object, required: true },
@@ -204,6 +206,7 @@ const { mutateAsync: createUrl } = useCreateObjectUrl()
 const { mutateAsync: updateUrl } = useUpdateObjectUrl()
 const { mutateAsync: deleteUrl } = useDeleteObjectUrl()
 const { mutateAsync: saveDashboardWidgets } = useSaveDashboard()
+const { mutateAsync: updateDataCenterGroup } = useUpdateDataCenterGroup()
 
 const confirm = useConfirm()
 
@@ -303,8 +306,12 @@ const { draft, isDirty, isSaving, saveError, save, cancel } = usePropertyEditor(
       }
       Object.assign(payload, interfacePatch)
     }
+    Object.assign(payload, rackCabinetPatch(data, details.value))
     await updateProperties({ id: data.id, payload })
     const orig = details.value
+
+    const groupPatch = propertyGroupPatch(data, orig)
+    if (groupPatch) await updateDataCenterGroup({ id: data.id, ...groupPatch })
 
     const locationDirty =
       JSON.stringify({ g: data.geoLocation, p: data.postalAddress }) !==

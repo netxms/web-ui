@@ -7,6 +7,10 @@ import RackCanvas from '@/components/rack/RackCanvas.vue'
 
 // three.js is large; load it only when someone switches to 3D.
 const Rack3DCanvas = defineAsyncComponent(() => import('@/components/rack/Rack3DCanvas.vue'))
+// Environment, feed power and power path of a rack in a facility.
+const RackDataCenterStrip = defineAsyncComponent(
+  () => import('@/components/data-center/RackDataCenterStrip.vue'),
+)
 import RackElementPanel from '@/components/rack/RackElementPanel.vue'
 import AddRackElementDialog from '@/components/rack/AddRackElementDialog.vue'
 import ActionContextMenu from '@/components/actions/ActionContextMenu.vue'
@@ -484,6 +488,8 @@ function onViewKeyDown(event) {
         @click="toggleView3D"
       />
     </div>
+
+    <RackDataCenterStrip :rack-id="objectId" />
 
     <div v-if="isLoading" class="rack-loading">
       <i class="pi pi-spin pi-spinner" />

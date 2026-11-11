@@ -1,0 +1,94 @@
+{
+  "id": 2090000015,
+  "guid": "9d0c6e2a-41b7-4c55-8f3e-000000000007",
+  "class": "PowerDomain",
+  "timestamp": "2026-11-09T09:55:00.000Z",
+  "name": "PDU-B1",
+  "alias": "",
+  "commentsSource": "Row A, feed B.",
+  "comments": "Row A, feed B.",
+  "status": 3,
+  "statusText": "Major",
+  "statusCalcAlg": 0,
+  "statusPropAlg": 0,
+  "fixedStatus": -1,
+  "statusShift": 0,
+  "statusTranslation": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "statusSingleThreshold": 75,
+  "statusThresholds": [
+    80,
+    60,
+    40,
+    20
+  ],
+  "maintenanceEventId": 0,
+  "maintenanceInitiator": 0,
+  "mapImage": "00000000-0000-0000-0000-000000000000",
+  "geoLocation": {
+    "type": 0,
+    "latitude": 0,
+    "longitude": 0,
+    "accuracy": 0,
+    "timestamp": 0
+  },
+  "postalAddress": {
+    "country": "",
+    "region": "",
+    "city": "",
+    "district": null,
+    "streetAddress": "",
+    "postcode": ""
+  },
+  "drilldownObjectId": 0,
+  "dashboards": [],
+  "urls": [],
+  "accessList": [
+    {
+      "userId": 1073741825,
+      "access": 18874367
+    }
+  ],
+  "inheritAccessRights": true,
+  "trustedObjects": [],
+  "creationTime": "2026-09-28T08:00:00Z",
+  "categoryId": 0,
+  "aiHint": "",
+  "customAttributes": [],
+  "flags": 0,
+  "children": [
+    2090000101,
+    2090000102,
+    2090000103,
+    2090000104,
+    2090000105,
+    2090000106,
+    2090000107,
+    2090000108
+  ],
+  "parents": [
+    2090000013
+  ],
+  "responsibleUsers": [],
+  "autoBindFilters": [
+    {
+      "autoBind": false,
+      "autoUnbind": false,
+      "source": ""
+    },
+    {
+      "autoBind": false,
+      "autoUnbind": false,
+      "source": ""
+    }
+  ],
+  "powerDomain": {
+    "domainType": "PDU",
+    "feedTag": "B",
+    "ratedPower": 50000
+  }
+}

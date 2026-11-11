@@ -25,6 +25,11 @@ const sectionComponents = {
   'expected-capabilities': () => import('@/components/properties/sections/PlaceholderSection.vue'),
   'port-stop-list': () => import('@/components/properties/sections/PlaceholderSection.vue'),
   'rack-chassis': () => import('@/components/properties/sections/RackChassisSection.vue'),
+  facility: () => import('@/components/properties/sections/FacilitySection.vue'),
+  'power-domain': () => import('@/components/properties/sections/PowerDomainSection.vue'),
+  'cooling-zone': () => import('@/components/properties/sections/CoolingZoneSection.vue'),
+  room: () => import('@/components/properties/sections/RoomSection.vue'),
+  rack: () => import('@/components/properties/sections/RackSection.vue'),
   elements: () => import('@/components/properties/sections/DashboardElementsSection.vue'),
   'object-context': () =>
     import('@/components/properties/sections/DashboardObjectContextSection.vue'),
@@ -360,6 +365,16 @@ const DASHBOARD_SECTIONS = [
   { id: 'trusted-objects', label: 'Trusted Objects', icon: 'pi pi-shield', group: 'Advanced' },
 ]
 
+const dataCenterSection = (id, label, icon) => ({ id, label, icon, group: 'Data Center' })
+
+const DATA_CENTER_EXTRA_SECTIONS = {
+  Facility: [dataCenterSection('facility', 'Facility', 'pi pi-building'), AUTO_BIND_SECTION],
+  PowerDomain: [dataCenterSection('power-domain', 'Power Domain', 'pi pi-bolt'), AUTO_BIND_SECTION],
+  CoolingZone: [dataCenterSection('cooling-zone', 'Cooling Zone', 'pi pi-cloud'), AUTO_BIND_SECTION],
+  Room: [dataCenterSection('room', 'Room', 'pi pi-th-large'), AUTO_BIND_SECTION],
+  Rack: [dataCenterSection('rack', 'Rack', 'pi pi-server')],
+}
+
 const CLASS_EXTRA_SECTIONS = {
   Node: [...NODE_SECTIONS, PLACEMENT_SECTION],
   Chassis: [PLACEMENT_SECTION],
@@ -371,6 +386,7 @@ const CLASS_EXTRA_SECTIONS = {
   NetworkMap: [AUTO_BIND_SECTION],
   Collector: [AUTO_BIND_SECTION],
   Circuit: [AUTO_BIND_SECTION],
+  ...DATA_CENTER_EXTRA_SECTIONS,
 }
 
 const CLASS_SECTIONS_OVERRIDE = {
@@ -401,7 +417,7 @@ const CLASS_SECTIONS_OVERRIDE = {
   ],
 }
 
-export const GROUP_ORDER = ['Basic', 'Network', 'Display', 'Advanced']
+export const GROUP_ORDER = ['Basic', 'Data Center', 'Network', 'Display', 'Advanced']
 
 /**
  * @param {string} objectClass

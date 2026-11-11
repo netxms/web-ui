@@ -64,7 +64,8 @@ import { useWorkingState } from '@/composables/useWorkingState'
 import { buildToolsContent, getToolTypeIcon, injectToolsIntoMenu } from '@/utils/toolMenuUtils'
 import { objectTreeFilterDefs } from '@/filterDefs/objectTreeFilterDefs'
 import { buildCreateMenuItems, dispatchCreateObject } from '@/utils/createMenuItems'
-import { configTarget, objectTarget } from '@/utils/routeTargets'
+import { configTarget, floorPlanEditTarget, objectTarget } from '@/utils/routeTargets'
+import { facilityContaining } from '@/utils/dataCenter'
 import { parseSshViewId } from '@/utils/sshTerminalProtocol'
 import { chartTabLabel, parseFromQuery } from '@/utils/dciChartModel'
 import {
@@ -212,6 +213,31 @@ function handleObjectCreate(event) {
 
 onMounted(() => document.addEventListener('object:create', handleObjectCreate))
 onUnmounted(() => document.removeEventListener('object:create', handleObjectCreate))
+
+const CreateDataCenterObjectDialog = defineAsyncComponent(
+  () => import('@/components/data-center/CreateDataCenterObjectDialog.vue'),
+)
+const createDataCenterVisible = ref(false)
+const createDataCenterParent = ref(null)
+const createDataCenterClass = ref(null)
+
+function handleDataCenterCreate(event) {
+  createDataCenterParent.value = event.detail?.parent ?? null
+  createDataCenterClass.value = event.detail?.objectClass ?? null
+  createDataCenterVisible.value = true
+}
+
+onMounted(() => document.addEventListener('dataCenterObject:create', handleDataCenterCreate))
+onUnmounted(() => document.removeEventListener('dataCenterObject:create', handleDataCenterCreate))
+
+/** A new room opens on its floor plan in edit mode, to get its shape. */
+function handleDataCenterCreated(created) {
+  router.push(
+    created.class === 'Room'
+      ? floorPlanEditTarget(created)
+      : { name: 'infrastructure', params: { objectId: created.id } },
+  )
+}
 
 const createNodeVisible = ref(false)
 const createNodeParent = ref(null)
@@ -587,13 +613,24 @@ const DEFAULT_VISIBLE_VIEW_IDS = [
   'dcis',
   'performance',
   'interfaces',
+  'overview',
+  'floorPlan',
+  'power',
+  'cooling',
   ...ALL_OBJECT_VIEWS.filter((v) => v.defaultVisible).map((v) => v.id),
 ]
+
+// A class's own views head its tab bar in registry order, whatever the stored order says.
+const LEADING_VIEW_IDS = ALL_OBJECT_VIEWS.filter((v) => v.leading).map((v) => v.id)
 
 // When no user preference is stored
 const DEFAULT_VIEW_BY_CLASS = {
   Rack: 'rack',
   Chassis: 'chassis',
+  Facility: 'overview',
+  Room: 'floorPlan',
+  PowerDomain: 'power',
+  CoolingZone: 'cooling',
 }
 
 const visibleViewIds = computed(() =>
@@ -718,8 +755,11 @@ const compatibleVisibleViewIds = computed(() => {
     : visibleViewIds.value
   // Context views and the chart tab are not in the stored preference, so they are appended.
   const contextIds = shownContextViews.value.map((v) => v.id)
+  const stored = base.filter((id) => id !== 'chart' && !contextIds.includes(id))
+  const leading = LEADING_VIEW_IDS.filter((id) => stored.includes(id))
   return [
-    ...base.filter((id) => id !== 'chart' && !contextIds.includes(id)),
+    ...leading,
+    ...stored.filter((id) => !leading.includes(id)),
     ...contextIds,
     ...(chartView.value ? ['chart'] : []),
   ]
@@ -1126,15 +1166,19 @@ function handleViewClose(viewId) {
   if (next) router.push(viewTabTarget(next))
 }
 
-const activeViewProps = computed(() =>
-  activeView.value === 'properties'
-    ? {
-        object: selectionStore.primaryObject,
-        closable: true,
-        onClose: () => handleViewClose('properties'),
-      }
-    : { object: selectionStore.primaryObject },
-)
+/** Power and cooling look across the facility: feed partners, the outdoor temperature. */
+const FACILITY_VIEWS = new Set(['power', 'cooling'])
+
+const activeViewProps = computed(() => {
+  const object = selectionStore.primaryObject
+  if (activeView.value === 'properties') {
+    return { object, closable: true, onClose: () => handleViewClose('properties') }
+  }
+  if (FACILITY_VIEWS.has(activeView.value)) {
+    return { object, facility: facilityContaining(objectTree.value, object?.id) }
+  }
+  return { object }
+})
 
 function handleViewToggle(viewId) {
   viewStore.toggleView(PERSPECTIVE_ID, viewId, DEFAULT_VISIBLE_VIEW_IDS)
@@ -1210,6 +1254,10 @@ const viewComponents = {
   logs: () => import('./subviews/ObjectLogsView.vue'),
   rack: () => import('./subviews/RackView.vue'),
   chassis: () => import('./subviews/ChassisView.vue'),
+  overview: () => import('@/views/data-center/subviews/FacilityOverviewView.vue'),
+  floorPlan: () => import('@/views/data-center/subviews/FloorPlanView.vue'),
+  power: () => import('@/views/data-center/subviews/PowerChainView.vue'),
+  cooling: () => import('@/views/data-center/subviews/CoolingView.vue'),
 }
 
 const activeViewComponent = computed(() => {
@@ -1585,6 +1633,7 @@ watch(
       :views="allViews"
       :visible-view-ids="compatibleVisibleViewIds"
       :locked-view-ids="lockedViewIds"
+      :pinned-view-ids="LEADING_VIEW_IDS"
       :active-view="activeView"
       :addable-count="addableViewCount"
       :tool-tabs="toolTabs"
@@ -1682,6 +1731,13 @@ watch(
     @created="
       (created) => router.push({ name: 'infrastructure', params: { objectId: created.id } })
     "
+  />
+
+  <CreateDataCenterObjectDialog
+    v-model:visible="createDataCenterVisible"
+    :parent-object="createDataCenterParent"
+    :object-class="createDataCenterClass"
+    @created="handleDataCenterCreated"
   />
 
   <CreateNodeDialog v-model:visible="createNodeVisible" :parent-object="createNodeParent" />

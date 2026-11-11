@@ -26,6 +26,10 @@ import {
   RadioTower,
   Shield,
   Zap,
+  Building2,
+  PlugZap,
+  Snowflake,
+  Grid3x3,
 } from 'lucide-vue-next'
 import { useTheme } from '@/composables/useTheme'
 import { dciOriginName } from '@/utils/dciCodes'
@@ -296,6 +300,10 @@ const CLASS_ICON_MAP = {
   CloudDomain: 'pi pi-cloud',
   Circuit: 'pi pi-bolt',
   WirelessDomain: 'pi pi-wifi',
+  Facility: 'pi pi-building',
+  PowerDomain: 'pi pi-bolt',
+  CoolingZone: 'pi pi-cloud',
+  Room: 'pi pi-th-large',
 }
 
 export function getClassIcon(objectClass) {
@@ -340,6 +348,10 @@ const CLASS_ICON_COMPONENT = {
   CloudDomain: Cloud,
   Circuit: Cable,
   WirelessDomain: Radio,
+  Facility: Building2,
+  PowerDomain: PlugZap,
+  CoolingZone: Snowflake,
+  Room: Grid3x3,
 }
 
 export function getClassIconComponent(objectClass) {
@@ -379,6 +391,10 @@ const CLASS_ICON_COLOR = {
   CloudDomain: 'var(--p-sky-400)',
   Circuit: 'var(--p-amber-400)',
   WirelessDomain: 'var(--p-cyan-400)',
+  Facility: 'var(--p-teal-400)',
+  PowerDomain: 'var(--p-amber-400)',
+  CoolingZone: 'var(--p-sky-400)',
+  Room: 'var(--p-indigo-400)',
 }
 
 export function getClassIconColor(objectClass) {
@@ -392,6 +408,8 @@ const CLASS_LABEL_OVERRIDES = {
   AssetRoot: 'Asset Root',
   BusinessServiceProto: 'Business Service Prototype',
   CloudDomain: 'Cloud Domain',
+  CoolingZone: 'Cooling Zone',
+  PowerDomain: 'Power Domain',
   DashboardGroup: 'Dashboard Group',
   DashboardTemplate: 'Dashboard Template',
   MobileDevice: 'Mobile Device',
@@ -643,6 +661,12 @@ export const DCI_TARGET_CLASSES = new Set([
   'Sensor',
   'Collector',
   'Circuit',
+  'Rack',
+  // Data collection containers, like Collector.
+  'Facility',
+  'PowerDomain',
+  'CoolingZone',
+  'Room',
   'Template',
 ])
 

@@ -1,7 +1,19 @@
 import { getCreatableClasses, IMPLEMENTED_CLASSES } from '@/utils/objectCreationRules'
 import { getClassIcon, getClassLabel } from '@/utils/objectUtils'
 
-/** Classes with a dedicated creation dialog, keyed to the DOM event that dialog listens for. */
+/** One dialog for the four, told the class in the event's `objectClass`. */
+const DATA_CENTER_CREATE_CLASSES = ['Facility', 'Room', 'PowerDomain', 'CoolingZone'].map(
+  (objectClass, index) => ({
+    objectClass,
+    eventName: 'dataCenterObject:create',
+    priority: 15 + index,
+  }),
+)
+
+/**
+ * Classes with a dedicated creation dialog, keyed to the DOM event that dialog listens for. The
+ * event's detail is `{ parent, objectClass }`.
+ */
 export const DEDICATED_CREATE_CLASSES = [
   { objectClass: 'Subnet', eventName: 'subnet:create', priority: 3 },
   { objectClass: 'Node', eventName: 'node:create', priority: 4 },
@@ -15,6 +27,7 @@ export const DEDICATED_CREATE_CLASSES = [
   { objectClass: 'CloudDomain', eventName: 'cloudDomain:create', priority: 12 },
   { objectClass: 'NetworkMap', eventName: 'networkMap:create', priority: 13 },
   { objectClass: 'BusinessServiceProto', eventName: 'businessServiceProto:create', priority: 14 },
+  ...DATA_CENTER_CREATE_CLASSES,
 ]
 
 /**
@@ -27,7 +40,9 @@ export function dispatchCreateObject(target, objectClass) {
 
   const dedicated = DEDICATED_CREATE_CLASSES.find((c) => c.objectClass === objectClass)
   if (dedicated) {
-    document.dispatchEvent(new CustomEvent(dedicated.eventName, { detail: { parent: target } }))
+    document.dispatchEvent(
+      new CustomEvent(dedicated.eventName, { detail: { parent: target, objectClass } }),
+    )
     return true
   }
 

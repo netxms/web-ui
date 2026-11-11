@@ -505,3 +505,28 @@ describe('ViewTabBar locked tabs', () => {
     wrapper.unmount()
   })
 })
+
+describe('ViewTabBar pinned tabs', () => {
+  function drag(wrapper, from, to) {
+    const tabs = wrapper.findAll('.view-tab')
+    const dataTransfer = { setData: () => {}, effectAllowed: '', dropEffect: '' }
+    tabs[from].trigger('dragstart', { dataTransfer })
+    tabs[to].trigger('dragover', { dataTransfer })
+    tabs[to].trigger('drop', { dataTransfer })
+  }
+
+  it('keeps a pinned tab from being dragged or dropped on', () => {
+    const wrapper = mountBar({ pinnedViewIds: ['status'] })
+    const tabs = wrapper.findAll('.view-tab')
+    expect(tabs[0].attributes('draggable')).toBe('false')
+    expect(tabs[1].attributes('draggable')).toBe('true')
+
+    drag(wrapper, 0, 2)
+    drag(wrapper, 2, 0)
+    expect(wrapper.emitted('reorder')).toBeUndefined()
+
+    drag(wrapper, 2, 1)
+    expect(wrapper.emitted('reorder')).toEqual([[['status', 'properties', 'alarms']]])
+    wrapper.unmount()
+  })
+})

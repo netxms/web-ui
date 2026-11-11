@@ -1,0 +1,55 @@
+/* Facility, Power Domain, Cooling Zone, Room and Rack sections. */
+
+.data-center-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.number-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.number-input {
+  width: 10rem;
+  flex-shrink: 0;
+}
+
+:deep(.number-input input) {
+  max-width: 100%;
+}
+
+.select-input {
+  width: 18rem;
+  max-width: 100%;
+}
+
+.unit {
+  font-size: 0.8125rem;
+  color: var(--p-text-muted-color);
+}
+
+.section-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: 0.75rem;
+}
+
+.form-value {
+  font-size: 0.875rem;
+  padding: 0.375rem 0;
+  color: var(--p-text-secondary-color);
+}
+
+.monospace {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}

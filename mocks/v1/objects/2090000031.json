@@ -1,0 +1,137 @@
+{
+  "id": 2090000031,
+  "guid": "9d0c6e2a-41b7-4c55-8f3e-00000000000e",
+  "class": "Room",
+  "timestamp": "2026-11-09T09:55:00.000Z",
+  "name": "Meet-Me Room",
+  "alias": "",
+  "commentsSource": "Carrier cross-connects.",
+  "comments": "Carrier cross-connects.",
+  "status": 0,
+  "statusText": "Normal",
+  "statusCalcAlg": 0,
+  "statusPropAlg": 0,
+  "fixedStatus": -1,
+  "statusShift": 0,
+  "statusTranslation": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "statusSingleThreshold": 75,
+  "statusThresholds": [
+    80,
+    60,
+    40,
+    20
+  ],
+  "maintenanceEventId": 0,
+  "maintenanceInitiator": 0,
+  "mapImage": "00000000-0000-0000-0000-000000000000",
+  "geoLocation": {
+    "type": 0,
+    "latitude": 0,
+    "longitude": 0,
+    "accuracy": 0,
+    "timestamp": 0
+  },
+  "postalAddress": {
+    "country": "",
+    "region": "",
+    "city": "",
+    "district": null,
+    "streetAddress": "",
+    "postcode": ""
+  },
+  "drilldownObjectId": 0,
+  "dashboards": [],
+  "urls": [],
+  "accessList": [
+    {
+      "userId": 1073741825,
+      "access": 18874367
+    }
+  ],
+  "inheritAccessRights": true,
+  "trustedObjects": [],
+  "creationTime": "2026-09-28T08:00:00Z",
+  "categoryId": 0,
+  "aiHint": "",
+  "customAttributes": [],
+  "flags": 0,
+  "children": [
+    2090000121,
+    2090000122,
+    2090000123
+  ],
+  "parents": [
+    2090000001
+  ],
+  "responsibleUsers": [],
+  "autoBindFilters": [
+    {
+      "autoBind": false,
+      "autoUnbind": false,
+      "source": ""
+    },
+    {
+      "autoBind": false,
+      "autoUnbind": false,
+      "source": ""
+    }
+  ],
+  "room": {
+    "roomType": "TELECOM",
+    "outline": [
+      {
+        "x": 0,
+        "y": 0
+      },
+      {
+        "x": 4800,
+        "y": 0
+      },
+      {
+        "x": 4800,
+        "y": 3600
+      },
+      {
+        "x": 0,
+        "y": 3600
+      }
+    ],
+    "area": 17.28,
+    "height": 3000,
+    "gridOriginX": 0,
+    "gridOriginY": 0,
+    "gridTileSize": 600,
+    "gridLabels": "NUMBERS_NUMBERS",
+    "backgroundImage": null,
+    "backgroundScale": 0,
+    "backgroundX": 0,
+    "backgroundY": 0,
+    "passiveElements": [
+      {
+        "id": 10,
+        "name": "Carrier demarcation frame",
+        "type": "OTHER",
+        "x": 600,
+        "y": 3200,
+        "rotation": 0,
+        "width": 1800,
+        "depth": 400
+      },
+      {
+        "id": 11,
+        "name": "Door",
+        "type": "DOOR",
+        "x": 0,
+        "y": 2400,
+        "rotation": 0,
+        "width": 100,
+        "depth": 900
+      }
+    ]
+  }
+}

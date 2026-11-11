@@ -2,7 +2,10 @@
 import Button from 'primevue/button'
 import { Undo2, Redo2 } from 'lucide-vue-next'
 
+/** View/Edit switch with Undo, Redo, Discard and Save, for an editor with an explicit edit mode. */
 defineProps({
+  /** Accessible name of the View/Edit switch, e.g. "Map mode" */
+  modeLabel: { type: String, default: 'Mode' },
   editMode: { type: Boolean, default: false },
   dirty: { type: Boolean, default: false },
   saving: { type: Boolean, default: false },
@@ -28,6 +31,7 @@ const emit = defineEmits(['enter-edit', 'exit-edit', 'save', 'discard', 'undo', 
         text
         rounded
         :disabled="!canUndo || saving"
+        aria-label="Undo"
         v-tooltip.bottom="'Undo (Ctrl+Z)'"
         @click="emit('undo')"
       >
@@ -41,6 +45,7 @@ const emit = defineEmits(['enter-edit', 'exit-edit', 'save', 'discard', 'undo', 
         text
         rounded
         :disabled="!canRedo || saving"
+        aria-label="Redo"
         v-tooltip.bottom="'Redo (Ctrl+Shift+Z)'"
         @click="emit('redo')"
       >
@@ -69,7 +74,7 @@ const emit = defineEmits(['enter-edit', 'exit-edit', 'save', 'discard', 'undo', 
       />
       <div class="edit-controls-divider" />
     </template>
-    <div class="mode-switch" role="group" aria-label="Map mode">
+    <div class="mode-switch" role="group" :aria-label="modeLabel">
       <button
         type="button"
         class="mode-switch-btn"

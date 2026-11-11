@@ -1,3 +1,5 @@
+import { createDataCenterObject } from './_lib/dataCenter.js'
+
 function readBody(req) {
   return new Promise((resolve) => {
     let body = ''
@@ -7,6 +9,9 @@ function readBody(req) {
     })
   })
 }
+
+// Below the demo data center's ids (2090000001...), above anything else in the fixtures.
+let nextDataCenterId = 2080000001
 
 export default async function (req, res) {
   const body = await readBody(req)
@@ -19,6 +24,14 @@ export default async function (req, res) {
   if (body.name === 'fail') {
     res.statusCode = 409
     return { message: 'An object with this name already exists under the selected parent' }
+  }
+
+  // Kept, so the floor plan, power and properties views can open it; other creates are not.
+  const kept = createDataCenterObject(body, nextDataCenterId)
+  if (kept) {
+    nextDataCenterId++
+    res.statusCode = 201
+    return kept
   }
 
   res.statusCode = 201

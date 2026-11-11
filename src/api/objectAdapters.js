@@ -13,6 +13,7 @@ import {
   dciStatusCode,
 } from '@/utils/dciCodes'
 import { MAP_FLAGS, parseMapFlags } from '@/utils/networkMapAdapters'
+import { PROPERTY_GROUPS, adaptPropertyGroup } from '@/utils/dataCenterProperties'
 
 const NULL_GUID = '00000000-0000-0000-0000-000000000000'
 function guid(v) {
@@ -313,7 +314,18 @@ function adaptRack(base, raw) {
     ...base,
     rackHeight: raw.rackHeight ?? 42,
     rackMode: raw.rackMode ?? 'front-back', // 'front-back' | 'front'
+    // The server's own names; the cabinet is in millimetres.
+    height: raw.height ?? 42,
+    topBottomNumbering: raw.topBottomNumbering ?? false,
+    width: raw.width ?? 600,
+    depth: raw.depth ?? 1000,
   }
+}
+
+/** Facility, PowerDomain, CoolingZone, Room: the class's property group, as a draft copy. */
+function adaptDataCenterObject(base, raw) {
+  const { key } = PROPERTY_GROUPS[raw.class]
+  return { ...base, [key]: adaptPropertyGroup(raw.class, raw[key]) }
 }
 
 function adaptTemplate(base, raw) {
@@ -465,6 +477,11 @@ export function adaptObject(raw) {
       return adaptInterface(base, raw)
     case 'Zone':
       return adaptZone(base, raw)
+    case 'Facility':
+    case 'PowerDomain':
+    case 'CoolingZone':
+    case 'Room':
+      return adaptDataCenterObject(base, raw)
     default:
       return base
   }

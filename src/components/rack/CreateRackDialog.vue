@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router'
 import { useCreateObjectDialog } from '@/composables/useCreateObjectDialog'
 import CreateDialogShell from '@/components/objects/CreateDialogShell.vue'
 import FormField from '@/components/common/FormField.vue'
+import { LIMITS } from '@/utils/dataCenterProperties'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -20,6 +21,8 @@ const router = useRouter()
 const name = ref('')
 const alias = ref('')
 const height = ref(42)
+const width = ref(600)
+const depth = ref(1000)
 
 const isValid = computed(
   () => name.value.trim().length > 0 && height.value >= 1 && height.value <= 42,
@@ -29,6 +32,8 @@ function resetForm() {
   name.value = ''
   alias.value = ''
   height.value = 42
+  width.value = 600
+  depth.value = 1000
 }
 
 const { isPending, onClose, submitCreate } = useCreateObjectDialog({
@@ -47,6 +52,8 @@ async function onCreate() {
       parentId: props.parentObject.id,
       alias: alias.value.trim() || undefined,
       height: height.value,
+      width: width.value,
+      depth: depth.value,
     },
     successMessage: 'Rack created',
     errorMessage: 'Failed to create rack',
@@ -95,5 +102,32 @@ async function onCreate() {
         suffix=" U"
       />
     </FormField>
+
+    <div class="form-row-inline">
+      <FormField label="Cabinet width" v-slot="{ id }">
+        <InputNumber
+          :input-id="id"
+          v-model="width"
+          :min="LIMITS.cabinet.min"
+          :max="LIMITS.cabinet.max"
+          :allow-empty="false"
+          size="small"
+          suffix=" mm"
+          fluid
+        />
+      </FormField>
+      <FormField label="Cabinet depth" v-slot="{ id }">
+        <InputNumber
+          :input-id="id"
+          v-model="depth"
+          :min="LIMITS.cabinet.min"
+          :max="LIMITS.cabinet.max"
+          :allow-empty="false"
+          size="small"
+          suffix=" mm"
+          fluid
+        />
+      </FormField>
+    </div>
   </CreateDialogShell>
 </template>

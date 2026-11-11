@@ -14,24 +14,16 @@ import { getDciHistory } from '@/api/objectsApi'
 import { MODERATE_TIER } from '@/queries/config'
 import { objectTarget } from '@/utils/routeTargets'
 import { resolveHref, isPlainLeftClick } from '@/utils/navigation'
+import { DCI_TARGET_CLASSES } from '@/utils/objectUtils'
 import { createChartModel, serializeToQuery, CHART_TIME_PRESETS } from '@/utils/dciChartModel'
-
-const DCI_TARGET_CLASSES = new Set([
-  'Node',
-  'Cluster',
-  'MobileDevice',
-  'AccessPoint',
-  'Chassis',
-  'Sensor',
-  'Collector',
-  'Circuit',
-])
 
 const props = defineProps({
   object: { type: Object, required: true },
 })
 
-const isDciTarget = computed(() => DCI_TARGET_CLASSES.has(props.object.class))
+const isDciTarget = computed(
+  () => DCI_TARGET_CLASSES.has(props.object.class) && props.object.class !== 'Template',
+)
 const objectId = computed(() => props.object.id)
 
 const {
