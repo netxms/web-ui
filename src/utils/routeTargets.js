@@ -81,6 +81,7 @@ export function floorPlanEditTarget(room, { perspective } = {}) {
 
 const OBJECT_PERSPECTIVES = new Set([
   'infrastructure',
+  'data-center',
   ...Object.values(PERSPECTIVE_BY_CLASS),
 ])
 

@@ -160,6 +160,12 @@ const router = createRouter({
                 component: () => import('@/views/dev/DevLabView.vue'),
                 meta: { title: 'Dev Lab', sidebar: false },
               },
+              {
+                path: 'data-center/:objectId?/:viewId?',
+                name: 'data-center',
+                component: () => import('@/views/data-center/DataCenterView.vue'),
+                meta: { title: 'Data Center', sidebar: true },
+              },
             ]
           : []),
         {
@@ -184,6 +190,7 @@ const PERSPECTIVE_ROOTS = [
   '/templates',
   '/assets',
   '/business-services',
+  '/data-center',
 ]
 
 router.afterEach(async (to, from) => {

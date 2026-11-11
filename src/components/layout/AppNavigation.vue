@@ -2,7 +2,7 @@
 import { onMounted, computed, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import Button from 'primevue/button'
-import { ChevronDown, ChevronUp, FlaskConical } from 'lucide-vue-next'
+import { Building2, ChevronDown, ChevronUp, FlaskConical } from 'lucide-vue-next'
 import { useAiMessageAttention } from '@/composables/useAiMessageAttention'
 import { useAlarmAttention } from '@/composables/useAlarmAttention'
 import { useLayout } from '@/composables/useLayout'
@@ -18,12 +18,13 @@ const { isNavCollapsed } = useLayout()
 const navigationStore = useNavigationStore()
 const perspectiveStore = usePerspectiveStore()
 
-// Dev-only entries (UI lab); stripped from production builds.
+// Dev-only entries (UI lab, Data Center perspective); stripped from production builds.
 const devSection = import.meta.env.DEV
   ? {
       id: 'dev',
       placement: 'bottom',
       items: [
+        { label: 'Data Center', icon: Building2, route: '/data-center' },
         { label: 'Lab', icon: FlaskConical, route: '/dev-lab' },
       ],
     }
