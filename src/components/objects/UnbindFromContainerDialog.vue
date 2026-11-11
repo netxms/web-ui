@@ -7,6 +7,7 @@ import Skeleton from 'primevue/skeleton'
 import { useToast } from 'primevue/usetoast'
 import { useObject, useObjectsByIds, useUnbindObjectChild } from '@/queries/useObjectQueries'
 import ObjectIcon from '@/components/objects/ObjectIcon.vue'
+import { CONTAINER_PARENT_CLASSES } from '@/utils/objectCreationRules'
 
 const props = defineProps({
   visible: { type: Boolean, required: true },
@@ -18,8 +19,6 @@ const emit = defineEmits(['update:visible'])
 const toast = useToast()
 const { mutateAsync: unbindAsync, isPending } = useUnbindObjectChild()
 
-const CONTAINER_LIKE = new Set(['Container', 'Collector', 'ServiceRoot'])
-
 // Tree nodes carry no parent IDs; the full object does.
 const objectId = computed(() => props.object?.id ?? null)
 const { data: fullObject, isLoading: isObjectLoading } = useObject(objectId)
@@ -29,7 +28,9 @@ const { objectsById } = useObjectsByIds(parentIds)
 
 const containerParents = computed(() => {
   const map = objectsById.value
-  return parentIds.value.map((id) => map.get(id)).filter((o) => o && CONTAINER_LIKE.has(o.class))
+  return parentIds.value
+    .map((id) => map.get(id))
+    .filter((o) => o && CONTAINER_PARENT_CLASSES.has(o.class))
 })
 
 const isLoading = computed(

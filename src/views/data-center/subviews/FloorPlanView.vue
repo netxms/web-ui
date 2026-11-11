@@ -5,8 +5,10 @@ import Button from 'primevue/button'
 import SelectButton from 'primevue/selectbutton'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
+import ActionContextMenu from '@/components/actions/ActionContextMenu.vue'
 import FloorPlanCanvas from '@/components/data-center/FloorPlanCanvas.vue'
 import FloorPlanEditPanel from '@/components/data-center/FloorPlanEditPanel.vue'
+import ObjectPickerDialog from '@/components/objects/ObjectPickerDialog.vue'
 import DemoNoticeBanner from '@/components/common/DemoNoticeBanner.vue'
 import EditModeControls from '@/components/common/EditModeControls.vue'
 import InfoHint from '@/components/common/InfoHint.vue'
@@ -22,8 +24,10 @@ import {
   useSaveFloorPlan,
   useTaggedDcis,
 } from '@/queries/useDataCenterQueries'
-import { useObject } from '@/queries/useObjectQueries'
+import { objectKeys, useObject, useObjects, useObjectTree } from '@/queries/useObjectQueries'
+import { queryClient } from '@/queries/config'
 import { isDemoDataCenterId } from '@/api/dataCenterApi'
+import { getObject } from '@/api/objectsApi'
 import { getImageDataUrl } from '@/api/imageLibraryApi'
 import { hasObjectRight } from '@/auth/objectAccessRights'
 import { useFloorPlanEditor } from '@/composables/useFloorPlanEditor'
@@ -36,7 +40,9 @@ import {
   freeUnits,
   indexNodes,
   rackAlarmCounts,
+  racksAround,
   readMetric,
+  roomsOfRacks,
   toKilowatts,
 } from '@/utils/dataCenter'
 import { facing, tileAt, footprint, bounds } from '@/utils/floorPlan'
@@ -47,6 +53,8 @@ import {
   scaleColor,
 } from '@/utils/floorPlanOverlays'
 import { ELEMENT_TYPES } from '@/utils/floorPlanEdits'
+import { floorPlanMenuItems, removeLabelFor } from '@/utils/floorPlanMenu'
+import { resolveHref } from '@/utils/navigation'
 import { notifyNotImplemented } from '@/utils/notImplemented'
 import { getStatusHexColor, getStatusInfo } from '@/utils/objectUtils'
 import { FLOOR_PLAN_EDIT_QUERY, objectTarget } from '@/utils/routeTargets'
@@ -374,26 +382,162 @@ onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', onBeforeUnload)
 })
 
-const removeLabel = computed(() =>
-  editor.selectedItems.every((item) => item.kind === 'rack') ? 'Remove from plan' : 'Delete',
+const removeLabel = computed(() => removeLabelFor(editor.selectedItems))
+
+// Right-click menu over the plan. An item clicked outside the selection becomes the selection;
+// the floor's Add and Place switch to edit mode on their own.
+const canvasMenuRef = ref(null)
+const menuTarget = ref(null)
+const MENU_KINDS = { r: 'rack', e: 'element', v: 'vertex' }
+
+function onCanvasContextMenu({ event, point, key, edge }) {
+  if (editor.saving) return
+  const kind = key ? MENU_KINDS[key[0]] : edge != null ? 'wall' : 'floor'
+  if (key && editor.editMode && !editor.selection.includes(key)) editor.select(key)
+  if (kind === 'rack' && !editor.editMode) selectedId.value = Number(key.slice(2))
+  menuTarget.value = { kind, key, edge, point }
+  canvasMenuRef.value?.show(event)
+}
+
+function ensureEditMode() {
+  if (!editor.editMode) enterEdit()
+}
+
+const roomPropertiesTarget = computed(() =>
+  isDemo.value ? null : objectTarget(props.object, 'properties', { query: { section: 'room' } }),
 )
 
-// A rack dragged from the side list: its landing spot follows the pointer.
+const menuCommands = {
+  addElement(type, point) {
+    ensureEditMode()
+    editor.addElement(type, point)
+  },
+  placeRack(id, point) {
+    ensureEditMode()
+    editor.placeRack(id, point)
+  },
+  rotate: (degrees) => editor.rotateSelection(degrees),
+  remove: () => editor.removeSelection(),
+  lineUp() {
+    const first = editor.selectedItems.find((item) => item.kind === 'rack')
+    editor.lineUpSelection(facing(first?.rotation ?? 0) ?? 'S', 0)
+  },
+  insertVertex: (edge, point) => editor.insertVertex(edge, point),
+  openRack: (id) => router.push(rackTarget({ id })),
+  fit: () => canvasRef.value?.fit(),
+  openRoomProperties: () => router.push(roomPropertiesTarget.value),
+}
+
+function menuItemName(key) {
+  if (editor.editMode) return editor.itemName(key)
+  return (plan.value?.racks ?? []).find((rack) => `r:${rack.id}` === key)?.name ?? ''
+}
+
+const canvasMenuItems = computed(() => {
+  if (!menuTarget.value) return []
+  return floorPlanMenuItems(menuTarget.value, {
+    editMode: editor.editMode,
+    canEdit: canEdit.value && !editor.saving,
+    selectedItems: editor.selectedItems,
+    unplaced: unplaced.value,
+    canRemoveVertex: editor.canRemoveVertex,
+    nameOf: menuItemName,
+    rackHref: (id) => {
+      const target = rackTarget({ id })
+      return target ? resolveHref(target) : null
+    },
+    roomPropertiesHref: roomPropertiesTarget.value && resolveHref(roomPropertiesTarget.value),
+    run: menuCommands,
+  })
+})
+
+// Racks from elsewhere come from the Infrastructure tree, read only while editing a real room.
+const { data: rootObjects } = useObjects()
+const serviceRootId = computed(
+  () => (rootObjects.value ?? []).find((o) => o.class === 'ServiceRoot')?.id ?? 2,
+)
+const takesRacksIn = computed(() => editor.editMode && !isDemo.value)
+const { data: infrastructure } = useObjectTree(
+  computed(() => (takesRacksIn.value ? serviceRootId.value : null)),
+)
+const incomingRacks = computed(() => {
+  if (!takesRacksIn.value || !infrastructure.value) return []
+  const here = new Set((shownPlan.value?.racks ?? []).map((rack) => rack.id))
+  return racksAround(infrastructure.value, roomId.value).filter((rack) => !here.has(rack.id))
+})
+
+// A cabinet whose document lacks its footprint.
+const FALLBACK_RACK = { width: 600, depth: 1000, height: 42 }
+
+/** Read through the cache: a rack listed beside the plan was often opened before. */
+function fetchRack(id) {
+  return queryClient.fetchQuery({ queryKey: objectKeys.detail(id), queryFn: () => getObject(id) })
+}
+
+/** A listed rack with the footprint its document gives, ready for `editor.bringRacks`. */
+async function arrivalOf(rack) {
+  const doc = await fetchRack(rack.id).catch(() => null)
+  return {
+    id: rack.id,
+    name: rack.name,
+    status: rack.status ?? doc?.status ?? 0,
+    width: doc?.width > 0 ? doc.width : FALLBACK_RACK.width,
+    depth: doc?.depth > 0 ? doc.depth : FALLBACK_RACK.depth,
+    height: doc?.height > 0 ? doc.height : FALLBACK_RACK.height,
+    rooms: rack.rooms,
+  }
+}
+
+async function bringRacks(racks, point) {
+  const arrivals = await Promise.all(racks.map(arrivalOf))
+  editor.bringRacks(arrivals, point)
+}
+
+const findRacksVisible = ref(false)
+const findRackPerspectives = computed(() => [
+  { id: 'infrastructure', label: 'Infrastructure', rootId: serviceRootId.value },
+])
+const isFindableRack = (node) =>
+  node.class === 'Rack' && !(shownPlan.value?.racks ?? []).some((rack) => rack.id === node.id)
+
+function onRacksFound(nodes) {
+  const rooms = roomsOfRacks(infrastructure.value ?? [])
+  bringRacks(
+    nodes.map((node) => ({ ...node, rooms: rooms.get(node.id) ?? [] })),
+    viewCentre(),
+  )
+}
+
+// A rack dragged from the side list: its landing spot follows the pointer. One from elsewhere
+// is drawn with its own footprint once its document is in.
 const draggingRackId = ref(null)
+const draggingIncoming = ref(null)
 const ghost = ref(null)
 
+function startIncomingDrag(rack) {
+  const arrival = { ...FALLBACK_RACK, ...rack }
+  draggingIncoming.value = arrival
+  arrivalOf(rack).then((full) => {
+    if (draggingIncoming.value === arrival) draggingIncoming.value = full
+  })
+}
+
 function onRackOver(point) {
-  ghost.value =
-    point && draggingRackId.value != null ? editor.ghostFor(draggingRackId.value, point) : null
+  if (!point) ghost.value = null
+  else if (draggingRackId.value != null) ghost.value = editor.ghostFor(draggingRackId.value, point)
+  else if (draggingIncoming.value) ghost.value = editor.ghostFor(draggingIncoming.value, point)
+  else ghost.value = null
 }
 
 function endRackDrag() {
   draggingRackId.value = null
+  draggingIncoming.value = null
   ghost.value = null
 }
 
 function onRackDrop(point) {
   if (point && draggingRackId.value != null) editor.placeRack(draggingRackId.value, point)
+  else if (point && draggingIncoming.value) bringRacks([draggingIncoming.value], point)
   endRackDrag()
 }
 
@@ -629,6 +773,7 @@ watch(
           @insert-vertex="({ edge, point }) => editor.insertVertex(edge, point)"
           @rack-over="onRackOver"
           @rack-drop="onRackDrop"
+          @context-menu="onCanvasContextMenu"
         >
           <template v-if="canEdit" #controls>
             <EditModeControls
@@ -680,10 +825,15 @@ watch(
             v-if="editor.editMode"
             :editor="editor"
             :plan="shownPlan"
+            :incoming="incomingRacks"
+            :can-find="takesRacksIn"
             @place-rack="(id) => editor.placeRack(id, viewCentre())"
             @place-row="({ ids, side, gap }) => editor.placeRow(ids, side, gap, viewCentre())"
             @rack-drag-start="(id) => (draggingRackId = id)"
             @rack-drag-end="endRackDrag"
+            @bring-rack="(rack) => bringRacks([rack], viewCentre())"
+            @incoming-drag-start="startIncomingDrag"
+            @find-racks="findRacksVisible = true"
           />
 
           <template v-else>
@@ -815,6 +965,21 @@ watch(
         </aside>
       </div>
     </template>
+
+    <ActionContextMenu ref="canvasMenuRef" :items="canvasMenuItems" />
+
+    <!-- v-if unmounts when closed, dropping its tree subscription. -->
+    <ObjectPickerDialog
+      v-if="findRacksVisible"
+      visible
+      title="Find Rack"
+      :perspectives="findRackPerspectives"
+      :selectable="isFindableRack"
+      :display-filter="isFindableRack"
+      multi-select
+      @update:visible="findRacksVisible = $event"
+      @select="onRacksFound"
+    />
   </div>
 </template>
 

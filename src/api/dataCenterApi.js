@@ -4,11 +4,12 @@
  * clockwise degrees around the footprint's reference corner, and a rack's front at rotation 0 is
  * its +Y edge. Enums arrive as names (`COMPUTER_ROOM`, `PDU`, `DOOR`).
  */
-import { get, patch, post, del } from './client'
+import { get, patch, post, put, del } from './client'
 import { listDciConfig } from './dciConfigApi'
 import { getDciValues, getRackLayout } from './objectsApi'
 import { DEMO_CONTENT_ENABLED } from '@/config/buildFlags'
 import { dciValueKey } from '@/utils/dciValues'
+import { bindInPlaceOf } from '@/utils/moveToGroup'
 import { normalizeRotation, polygonArea } from '@/utils/floorPlan'
 import { DEMO_DATA_CENTER } from './demoSeeds'
 
@@ -174,6 +175,23 @@ function demoFloorPlanWrite(roomId, op) {
 const ITEM_ERRORS = { suppressForbidden: true }
 
 /**
+ * A rack from elsewhere into the room. Leaving a room clears the rack's placement flag, so the
+ * placement goes last, once the rack stands in this room only.
+ */
+async function moveRackIntoRoom(roomId, op) {
+  await bindInPlaceOf({
+    parentId: roomId,
+    childId: op.id,
+    replacedIds: op.fromRoomIds ?? [],
+    bind: ({ parentId, childId }) =>
+      put(`/v1/objects/${parentId}/children/${childId}`, undefined, ITEM_ERRORS),
+    unbind: ({ parentId, childId }) =>
+      del(`/v1/objects/${parentId}/children/${childId}`, ITEM_ERRORS),
+  })
+  return patch(`/v1/objects/${op.id}/room-placement`, op.payload, ITEM_ERRORS)
+}
+
+/**
  * One call of a floor plan save, as `saveOperations` in `floorPlanEdits.js` lists them. The
  * WebAPI has no batch save: each call stands alone. A demo room keeps the change in this tab.
  *
@@ -189,6 +207,8 @@ export function saveFloorPlanOperation(roomId, op) {
       return patch(`/v1/objects/${roomId}/room`, op.payload, ITEM_ERRORS)
     case 'rack':
       return patch(`/v1/objects/${op.id}/room-placement`, op.payload, ITEM_ERRORS)
+    case 'rack-arrive':
+      return moveRackIntoRoom(roomId, op)
     case 'element-create':
       return post(elements, op.payload, ITEM_ERRORS)
     case 'element-update':

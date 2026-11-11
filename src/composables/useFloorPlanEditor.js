@@ -58,7 +58,20 @@ export function useFloorPlanEditor(planSource) {
   let stepTag = null
   let tempId = 0
 
-  const racksById = computed(() => new Map((plan.value?.racks ?? []).map((r) => [r.id, r])))
+  const planRackIds = computed(() => new Set((plan.value?.racks ?? []).map((r) => r.id)))
+  /** The room's racks and those moving in. */
+  const racksById = computed(() => {
+    const racks = new Map((plan.value?.racks ?? []).map((r) => [r.id, r]))
+    for (const rack of Object.values(working.value?.arrivals ?? {})) {
+      if (!racks.has(rack.id)) racks.set(rack.id, rack)
+    }
+    return racks
+  })
+
+  /** A rack moving in that the room does not have yet: no save has bound it. */
+  function isArriving(id, model = working.value) {
+    return !!model?.arrivals?.[id] && !planRackIds.value.has(id) && !baseline.value?.placements[id]
+  }
   const grid = computed(() => {
     const p = plan.value
     const tile = working.value?.room.gridTileSize ?? p?.gridTileSize
@@ -147,7 +160,10 @@ export function useFloorPlanEditor(planSource) {
       outline: w.outline,
       passiveElements: w.elements,
       area: polygonArea(w.outline.map(({ x, y }) => [x, y])),
-      racks: (p.racks ?? []).map((rack) => ({ ...rack, ...placementIn(w, rack) })),
+      racks: [...racksById.value.values()].map((rack) => {
+        const { rooms: _rooms, ...fields } = rack
+        return { ...fields, ...placementIn(w, rack), arriving: isArriving(rack.id, w) }
+      }),
     }
   })
 
@@ -167,6 +183,7 @@ export function useFloorPlanEditor(planSource) {
         name: rack.name,
         width: rack.width,
         depth: rack.depth,
+        arrivingFrom: isArriving(id, model) ? model.arrivals[id].rooms : null,
         ...p,
       }
     }
@@ -184,8 +201,8 @@ export function useFloorPlanEditor(planSource) {
   /** Placed racks and every element: what can be moved and checked. */
   function movableItems(model = working.value) {
     if (!model) return []
-    const racks = (plan.value?.racks ?? [])
-      .map((rack) => itemOf(`r:${rack.id}`, model))
+    const racks = [...racksById.value.keys()]
+      .map((id) => itemOf(`r:${id}`, model))
       .filter((item) => item?.placed)
     const elements = model.elements.map((e) => itemOf(`e:${e.id}`, model))
     return [...racks, ...elements]
@@ -344,12 +361,24 @@ export function useFloorPlanEditor(planSource) {
 
   const canRemoveVertex = computed(() => (working.value?.outline.length ?? 0) > 3)
 
-  /** Racks leave the plan, elements are deleted, a corner goes while three remain. */
+  const without = (record, id) =>
+    Object.fromEntries(Object.entries(record ?? {}).filter(([key]) => Number(key) !== id))
+
+  /**
+   * Racks leave the plan (one moving in goes back where it came from), elements are deleted, a
+   * corner goes while three remain.
+   */
   function removeSelection() {
     if (!editMode.value || saving.value || !selectedItems.value.length) return
     let model = working.value
     for (const item of selectedItems.value) {
-      if (item.kind === 'rack') {
+      if (item.kind === 'rack' && isArriving(item.id, model)) {
+        model = {
+          ...model,
+          arrivals: without(model.arrivals, item.id),
+          placements: without(model.placements, item.id),
+        }
+      } else if (item.kind === 'rack') {
         model = withItems(model, [{ key: item.key, placed: false }])
       } else if (item.kind === 'element') {
         model = { ...model, elements: model.elements.filter((e) => e.id !== item.id) }
@@ -388,17 +417,21 @@ export function useFloorPlanEditor(planSource) {
     selection.value = [`e:${id}`]
   }
 
-  /** Where an unplaced rack would land, centred on `point`. */
-  function rackLanding(rackId, point) {
-    const rack = racksById.value.get(rackId)
+  const rackOf = (rackOrId) =>
+    typeof rackOrId === 'object' ? rackOrId : racksById.value.get(rackOrId)
+
+  /** Where an unplaced rack, or one from elsewhere, would land centred on `point`. */
+  function rackLanding(rackOrId, point) {
+    const rack = rackOf(rackOrId)
     if (!rack || !working.value) return null
     const { rotation } = placementIn(working.value, rack)
     return { rotation, ...centredAt(rack.width, rack.depth, rotation, point) }
   }
 
-  function ghostFor(rackId, point) {
-    const rack = racksById.value.get(rackId)
-    const landing = point && rackLanding(rackId, point)
+  /** @param {number|object} rackOrId - a rack of the room, or an `Arrival` */
+  function ghostFor(rackOrId, point) {
+    const rack = rackOf(rackOrId)
+    const landing = point && rackLanding(rack, point)
     if (!landing) return null
     return footprint(landing.x, landing.y, rack.width, rack.depth, landing.rotation)
   }
@@ -411,25 +444,50 @@ export function useFloorPlanEditor(planSource) {
     selection.value = [`r:${rackId}`]
   }
 
-  /** Racks side by side in name order, centred on `point`, snapped as one. */
-  function placeRow(rackIds, side, gap, point) {
-    if (!editMode.value || saving.value) return
-    const racks = rackIds
-      .map((id) => racksById.value.get(id))
-      .filter(Boolean)
-      .sort(byName)
-    if (!racks.length) return
-    const row = rowPlacements(racks, side, Math.max(0, Math.round(gap || 0)), [point.x, point.y])
-    const items = racks.map((rack, i) => ({ ...rack, ...row[i] }))
+  /** Placements of racks side by side in name order, centred on `point`, snapped as one. */
+  function rowUpdates(racks, side, gap, point) {
+    const sorted = [...racks].sort(byName)
+    const row = rowPlacements(sorted, side, Math.max(0, Math.round(gap || 0)), [point.x, point.y])
+    const items = sorted.map((rack, i) => ({ ...rack, ...row[i] }))
     const offset = snapOffset(items.flatMap(itemFootprint), snapGrid.value)
-    const updates = items.map((item) => ({
+    return items.map((item) => ({
       key: `r:${item.id}`,
       placed: true,
       x: item.x + offset.dx,
       y: item.y + offset.dy,
       rotation: item.rotation,
     }))
+  }
+
+  /** Racks side by side in name order, centred on `point`, snapped as one. */
+  function placeRow(rackIds, side, gap, point) {
+    if (!editMode.value || saving.value) return
+    const racks = rackIds.map((id) => racksById.value.get(id)).filter(Boolean)
+    if (!racks.length) return
+    const updates = rowUpdates(racks, side, gap, point)
     commit(withItems(working.value, updates))
+    selection.value = updates.map((u) => u.key)
+  }
+
+  /**
+   * Racks from elsewhere onto the plan: one centred on `point`, several as a row facing south.
+   * They join the room on save.
+   *
+   * @param {Array<import('@/utils/floorPlanEdits').Arrival>} racks
+   */
+  function bringRacks(racks, point) {
+    if (!editMode.value || saving.value) return
+    const incoming = racks.filter((rack) => !racksById.value.has(rack.id))
+    if (!incoming.length) return
+    const updates =
+      incoming.length === 1
+        ? [{ key: `r:${incoming[0].id}`, placed: true, ...rackLanding(incoming[0], point) }]
+        : rowUpdates(incoming, 'S', 0, point)
+    const arrivals = { ...working.value.arrivals }
+    const placements = { ...working.value.placements }
+    for (const rack of incoming) arrivals[rack.id] = rack
+    for (const { key, ...placement } of updates) placements[Number(key.slice(2))] = placement
+    commit({ ...working.value, arrivals, placements })
     selection.value = updates.map((u) => u.key)
   }
 
@@ -531,6 +589,8 @@ export function useFloorPlanEditor(planSource) {
       }
       case 'rack':
         return `${itemName(`r:${op.id}`)} placement`
+      case 'rack-arrive':
+        return `${itemName(`r:${op.id}`)}: move into this room`
       case 'element-create':
         return `${op.payload.name || elementTypeLabel(op.payload.type)}: add`
       case 'element-delete':
@@ -595,16 +655,21 @@ export function useFloorPlanEditor(planSource) {
   }
 
   // The plan refreshes while editing: a rack new to the room joins the baseline as the server
-  // has it, a rack gone from it leaves with its edits.
+  // has it, a rack gone from it leaves with its edits. A rack moving in stops being an arrival
+  // once the room has it, and keeps its working placement.
   watch(plan, (p) => {
     if (!editMode.value || !p || !baseline.value) return
     const ids = new Set((p.racks ?? []).map((r) => r.id))
-    const keep = (placements) =>
-      Object.fromEntries(Object.entries(placements).filter(([id]) => ids.has(Number(id))))
-    const placements = keep(baseline.value.placements)
+    const keep = (record, kept) =>
+      Object.fromEntries(Object.entries(record ?? {}).filter(([id]) => kept.has(Number(id))))
+    const placements = keep(baseline.value.placements, ids)
     for (const rack of p.racks ?? []) placements[rack.id] ??= placementOf(rack)
     baseline.value = { ...baseline.value, placements }
-    working.value = { ...working.value, placements: keep(working.value.placements) }
+    const arrivals = Object.fromEntries(
+      Object.entries(working.value.arrivals ?? {}).filter(([id]) => !ids.has(Number(id))),
+    )
+    const kept = new Set([...ids, ...Object.keys(arrivals).map(Number)])
+    working.value = { ...working.value, arrivals, placements: keep(working.value.placements, kept) }
     pruneSelection()
   })
 
@@ -644,6 +709,7 @@ export function useFloorPlanEditor(planSource) {
     ghostFor,
     placeRack,
     placeRow,
+    bringRacks,
     lineUpSelection,
     insertVertex,
     roomRectangle,

@@ -47,6 +47,7 @@ const emit = defineEmits([
   'insert-vertex',
   'rack-over',
   'rack-drop',
+  'context-menu',
 ])
 
 const { navBindings } = useNavTarget()
@@ -373,6 +374,31 @@ function onDoubleClick(event) {
   if (edge >= 0) emit('insert-vertex', { edge, point })
 }
 
+/**
+ * Right click: what is under the pointer, as an item key (racks always, the rest while editing)
+ * or a wall's index while editing, and the room point. A keyboard menu has no pointer and gets
+ * the centre of the view.
+ */
+function onContextMenu(event) {
+  event.preventDefault()
+  hideTip()
+  const fromKeyboard = !event.clientX && !event.clientY
+  const point = (!fromKeyboard && toRoom(event)) || viewCentre()
+  const marked = event.target.closest?.('[data-key]')?.dataset.key ?? null
+  const key = marked && (props.editMode || marked.startsWith('r:')) ? marked : null
+  let edge = null
+  if (!key && props.editMode && !fromKeyboard) {
+    const found = nearestEdge(
+      outline.value.map((p) => [p.x, p.y]),
+      point.x,
+      point.y,
+      px(WALL_REACH),
+    )
+    if (found >= 0) edge = found
+  }
+  emit('context-menu', { event, point, key, edge })
+}
+
 function isRackDrag(event) {
   return props.editMode && [...(event.dataTransfer?.types ?? [])].includes(RACK_DRAG_TYPE)
 }
@@ -478,6 +504,7 @@ defineExpose({ fit, viewCentre })
       @pointerup="onPointerUp"
       @pointercancel="onPointerUp"
       @dblclick="onDoubleClick"
+      @contextmenu="onContextMenu"
     >
       <defs>
         <clipPath :id="`fp-clip-${plan.roomId}`">
@@ -578,6 +605,7 @@ defineExpose({ fit, viewCentre })
             `fp-el fp-el-${entry.element.type.toLowerCase()}`,
             { selected: selectedKeys.has(entry.key), warned: warnedKeys.has(entry.key) },
           ]"
+          :data-key="entry.key"
           :role="editMode ? 'button' : undefined"
           :tabindex="editMode ? 0 : undefined"
           :aria-label="editMode ? entry.element.name || entry.element.type : undefined"
@@ -653,6 +681,7 @@ defineExpose({ fit, viewCentre })
           :key="entry.rack.id"
           class="fp-rack"
           :class="{ selected: selectedKeys.has(entry.key), warned: warnedKeys.has(entry.key) }"
+          :data-key="entry.key"
           role="button"
           :aria-label="entry.rack.name"
           v-bind="rackBindings(entry)"
@@ -715,6 +744,7 @@ defineExpose({ fit, viewCentre })
           :height="px(10)"
           class="fp-vertex"
           :class="{ selected: selectedKeys.has(vertex.key) }"
+          :data-key="vertex.key"
           vector-effect="non-scaling-stroke"
           role="button"
           tabindex="0"

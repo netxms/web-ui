@@ -79,6 +79,43 @@ describe('saveOperations', () => {
   })
 })
 
+describe('racks moving in', () => {
+  const arrival = { id: 201, name: 'B01', status: 0, width: 600, depth: 1200, rooms: [{ id: 50 }] }
+
+  it('saves a rack from elsewhere with its whole placement and the rooms it leaves', () => {
+    const baseline = editModelFromPlan(plan)
+    const working = {
+      ...baseline,
+      arrivals: { 201: arrival },
+      placements: { ...baseline.placements, 201: { placed: true, x: 600, y: 0, rotation: 90 } },
+    }
+    expect(saveOperations(baseline, working)).toEqual([
+      {
+        kind: 'rack-arrive',
+        id: 201,
+        fromRoomIds: [50],
+        payload: { placed: true, x: 600, y: 0, rotation: 90 },
+      },
+    ])
+  })
+
+  it('stops sending the move once it is saved, and later edits go as placement changes', () => {
+    const baseline = editModelFromPlan(plan)
+    const placement = { placed: true, x: 600, y: 0, rotation: 90 }
+    const working = {
+      ...baseline,
+      arrivals: { 201: arrival },
+      placements: { ...baseline.placements, 201: placement },
+    }
+    const [op] = saveOperations(baseline, working)
+    const saved = foldSaved(baseline, op).baseline
+
+    expect(saveOperations(saved, working)).toEqual([])
+    const moved = { ...working, placements: { ...working.placements, 201: { ...placement, x: 0 } } }
+    expect(saveOperations(saved, moved)).toEqual([{ kind: 'rack', id: 201, payload: { x: 0 } }])
+  })
+})
+
 describe('room grid', () => {
   it('reads the grid of a room without one as no grid', () => {
     expect(editModelFromPlan(plan).room).toEqual({ gridTileSize: 0, gridLabels: 'NONE' })

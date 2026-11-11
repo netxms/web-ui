@@ -31,7 +31,11 @@ import { dispatchMaintenanceResult } from '@/utils/maintenanceResult'
 import { isDemoDashboardId, deleteDemoDashboard } from '@/api/demoDashboardStorage'
 import { queryClient } from '@/queries/config'
 import { objectKeys } from '@/queries/useObjectQueries'
-import { getCreatableClasses, IMPLEMENTED_CLASSES } from '@/utils/objectCreationRules'
+import {
+  CONTAINER_PARENT_CLASSES,
+  getCreatableClasses,
+  IMPLEMENTED_CLASSES,
+} from '@/utils/objectCreationRules'
 import { getViewGroupsForObject, isViewCompatible } from '@/config/objectViews'
 import { notifyNotImplemented } from '@/utils/notImplemented'
 import { getClassIcon, getClassLabel, TEMPLATE_APPLICABLE_CLASSES } from '@/utils/objectUtils'
@@ -167,7 +171,30 @@ const BIND_TO_CONTAINER_CLASSES = [
   'MobileDevice',
   'Sensor',
   'Condition',
+  'Subnet',
+  'AccessPoint',
 ]
+
+// Legacy's movable classes, plus Chassis, which it binds but does not move.
+const MOVABLE_CLASSES = [
+  'Node',
+  'Cluster',
+  'Chassis',
+  'Rack',
+  'MobileDevice',
+  'Sensor',
+  'Condition',
+  'Subnet',
+  'Circuit',
+  'Container',
+  'Collector',
+  'Facility',
+  'PowerDomain',
+  'CoolingZone',
+  'Room',
+]
+
+const BIND_INTO_CLASSES = [...CONTAINER_PARENT_CLASSES]
 
 // One "Create" item per class with a working creation dialog, filtered per context by the
 // parent->child rules.
@@ -649,13 +676,33 @@ const objectActions = [
         },
       },
       {
+        // Several objects only from the tree, where each row says which parent it leaves.
+        id: 'object.organize.moveToContainer',
+        multiSelect: true,
+        label: 'Move to another container...',
+        icon: 'pi pi-folder-open',
+        priority: 2,
+        objectClasses: MOVABLE_CLASSES,
+        isApplicable: (ctx) =>
+          !(ctx.selection?.length > 1) ||
+          ctx.selection.every((o) =>
+            CONTAINER_PARENT_CLASSES.has(ctx.treeParents?.get(o.id)?.class),
+          ),
+        command: ({ actionContext }) => {
+          dispatchObjectEvent('object:moveToContainer', {
+            objects: actionContext.selection ?? [actionContext.object],
+            treeParents: actionContext.treeParents ?? null,
+          })
+        },
+      },
+      {
         // Single-object only, per legacy `if (singleObject) add(actionBind)`: the picked
         // objects are bound INTO this one, so a range has no single defined target.
         id: 'object.organize.bindObjectInto',
         label: 'Bind object into...',
         icon: 'pi pi-arrow-down',
-        priority: 2,
-        objectClasses: ['Container', 'Collector'],
+        priority: 3,
+        objectClasses: BIND_INTO_CLASSES,
         command: ({ actionContext }) => {
           dispatchObjectEvent('object:bindObjectInto', { object: actionContext.object })
         },
@@ -664,8 +711,8 @@ const objectActions = [
         id: 'object.organize.unbindChildrenFromContainer',
         label: 'Unbind objects from...',
         icon: 'pi pi-arrow-down-left',
-        priority: 3,
-        objectClasses: ['Container', 'Collector'],
+        priority: 4,
+        objectClasses: BIND_INTO_CLASSES,
         command: ({ actionContext }) => {
           dispatchObjectEvent('object:unbindChildrenFromContainer', {
             object: actionContext.object,
@@ -676,7 +723,7 @@ const objectActions = [
         id: 'object.organize.linkAsset',
         label: 'Link to asset...',
         icon: 'pi pi-link',
-        priority: 4,
+        priority: 5,
         objectClasses: ['Node'],
         command: () => notifyNotImplemented('Link asset'),
       },
@@ -686,7 +733,7 @@ const objectActions = [
         id: 'object.organize.changeZone',
         label: 'Change zone...',
         icon: 'pi pi-map',
-        priority: 5,
+        priority: 6,
         objectClasses: ['Node'],
         command: () => notifyNotImplemented('Change zone'),
       },
@@ -696,7 +743,7 @@ const objectActions = [
         id: 'object.organize.setPeer',
         label: 'Set peer...',
         icon: 'pi pi-link',
-        priority: 6,
+        priority: 7,
         objectClasses: ['Interface'],
         command: ({ actionContext }) => {
           dispatchObjectEvent('interface:setPeer', { object: actionContext.object })
@@ -707,7 +754,7 @@ const objectActions = [
         id: 'object.organize.clearPeer',
         label: 'Clear peer',
         icon: 'pi pi-times-circle',
-        priority: 7,
+        priority: 8,
         objectClasses: ['Interface'],
         isApplicable: (ctx) => ctx.object.peerInterfaceId !== 0,
         command: ({ actionContext }) => {

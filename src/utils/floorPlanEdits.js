@@ -39,8 +39,11 @@ const ROOM_FIELDS = ['gridTileSize', 'gridLabels']
  * @typedef {{ id: number, name: string, type: string, x: number, y: number, rotation: number,
  *   width: number, depth: number }} Element
  * @typedef {{ gridTileSize: number, gridLabels: string }} RoomFields
+ * @typedef {{ id: number, name: string, status: number, width: number, depth: number,
+ *   height?: number, rooms: Array<{id: number, name: string}> }} Arrival - a rack from elsewhere,
+ *   bound to the room on save and unbound from `rooms`
  * @typedef {{ outline: Array<{x: number, y: number}>, room: RoomFields, elements: Element[],
- *   placements: Record<number, Placement> }} EditModel
+ *   placements: Record<number, Placement>, arrivals: Record<number, Arrival> }} EditModel
  */
 
 /** @returns {Placement} */
@@ -72,11 +75,14 @@ export function editModelFromPlan(plan) {
       depth: e.depth ?? 0,
     })),
     placements: Object.fromEntries((plan.racks ?? []).map((r) => [r.id, placementOf(r)])),
+    arrivals: {},
   }
 }
 
 /** Elements the server does not have yet carry a negative id. */
 export const isNewElement = (element) => element.id < 0
+
+const pick = (source, fields) => Object.fromEntries(fields.map((field) => [field, source[field]]))
 
 function changedFields(before, after, fields) {
   const payload = {}
@@ -91,12 +97,13 @@ const sameOutline = (a, b) =>
 
 /**
  * The calls that take the server from `baseline` to `working`: the room's outline and grid, each
- * rack's changed placement fields, then element deletes, updates and creates.
+ * rack's changed placement fields, racks moving in with their whole placement, then element
+ * deletes, updates and creates. A rack that has arrived is in the baseline's placements.
  *
  * @param {EditModel} baseline
  * @param {EditModel} working
- * @returns {Array<{ kind: 'room'|'rack'|'element-delete'|'element-update'|'element-create',
- *   id?: number, payload?: object }>}
+ * @returns {Array<{ kind: 'room'|'rack'|'rack-arrive'|'element-delete'|'element-update'
+ *   |'element-create', id?: number, payload?: object, fromRoomIds?: number[] }>}
  */
 export function saveOperations(baseline, working) {
   const ops = []
@@ -110,6 +117,16 @@ export function saveOperations(baseline, working) {
     if (!before) continue
     const payload = changedFields(before, after, PLACEMENT_FIELDS)
     if (Object.keys(payload).length) ops.push({ kind: 'rack', id: Number(id), payload })
+  }
+  for (const [id, arrival] of Object.entries(working.arrivals ?? {})) {
+    const placement = working.placements[id]
+    if (baseline.placements[id] || !placement) continue
+    ops.push({
+      kind: 'rack-arrive',
+      id: Number(id),
+      fromRoomIds: arrival.rooms.map((room) => room.id),
+      payload: pick(placement, PLACEMENT_FIELDS),
+    })
   }
   const kept = new Map(working.elements.map((e) => [e.id, e]))
   for (const element of baseline.elements) {
@@ -159,6 +176,10 @@ export function foldSaved(baseline, op, answer) {
         },
       }
     }
+    case 'rack-arrive':
+      return {
+        baseline: { ...baseline, placements: { ...baseline.placements, [op.id]: { ...op.payload } } },
+      }
     case 'element-delete':
       return {
         baseline: { ...baseline, elements: baseline.elements.filter((e) => e.id !== op.id) },

@@ -33,6 +33,7 @@ import ObjectPickerDialog from '@/components/objects/ObjectPickerDialog.vue'
 import AppliedTemplatePickerDialog from '@/components/objects/AppliedTemplatePickerDialog.vue'
 import UnbindFromContainerDialog from '@/components/objects/UnbindFromContainerDialog.vue'
 import UnbindChildrenFromContainerDialog from '@/components/objects/UnbindChildrenFromContainerDialog.vue'
+import MoveToContainerDialog from '@/components/objects/MoveToContainerDialog.vue'
 import MaintenanceDialog from '@/components/objects/MaintenanceDialog.vue'
 import StatusExplanationDialog from '@/components/objects/StatusExplanationDialog.vue'
 import { useContextMenu } from '@/composables/useContextMenu'
@@ -57,7 +58,9 @@ import {
   useObject,
   useObjectsByIds,
   useBindObjectChild,
+  useUnbindObjectChild,
 } from '@/queries/useObjectQueries'
+import { moveObjectsToContainer } from '@/utils/moveToGroup'
 import { useObjectToolIcons, useObjectToolsForObject } from '@/queries/useObjectToolQueries'
 import { useObjectIcons } from '@/composables/useObjectIcons'
 import { useWorkingState } from '@/composables/useWorkingState'
@@ -365,6 +368,7 @@ function toggleSettingsMenu(event) {
 
 const toast = useToast()
 const { mutateAsync: bindChildAsync } = useBindObjectChild()
+const { mutateAsync: unbindChildAsync } = useUnbindObjectChild()
 
 const bindToContainerTargets = ref([])
 const bindToContainerVisible = ref(false)
@@ -377,6 +381,10 @@ const unbindFromContainerVisible = ref(false)
 
 const unbindChildrenFromContainerTarget = ref(null)
 const unbindChildrenFromContainerVisible = ref(false)
+
+const moveToContainerTargets = ref([])
+const moveToContainerTreeParents = ref(null)
+const moveToContainerVisible = ref(false)
 
 const startMaintenanceTargets = ref([])
 const startMaintenanceVisible = ref(false)
@@ -412,6 +420,12 @@ function handleUnbindFromContainerEvent(event) {
 function handleUnbindChildrenFromContainerEvent(event) {
   unbindChildrenFromContainerTarget.value = event.detail.object
   unbindChildrenFromContainerVisible.value = true
+}
+
+function handleMoveToContainerEvent(event) {
+  moveToContainerTargets.value = event.detail.objects
+  moveToContainerTreeParents.value = event.detail.treeParents
+  moveToContainerVisible.value = true
 }
 
 function bindSummary(childCount, containerCount) {
@@ -459,6 +473,54 @@ async function onBindableObjectSelected(children) {
   }
 }
 
+/** The server clears a rack's floor plan position when it leaves the room. */
+function leftRoomNote(moves, succeeded) {
+  const moved = new Set(succeeded.map((o) => o.id))
+  const racks = moves.filter(
+    (m) => moved.has(m.object.id) && m.object.class === 'Rack' && m.source.class === 'Room',
+  )
+  if (racks.length === 0) return undefined
+  return racks.length === 1
+    ? 'Its floor plan position was cleared.'
+    : 'Their floor plan positions were cleared.'
+}
+
+async function onMoveTargetSelected({ target, moves }) {
+  const { succeeded, failed } = await moveObjectsToContainer({
+    moves: moves.map((m) => ({ object: m.object, sourceId: m.source.id })),
+    target,
+    bind: bindChildAsync,
+    unbind: unbindChildAsync,
+  })
+
+  if (succeeded.length > 0) {
+    toast.add({
+      severity: 'success',
+      summary:
+        succeeded.length === 1
+          ? `Moved to ${target.name}`
+          : `${succeeded.length} objects moved to ${target.name}`,
+      detail: leftRoomNote(moves, succeeded),
+      life: 3000,
+    })
+  }
+
+  // 403 is already toasted by api/client.js.
+  const reportable = failed.filter((failure) => failure.status !== 403)
+  if (reportable.length > 0) {
+    toast.add({
+      severity: 'error',
+      summary:
+        reportable.length === 1 ? 'Move failed' : `Could not move ${reportable.length} objects`,
+      detail:
+        reportable.length === 1
+          ? (reportable[0].message ?? reportable[0].name)
+          : reportable.map((failure) => failure.name).join(', '),
+      life: 5000,
+    })
+  }
+}
+
 onMounted(() => {
   document.addEventListener('object:bindToContainer', handleBindToContainerEvent)
   document.addEventListener('object:bindObjectInto', handleBindObjectIntoEvent)
@@ -467,6 +529,7 @@ onMounted(() => {
     'object:unbindChildrenFromContainer',
     handleUnbindChildrenFromContainerEvent,
   )
+  document.addEventListener('object:moveToContainer', handleMoveToContainerEvent)
   document.addEventListener('object:startMaintenance', handleStartMaintenanceEvent)
   document.addEventListener('object:explainStatus', handleExplainStatusEvent)
 })
@@ -478,6 +541,7 @@ onUnmounted(() => {
     'object:unbindChildrenFromContainer',
     handleUnbindChildrenFromContainerEvent,
   )
+  document.removeEventListener('object:moveToContainer', handleMoveToContainerEvent)
   document.removeEventListener('object:startMaintenance', handleStartMaintenanceEvent)
   document.removeEventListener('object:explainStatus', handleExplainStatusEvent)
 })
@@ -995,15 +1059,32 @@ useObjectDeletionNavigation({
   ],
 })
 
-function handleTreeContextMenu(event, node, { selection, path } = {}) {
+/** The object a row hangs under: a top-level row's parent is its tree's root. */
+function treeParentOf(path) {
+  const ids = path.split('-')
+  if (ids.length > 1) return resolveTreePath(ids.slice(0, -1).join('-'))
+  if (path === String(serviceRootId.value) || path === String(networkRootId.value)) return null
+  if (findNodeByPath(filteredTree.value, path)) return rootTreeObject.value
+  if (findNodeByPath(networkFilteredTree.value, path)) return networkRootObject.value
+  return null
+}
+
+function handleTreeContextMenu(event, node, { selection, path, paths } = {}) {
   contextMenuTargetObject.value = node
   menuRowPath = path
+  const treeParents = new Map()
+  for (const rowPath of paths ?? []) {
+    const row = resolveTreePath(rowPath)
+    const parent = row && treeParentOf(rowPath)
+    if (parent) treeParents.set(row.id, parent)
+  }
   // A right click outside a multi-selection has already collapsed the range, so the tree
   // reports no selection.
   treeContextMenu.contextRef.value = {
     object: node,
     viewContext: 'objectTree',
     selection,
+    treeParents,
   }
   treeMenuRef.value?.show(event)
 }
@@ -1783,12 +1864,14 @@ watch(
   <ContainerPickerDialog
     v-if="bindToContainerVisible"
     visible
+    :objects="bindToContainerTargets"
     @update:visible="bindToContainerVisible = $event"
     @select="onContainerSelected"
   />
   <BindableObjectPickerDialog
     v-if="bindObjectIntoVisible"
     visible
+    :parent-class="bindObjectIntoTarget?.class"
     @update:visible="bindObjectIntoVisible = $event"
     @select="onBindableObjectSelected"
   />
@@ -1814,6 +1897,14 @@ watch(
     visible
     @update:visible="unbindFromContainerVisible = $event"
     :object="unbindFromContainerTarget"
+  />
+  <MoveToContainerDialog
+    v-if="moveToContainerVisible"
+    visible
+    :objects="moveToContainerTargets"
+    :tree-parents="moveToContainerTreeParents"
+    @update:visible="moveToContainerVisible = $event"
+    @select="onMoveTargetSelected"
   />
   <UnbindChildrenFromContainerDialog
     v-if="unbindChildrenFromContainerVisible"

@@ -21,7 +21,9 @@ import {
   powerSplit,
   rackAlarmCounts,
   rackPowerTotal,
+  racksAround,
   readMetric,
+  roomsOfRacks,
   scenarioLoads,
   statusCounts,
   sumKilowatts,
@@ -83,6 +85,55 @@ describe('data center tree', () => {
     expect(kept.map((n) => n.id)).toEqual([10, 30, 50])
     expect(kept[1].children).toEqual([])
     expect(kept[2].children.map((n) => n.id)).toEqual([51])
+  })
+})
+
+describe('racks around a room', () => {
+  const rack = (id, name) => ({ id, name, class: 'Rack', status: 0, children: [] })
+  const tree = [
+    {
+      id: 1,
+      name: 'DC-1',
+      class: 'Facility',
+      children: [
+        { id: 10, name: 'Hall A', class: 'Room', children: [rack(100, 'A01')] },
+        { id: 11, name: 'Hall B', class: 'Room', children: [rack(101, 'B01'), rack(102, 'B02')] },
+        {
+          id: 12,
+          name: 'UPS-A',
+          class: 'PowerDomain',
+          children: [rack(100, 'A01'), rack(103, 'C01'), rack(101, 'B01')],
+        },
+      ],
+    },
+    {
+      id: 2,
+      name: 'Branch',
+      class: 'Container',
+      children: [
+        { id: 20, name: 'Comms', class: 'Room', children: [rack(200, 'R1')] },
+        rack(201, 'R2'),
+      ],
+    },
+  ]
+
+  it('finds the rooms each rack stands in, through any branch', () => {
+    const rooms = roomsOfRacks(tree)
+    expect(rooms.get(101)).toEqual([{ id: 11, name: 'Hall B' }])
+    expect(rooms.get(103)).toBeUndefined()
+  })
+
+  it("lists the facility's racks outside the room, once each and by name", () => {
+    expect(racksAround(tree, 10)).toEqual([
+      { id: 101, name: 'B01', status: 0, rooms: [{ id: 11, name: 'Hall B' }] },
+      { id: 102, name: 'B02', status: 0, rooms: [{ id: 11, name: 'Hall B' }] },
+      { id: 103, name: 'C01', status: 0, rooms: [] },
+    ])
+  })
+
+  it('looks beside a room that has no facility', () => {
+    expect(racksAround(tree, 20).map((r) => r.name)).toEqual(['R2'])
+    expect(racksAround(tree, 99)).toEqual([])
   })
 })
 

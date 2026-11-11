@@ -80,11 +80,10 @@ function onContextMenu(event, node, path) {
   const range = multiSelect.selectedPaths.value
   if (range && !range.has(path)) multiSelect.reset()
   const stillRanged = multiSelect.selectedPaths.value
-  const selection = stillRanged
-    ? [...stillRanged].map(props.resolvePath).filter(Boolean)
-    : undefined
+  const paths = stillRanged ? [...stillRanged] : [path]
+  const selection = stillRanged ? paths.map(props.resolvePath).filter(Boolean) : undefined
   menuPath.value = path
-  emit('contextmenu', event, node, { selection, path })
+  emit('contextmenu', event, node, { selection, path, paths })
 }
 
 // Views also select programmatically (e.g. moving to the neighbour after a delete), which

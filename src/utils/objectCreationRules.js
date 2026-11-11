@@ -78,3 +78,59 @@ export const IMPLEMENTED_CLASSES = new Set([
   'WirelessDomain',
   'Zone',
 ])
+
+// Manual bindings the server accepts under a container-like parent (IsValidParentClass in the
+// server); wider than what the Create menu offers there.
+const CONTAINER_BIND_CHILDREN = [
+  'AccessPoint',
+  'Chassis',
+  'Circuit',
+  'Cluster',
+  'Collector',
+  'Condition',
+  'Container',
+  'Facility',
+  'MobileDevice',
+  'Node',
+  'Rack',
+  'Room',
+  'Sensor',
+  'Subnet',
+  'WirelessDomain',
+  'CloudDomain',
+  'Resource',
+  'TrafficObserver',
+]
+
+const BIND_RULES = {
+  ServiceRoot: CONTAINER_BIND_CHILDREN,
+  Container: CONTAINER_BIND_CHILDREN,
+  Collector: CONTAINER_BIND_CHILDREN,
+  Facility: [
+    'Chassis',
+    'Cluster',
+    'Container',
+    'CoolingZone',
+    'Node',
+    'PowerDomain',
+    'Rack',
+    'Room',
+    'Sensor',
+  ],
+  PowerDomain: ['Chassis', 'Cluster', 'Node', 'PowerDomain', 'Rack', 'Sensor'],
+  CoolingZone: ['Chassis', 'Cluster', 'CoolingZone', 'Node', 'Rack', 'Sensor'],
+  Room: ['Chassis', 'Node', 'Rack', 'Sensor'],
+}
+
+/** Classes a container picker offers as a bind or move target. */
+export const CONTAINER_PARENT_CLASSES = new Set(Object.keys(BIND_RULES))
+
+/** @returns {boolean} */
+export function canBindChild(childClass, parentClass) {
+  return BIND_RULES[parentClass]?.includes(childClass) ?? false
+}
+
+/** @returns {string[]} */
+export function bindableChildClasses(parentClass) {
+  return BIND_RULES[parentClass] ?? []
+}

@@ -839,6 +839,8 @@ export function useBindObjectChild() {
       queryClient.invalidateQueries({ queryKey: objectKeys.detail(childId) })
       queryClient.invalidateQueries({ queryKey: ['objects', 'children', parentId] })
       queryClient.invalidateQueries({ queryKey: ['objects', 'subTree'] })
+      // dataCenterKeys.floorPlan: a room lists the racks bound to it.
+      queryClient.invalidateQueries({ queryKey: ['dataCenter', 'floorPlan', parentId] })
     },
   })
 }
@@ -853,6 +855,8 @@ export function useUnbindObjectChild() {
       queryClient.invalidateQueries({ queryKey: objectKeys.detail(childId) })
       queryClient.invalidateQueries({ queryKey: ['objects', 'children', parentId] })
       queryClient.invalidateQueries({ queryKey: ['objects', 'subTree'] })
+      // dataCenterKeys.floorPlan: a room lists the racks bound to it.
+      queryClient.invalidateQueries({ queryKey: ['dataCenter', 'floorPlan', parentId] })
     },
   })
 }

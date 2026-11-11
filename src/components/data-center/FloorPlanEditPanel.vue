@@ -11,15 +11,28 @@ import StatusTag from '@/components/common/StatusTag.vue'
 import { bounds, facing, footprint, tileAt } from '@/utils/floorPlan'
 import { GRID_LABEL_OPTIONS, LIMITS } from '@/utils/dataCenterProperties'
 import { RACK_DRAG_TYPE, elementTypeLabel } from '@/utils/floorPlanEdits'
+import { removeLabelFor } from '@/utils/floorPlanMenu'
 
 const props = defineProps({
   /** `reactive(useFloorPlanEditor(...))` */
   editor: { type: Object, required: true },
   /** The plan being edited */
   plan: { type: Object, required: true },
+  /** Racks from elsewhere the room can take in: `racksAround` */
+  incoming: { type: Array, default: () => [] },
+  /** Offer a search for racks beyond `incoming` */
+  canFind: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['place-rack', 'place-row', 'rack-drag-start', 'rack-drag-end'])
+const emit = defineEmits([
+  'place-rack',
+  'place-row',
+  'rack-drag-start',
+  'rack-drag-end',
+  'bring-rack',
+  'incoming-drag-start',
+  'find-racks',
+])
 
 const FACING_OPTIONS = [
   { label: 'South', value: 'S' },
@@ -118,12 +131,7 @@ function position(item) {
   return [tile, side ? `front ${side}` : `${item.rotation}\u00b0`].filter(Boolean).join(', ')
 }
 
-const removeLabel = computed(() => {
-  const kinds = new Set(items.value.map((item) => item.kind))
-  if (kinds.size === 1 && kinds.has('rack')) return 'Remove from plan'
-  if (kinds.size === 1 && kinds.has('vertex')) return 'Delete corner'
-  return items.value.length === 1 ? 'Delete' : 'Remove'
-})
+const removeLabel = computed(() => removeLabelFor(items.value))
 
 const lineUp = reactive({ side: 'S', gap: 0 })
 watch(
@@ -159,6 +167,32 @@ function onChipDragStart(rack, event) {
   event.dataTransfer.setData(RACK_DRAG_TYPE, String(rack.id))
   event.dataTransfer.effectAllowed = 'move'
   emit('rack-drag-start', rack.id)
+}
+
+const incomingFilter = ref('')
+const shownIncoming = computed(() => {
+  const text = incomingFilter.value.trim().toLowerCase()
+  if (!text) return props.incoming
+  return props.incoming.filter(
+    (rack) =>
+      rack.name.toLowerCase().includes(text) ||
+      rack.rooms.some((room) => room.name.toLowerCase().includes(text)),
+  )
+})
+
+function whereNow(rack) {
+  return rack.rooms.map((room) => room.name).join(', ') || 'No room'
+}
+
+function onIncomingDragStart(rack, event) {
+  event.dataTransfer.setData(RACK_DRAG_TYPE, String(rack.id))
+  event.dataTransfer.effectAllowed = 'move'
+  emit('incoming-drag-start', rack)
+}
+
+function arrivingText(rooms) {
+  const names = rooms.map((room) => room.name).join(', ')
+  return names ? `Moves here from ${names} on save.` : 'Joins this room on save.'
 }
 
 function selectWarning(warning) {
@@ -304,6 +338,9 @@ function selectWarning(warning) {
             {{ single.depth }} mm
           </dd>
         </dl>
+        <p v-if="single.arrivingFrom" class="fp-hint">
+          {{ arrivingText(single.arrivingFrom) }} Remove it from the plan to leave it where it is.
+        </p>
       </template>
 
       <template v-else-if="single?.kind === 'element'">
@@ -568,6 +605,55 @@ function selectWarning(warning) {
         </div>
       </div>
     </section>
+
+    <section v-if="incoming.length || canFind" class="fp-section">
+      <h3 class="fp-section__title">
+        Other racks<template v-if="incoming.length"> ({{ incoming.length }})</template>
+      </h3>
+      <InputText
+        v-if="incoming.length > 5"
+        v-model="incomingFilter"
+        size="small"
+        placeholder="Filter racks"
+        aria-label="Filter other racks"
+        data-filter-input
+        fluid
+      />
+      <ul v-if="shownIncoming.length" class="fp-list fp-incoming">
+        <li v-for="rack in shownIncoming" :key="rack.id">
+          <button
+            type="button"
+            class="fp-list__row fp-incoming__row"
+            draggable="true"
+            :aria-label="`Move ${rack.name} into this room, in the middle of the view`"
+            @click="emit('bring-rack', rack)"
+            @dragstart="onIncomingDragStart(rack, $event)"
+            @dragend="emit('rack-drag-end')"
+          >
+            <i class="pi pi-arrows-alt" aria-hidden="true" />
+            <span class="fp-list__name">{{ rack.name }}</span>
+            <span class="fp-list__meta">{{ whereNow(rack) }}</span>
+          </button>
+        </li>
+      </ul>
+      <p v-else-if="incoming.length" class="fp-hint">No rack matches the filter.</p>
+      <p class="fp-hint">
+        <template v-if="incoming.length">
+          Racks nearby that stand elsewhere. Drag one onto the plan, or click it to place it in the
+          middle; it moves into this room when you save.
+        </template>
+        <template v-else>No other racks nearby.</template>
+      </p>
+      <Button
+        v-if="canFind"
+        label="Find rack&hellip;"
+        icon="pi pi-search"
+        size="small"
+        severity="secondary"
+        outlined
+        @click="emit('find-racks')"
+      />
+    </section>
   </div>
 </template>
 
@@ -639,6 +725,20 @@ html.app-dark .fp-warning__icon {
 }
 
 .fp-chip--drag .pi {
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+}
+
+.fp-incoming {
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
+.fp-incoming__row {
+  cursor: grab;
+}
+
+.fp-incoming__row .pi {
   font-size: 0.75rem;
   color: var(--p-text-muted-color);
 }

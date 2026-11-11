@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { del, get, patch, post } from '../client'
+import { del, get, patch, post, put } from '../client'
 import { getDciValues } from '../objectsApi'
 import {
   isDemoDataCenterId,
@@ -20,6 +20,7 @@ vi.mock('../client', async (importOriginal) => ({
   get: vi.fn(() => Promise.resolve({})),
   patch: vi.fn(() => Promise.resolve({})),
   post: vi.fn(() => Promise.resolve({})),
+  put: vi.fn(() => Promise.resolve()),
   del: vi.fn(() => Promise.resolve()),
 }))
 
@@ -147,6 +148,66 @@ describe('dataCenterApi demo content', () => {
     expect(del).toHaveBeenCalledWith('/v1/objects/42/floor-plan/passive-elements/7', {
       suppressForbidden: true,
     })
+  })
+
+  function recordCalls() {
+    const calls = []
+    const record = (verb, answer) => (url) => {
+      calls.push(`${verb} ${url}`)
+      return answer instanceof Error ? Promise.reject(answer) : Promise.resolve(answer)
+    }
+    return { calls, record }
+  }
+  const hierarchy = () => Object.assign(new Error('violates object hierarchy rules'), { status: 409 })
+  const PLACEMENT = { placed: true, x: 600, y: 0, rotation: 0 }
+
+  it('moves a rack without a room in: bound here, then placed', async () => {
+    const { calls, record } = recordCalls()
+    put.mockImplementationOnce(record('PUT'))
+    patch.mockImplementationOnce(record('PATCH', {}))
+
+    await saveFloorPlanOperation(42, {
+      kind: 'rack-arrive',
+      id: 44,
+      fromRoomIds: [],
+      payload: PLACEMENT,
+    })
+
+    expect(calls).toEqual(['PUT /v1/objects/42/children/44', 'PATCH /v1/objects/44/room-placement'])
+    expect(patch).toHaveBeenCalledWith('/v1/objects/44/room-placement', PLACEMENT, {
+      suppressForbidden: true,
+    })
+  })
+
+  it('takes a rack out of its room first when the server allows one room only', async () => {
+    const { calls, record } = recordCalls()
+    put.mockImplementationOnce(record('PUT', hierarchy())).mockImplementationOnce(record('PUT'))
+    del.mockImplementationOnce(record('DELETE'))
+    patch.mockImplementationOnce(record('PATCH', {}))
+
+    await saveFloorPlanOperation(42, {
+      kind: 'rack-arrive',
+      id: 44,
+      fromRoomIds: [50],
+      payload: PLACEMENT,
+    })
+
+    expect(calls).toEqual([
+      'PUT /v1/objects/42/children/44',
+      'DELETE /v1/objects/50/children/44',
+      'PUT /v1/objects/42/children/44',
+      'PATCH /v1/objects/44/room-placement',
+    ])
+  })
+
+  it('stops a move in when the rack cannot join the room', async () => {
+    put.mockRejectedValueOnce(Object.assign(new Error('Forbidden'), { status: 403 }))
+
+    await expect(
+      saveFloorPlanOperation(42, { kind: 'rack-arrive', id: 44, fromRoomIds: [50], payload: {} }),
+    ).rejects.toMatchObject({ status: 403 })
+    expect(del).not.toHaveBeenCalled()
+    expect(patch).not.toHaveBeenCalled()
   })
 
   it('sends everything else to the server', async () => {

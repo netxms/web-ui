@@ -156,8 +156,14 @@ export function useSaveFloorPlan() {
       queryClient.invalidateQueries({ queryKey: dataCenterKeys.floorPlan(roomId) })
       queryClient.invalidateQueries({ queryKey: objectKeys.detail(roomId) })
       for (const op of ops) {
-        if (op.kind === 'rack')
+        if (op.kind === 'rack' || op.kind === 'rack-arrive')
           queryClient.invalidateQueries({ queryKey: objectKeys.detail(op.id) })
+        if (op.kind !== 'rack-arrive') continue
+        queryClient.invalidateQueries({ queryKey: ['objects', 'subTree'] })
+        for (const id of op.fromRoomIds) {
+          queryClient.invalidateQueries({ queryKey: dataCenterKeys.floorPlan(id) })
+          queryClient.invalidateQueries({ queryKey: objectKeys.detail(id) })
+        }
       }
     },
   })

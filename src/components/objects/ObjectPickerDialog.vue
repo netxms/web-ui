@@ -51,6 +51,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  confirmDisabled: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['update:visible', 'select'])
@@ -148,6 +152,10 @@ const CONTAINER_CLASSES = new Set([
   'AssetGroup',
   'Rack',
   'Chassis',
+  'Facility',
+  'PowerDomain',
+  'CoolingZone',
+  'Room',
 ])
 
 function sortLevel(nodes) {
@@ -193,7 +201,7 @@ const filteredTree = computed(() => {
 })
 
 function onSelect() {
-  if (selectedNodes.value.length === 0) return
+  if (selectedNodes.value.length === 0 || props.confirmDisabled) return
   emit('select', props.multiSelect ? selectedNodes.value : selectedNodes.value[0])
   emit('update:visible', false)
 }
@@ -222,6 +230,10 @@ function onCancel() {
           <Tab v-for="p in perspectives" :key="p.id" :value="p.id">{{ p.label }}</Tab>
         </TabList>
       </Tabs>
+
+      <div v-if="$slots.intro" class="picker-intro">
+        <slot name="intro" />
+      </div>
 
       <div class="picker-toolbar">
         <IconField>
@@ -267,7 +279,7 @@ function onCancel() {
           multiSelect && selectedNodes.length > 1 ? `Select (${selectedNodes.length})` : 'Select'
         "
         icon="pi pi-check"
-        :disabled="selectedNodes.length === 0"
+        :disabled="selectedNodes.length === 0 || confirmDisabled"
         @click="onSelect"
       />
     </template>
@@ -291,6 +303,13 @@ function onCancel() {
 
 .picker-tabs :deep(.p-tablist) {
   border-bottom: none;
+}
+
+.picker-intro {
+  flex-shrink: 0;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid var(--p-surface-border);
+  font-size: 0.875rem;
 }
 
 .picker-toolbar {

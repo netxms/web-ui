@@ -2,11 +2,13 @@
 import { computed } from 'vue'
 import ObjectPickerDialog from './ObjectPickerDialog.vue'
 import { useObjects } from '@/queries/useObjectQueries'
+import { bindableChildClasses } from '@/utils/objectCreationRules'
 
 const props = defineProps({
   visible: { type: Boolean, required: true },
-  // Defaults to container-membership classes.
+  // Defaults to what `parentClass` takes, or to container-membership classes.
   classes: { type: Array, default: null },
+  parentClass: { type: String, default: null },
 })
 
 const emit = defineEmits(['update:visible', 'select'])
@@ -38,9 +40,11 @@ const perspectives = computed(() => {
   return found.length ? found : [{ id: 'infrastructure', label: 'Infrastructure', rootId: 2 }]
 })
 
-const bindableClasses = computed(() =>
-  props.classes ? new Set(props.classes) : BINDABLE_CHILD_CLASSES,
-)
+const bindableClasses = computed(() => {
+  if (props.classes) return new Set(props.classes)
+  if (props.parentClass) return new Set(bindableChildClasses(props.parentClass))
+  return BINDABLE_CHILD_CLASSES
+})
 
 function isBindable(node) {
   return bindableClasses.value.has(node.class)

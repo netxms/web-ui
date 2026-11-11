@@ -279,6 +279,35 @@ describe('Organize submenu', () => {
   it('disappears when nothing inside it applies', () => {
     expect(topLevelIds(menuFor(TEMPLATE))).not.toContain('object.organize')
   })
+
+  const organizeItems = (menu) => menu.find((i) => i.id === 'object.organize')?.items ?? []
+  const organizeIds = (menu) => organizeItems(menu).map((i) => i.id)
+
+  it('offers Move for objects and containers alike', () => {
+    for (const object of [NODE, CONTAINER, { id: 60, name: 'Hall A', class: 'Room' }]) {
+      expect(organizeIds(menuFor(object))).toContain('object.organize.moveToContainer')
+    }
+  })
+
+  it('offers container-side binding on the data center classes', () => {
+    for (const objectClass of ['Facility', 'PowerDomain', 'CoolingZone', 'Room']) {
+      const ids = organizeIds(menuFor({ id: 61, name: 'X', class: objectClass }))
+      expect(ids).toContain('object.organize.bindObjectInto')
+      expect(ids).toContain('object.organize.unbindChildrenFromContainer')
+    }
+  })
+
+  it('dispatches the move with the rows the menu was opened on', () => {
+    const treeParents = new Map([[NODE.id, CONTAINER]])
+    const move = organizeItems(
+      resolveActions(objectActions, { object: NODE, viewContext: 'objectTree', treeParents }),
+    ).find((i) => i.id === 'object.organize.moveToContainer')
+    const listener = vi.fn()
+    document.addEventListener('object:moveToContainer', listener)
+    move.command({ actionContext: { object: NODE, treeParents } })
+    document.removeEventListener('object:moveToContainer', listener)
+    expect(listener.mock.calls[0][0].detail).toEqual({ objects: [NODE], treeParents })
+  })
 })
 
 describe('Maintenance submenu', () => {
@@ -505,6 +534,37 @@ describe('multi-selection menu shape', () => {
     expect(childIds).not.toContain('object.organize.unbindFromContainer')
     expect(childIds).not.toContain('object.organize.changeZone')
     expect(childIds).not.toContain('object.organize.linkAsset')
+  })
+
+  it('moves a range only when every row hangs under a container', () => {
+    const resolve = (treeParents) =>
+      (
+        resolveActions(objectActions, {
+          object: NODE_A,
+          viewContext: 'objectTree',
+          selection: [NODE_A, NODE_B],
+          treeParents,
+        }).find((i) => i.id === 'object.organize')?.items ?? []
+      ).map((i) => i.id)
+    const subnet = { id: 70, name: '10.0.0.0/24', class: 'Subnet' }
+
+    expect(resolve(undefined)).not.toContain('object.organize.moveToContainer')
+    expect(
+      resolve(
+        new Map([
+          [NODE_A.id, CONTAINER],
+          [NODE_B.id, subnet],
+        ]),
+      ),
+    ).not.toContain('object.organize.moveToContainer')
+    expect(
+      resolve(
+        new Map([
+          [NODE_A.id, CONTAINER],
+          [NODE_B.id, { id: 2, name: 'Infrastructure', class: 'ServiceRoot' }],
+        ]),
+      ),
+    ).toContain('object.organize.moveToContainer')
   })
 
   it('hides "bind object into" on a range of containers', () => {

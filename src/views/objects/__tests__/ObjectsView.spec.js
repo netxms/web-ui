@@ -72,13 +72,19 @@ vi.mock('@/queries/useObjectQueries', () => ({
   }),
   useObjectsByIds: () => ({ objectsById: ref(new Map()), isFetching: ref(false) }),
   useBindObjectChild: () => ({ mutateAsync: vi.fn() }),
+  useUnbindObjectChild: () => ({ mutateAsync: vi.fn() }),
 }))
 vi.mock('@/queries/useObjectToolQueries', () => ({
   useObjectToolsForObject: () => ({ data: ref([]), isLoading: ref(false) }),
   useObjectToolIcons: () => ({ iconByToolId: ref(new Map()) }),
 }))
+const contextRefs = vi.hoisted(() => [])
 vi.mock('@/composables/useContextMenu', () => ({
-  useContextMenu: () => ({ menuItems: ref([]), contextRef: ref(null) }),
+  useContextMenu: () => {
+    const contextRef = ref(null)
+    contextRefs.push(contextRef)
+    return { menuItems: ref([]), contextRef }
+  },
 }))
 vi.mock('@/composables/useActions', () => ({
   useActions: () => ({ menuItems: ref([]) }),
@@ -97,8 +103,12 @@ const ObjectsView = (await import('@/views/objects/ObjectsView.vue')).default
 const ViewTabBar = (await import('@/components/views/ViewTabBar.vue')).default
 const ViewAddMenu = (await import('@/components/views/ViewAddMenu.vue')).default
 const ViewContainer = (await import('@/components/views/ViewContainer.vue')).default
+const ObjectSidebarTree = (await import('@/components/objects/ObjectSidebarTree.vue')).default
 const { moduleRegistry } = await import('@/modules')
 const { useViewStore } = await import('@/stores/viewStore')
+
+// The tree opens its menu through the ref.
+const ActionContextMenuStub = { render: () => null, methods: { show() {} } }
 
 async function mountAt(location) {
   const router = createRouter({
@@ -116,7 +126,7 @@ async function mountAt(location) {
   const wrapper = shallowMount(ObjectsView, {
     global: {
       plugins: [createPinia(), router],
-      stubs: { teleport: true },
+      stubs: { teleport: true, ActionContextMenu: ActionContextMenuStub },
       directives: { tooltip: {} },
     },
   })
@@ -359,5 +369,23 @@ describe('ObjectsView - data center views', () => {
     const { wrapper } = await mountAt('/infrastructure/302/power')
     expect(viewProps(wrapper).object.id).toBe(302)
     expect(viewProps(wrapper).facility.id).toBe(300)
+  })
+})
+
+describe('ObjectsView - tree context menu', () => {
+  it('tells the actions which parent each row hangs under', async () => {
+    const { wrapper } = await mountAt('/infrastructure/108')
+    const node = TREES[2][4].children[0]
+    wrapper
+      .findComponent(ObjectSidebarTree)
+      .vm.$emit('contextmenu', new MouseEvent('contextmenu'), node, {
+        selection: [OBJECTS[301], OBJECTS[10]],
+        path: '300-301',
+        paths: ['300-301', '10'],
+      })
+
+    const context = contextRefs.map((r) => r.value).find((v) => v?.viewContext === 'objectTree')
+    expect(context.treeParents.get(301).id).toBe(300)
+    expect(context.treeParents.get(10).class).toBe('ServiceRoot')
   })
 })

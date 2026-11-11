@@ -535,3 +535,39 @@ export function subTreeHandler(req, res) {
   }
   return tree
 }
+
+/**
+ * PUT/DELETE /v1/objects/{parent}/children/{child}: both objects' id lists. A rack that leaves a
+ * room loses its placement, as Rack::onParentRemove does.
+ */
+export function childBindingHandler(req, res) {
+  const parts = segments(req)
+  const parent = getObject(objectIdOf(req))
+  const child = getObject(Number(parts.at(-1)))
+  if (!parent || !child) return fail(res, 404)
+  const without = (list, id) => (list ?? []).filter((x) => x !== id)
+  if (req.method === 'PUT') {
+    // Rack::validateParent: one room and one cooling zone at most.
+    const single = child.class === 'Rack' && ['Room', 'CoolingZone'].includes(parent.class)
+    const rival = (child.parents ?? []).some(
+      (id) => id !== parent.id && getObject(id)?.class === parent.class,
+    )
+    if (single && rival) {
+      return fail(
+        res,
+        409,
+        `Binding object ${child.name} [${child.id}] to ${parent.name} [${parent.id}] violates object hierarchy rules`,
+      )
+    }
+    patchObject(parent.id, { children: [...without(parent.children, child.id), child.id] })
+    patchObject(child.id, { parents: [...without(child.parents, parent.id), parent.id] })
+    return null
+  }
+  patchObject(parent.id, { children: without(parent.children, child.id) })
+  patchObject(child.id, { parents: without(child.parents, parent.id) })
+  if (child.class === 'Rack' && parent.class === 'Room' && child.roomPlacement) {
+    patchObject(child.id, { roomPlacement: { ...child.roomPlacement, placed: false } })
+  }
+  res.statusCode = 204
+  return null
+}

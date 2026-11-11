@@ -356,6 +356,68 @@ export function feedLossRisks(scopeRows, rows, configs, loads, feeds) {
   })
 }
 
+/**
+ * Rack id to the rooms it stands in, anywhere in the sub-tree.
+ *
+ * @param {object[]} nodes - sub-tree nodes
+ * @returns {Map<number, Array<{id: number, name: string}>>}
+ */
+export function roomsOfRacks(nodes) {
+  const rooms = new Map()
+  const walk = (list, room) => {
+    for (const node of list ?? []) {
+      if (node.class === 'Rack') {
+        if (!room) continue
+        const known = rooms.get(node.id) ?? []
+        if (!known.some((r) => r.id === room.id)) rooms.set(node.id, [...known, room])
+        continue
+      }
+      walk(node.children, node.class === 'Room' ? { id: node.id, name: node.name } : room)
+    }
+  }
+  walk(nodes, null)
+  return rooms
+}
+
+/** The children of the node holding `id`, the top level for a top-level id; null when absent. */
+function siblingsOf(nodes, id) {
+  const visit = (list) => {
+    if ((list ?? []).some((node) => node.id === id)) return list
+    for (const node of list ?? []) {
+      const found = visit(node.children)
+      if (found) return found
+    }
+    return null
+  }
+  return visit(nodes)
+}
+
+/**
+ * Racks a room can take in: every rack under its facility, or beside it when it has none, that
+ * is not in the room already, each with the rooms it stands in now. In name order.
+ *
+ * @param {object[]} nodes - Infrastructure sub-tree
+ * @param {number} roomId
+ * @returns {Array<{id: number, name: string, status: number, rooms: Array<{id: number,
+ *   name: string}>}>}
+ */
+export function racksAround(nodes, roomId) {
+  const facility = facilityContaining(nodes, roomId)
+  const scope = facility ? [facility] : siblingsOf(nodes, roomId)
+  if (!scope) return []
+  const rooms = roomsOfRacks(nodes)
+  const racks = [...indexNodes(scope).values()]
+    .filter((node) => node.class === 'Rack')
+    .map((node) => ({
+      id: node.id,
+      name: node.name,
+      status: node.status,
+      rooms: rooms.get(node.id) ?? [],
+    }))
+    .filter((rack) => !rack.rooms.some((room) => room.id === roomId))
+  return racks.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+}
+
 /** Every object of a class below a node, each once, in tree order. */
 export function nodesOfClass(root, objectClass) {
   return [...indexNodes(root.children).values()].filter((node) => node.class === objectClass)
