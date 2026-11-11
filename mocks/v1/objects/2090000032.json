@@ -1,0 +1,183 @@
+{
+  "id": 2090000032,
+  "guid": "9d0c6e2a-41b7-4c55-8f3e-00000000000f",
+  "class": "Room",
+  "timestamp": "2026-11-09T09:55:00.000Z",
+  "name": "Electrical Room E1",
+  "alias": "",
+  "commentsSource": "",
+  "comments": "",
+  "status": 0,
+  "statusText": "Normal",
+  "statusCalcAlg": 0,
+  "statusPropAlg": 0,
+  "fixedStatus": -1,
+  "statusShift": 0,
+  "statusTranslation": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "statusSingleThreshold": 75,
+  "statusThresholds": [
+    80,
+    60,
+    40,
+    20
+  ],
+  "maintenanceEventId": 0,
+  "maintenanceInitiator": 0,
+  "mapImage": "00000000-0000-0000-0000-000000000000",
+  "geoLocation": {
+    "type": 0,
+    "latitude": 0,
+    "longitude": 0,
+    "accuracy": 0,
+    "timestamp": 0
+  },
+  "postalAddress": {
+    "country": "",
+    "region": "",
+    "city": "",
+    "district": null,
+    "streetAddress": "",
+    "postcode": ""
+  },
+  "drilldownObjectId": 0,
+  "dashboards": [],
+  "urls": [],
+  "accessList": [
+    {
+      "userId": 1073741825,
+      "access": 18874367
+    }
+  ],
+  "inheritAccessRights": true,
+  "trustedObjects": [],
+  "creationTime": "2026-09-28T08:00:00Z",
+  "categoryId": 0,
+  "aiHint": "",
+  "customAttributes": [],
+  "flags": 0,
+  "children": [],
+  "parents": [
+    2090000001
+  ],
+  "responsibleUsers": [],
+  "autoBindFilters": [
+    {
+      "autoBind": false,
+      "autoUnbind": false,
+      "source": ""
+    },
+    {
+      "autoBind": false,
+      "autoUnbind": false,
+      "source": ""
+    }
+  ],
+  "room": {
+    "roomType": "ELECTRICAL",
+    "outline": [
+      {
+        "x": 0,
+        "y": 0
+      },
+      {
+        "x": 7200,
+        "y": 0
+      },
+      {
+        "x": 7200,
+        "y": 4800
+      },
+      {
+        "x": 0,
+        "y": 4800
+      }
+    ],
+    "area": 34.56,
+    "height": 3500,
+    "gridOriginX": 0,
+    "gridOriginY": 0,
+    "gridTileSize": 0,
+    "gridLabels": "NONE",
+    "backgroundImage": null,
+    "backgroundScale": 0,
+    "backgroundX": 0,
+    "backgroundY": 0,
+    "passiveElements": [
+      {
+        "id": 12,
+        "name": "UPS-A cabinet",
+        "type": "OTHER",
+        "x": 600,
+        "y": 600,
+        "rotation": 0,
+        "width": 2400,
+        "depth": 900
+      },
+      {
+        "id": 13,
+        "name": "UPS-B cabinet",
+        "type": "OTHER",
+        "x": 3300,
+        "y": 600,
+        "rotation": 0,
+        "width": 2400,
+        "depth": 900
+      },
+      {
+        "id": 14,
+        "name": "Battery string A",
+        "type": "OTHER",
+        "x": 600,
+        "y": 3300,
+        "rotation": 0,
+        "width": 2400,
+        "depth": 900
+      },
+      {
+        "id": 15,
+        "name": "Battery string B",
+        "type": "OTHER",
+        "x": 3300,
+        "y": 3300,
+        "rotation": 0,
+        "width": 2400,
+        "depth": 900
+      },
+      {
+        "id": 16,
+        "name": "Main switchboard MSB-1",
+        "type": "OTHER",
+        "x": 6600,
+        "y": 600,
+        "rotation": 90,
+        "width": 3600,
+        "depth": 600
+      },
+      {
+        "id": 17,
+        "name": "Door",
+        "type": "DOOR",
+        "x": 0,
+        "y": 1800,
+        "rotation": 0,
+        "width": 100,
+        "depth": 1200
+      },
+      {
+        "id": 18,
+        "name": "Stairs to roof plant",
+        "type": "STAIRS",
+        "x": 6000,
+        "y": 4200,
+        "rotation": 0,
+        "width": 1200,
+        "depth": 600
+      }
+    ]
+  }
+}

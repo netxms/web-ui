@@ -65,7 +65,24 @@ export function objectTarget(object, viewId, { entityId, query, perspective } = 
   }
 }
 
-const OBJECT_PERSPECTIVES = new Set(['infrastructure', ...Object.values(PERSPECTIVE_BY_CLASS)])
+/** Query flag the Floor Plan view takes as "start in edit mode", then drops from the URL. */
+export const FLOOR_PLAN_EDIT_QUERY = 'edit'
+
+/**
+ * A room's floor plan opened in edit mode, where a new room goes to get its shape.
+ *
+ * @param {{ id: number|string, class?: string }} room
+ * @param {object} [options]
+ * @param {string} [options.perspective]
+ */
+export function floorPlanEditTarget(room, { perspective } = {}) {
+  return objectTarget(room, 'floorPlan', { perspective, query: { [FLOOR_PLAN_EDIT_QUERY]: '1' } })
+}
+
+const OBJECT_PERSPECTIVES = new Set([
+  'infrastructure',
+  ...Object.values(PERSPECTIVE_BY_CLASS),
+])
 
 /**
  * The inverse of `objectTarget`. Only object perspectives count: an alarm or incident id is not

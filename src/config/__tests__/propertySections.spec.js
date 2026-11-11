@@ -35,3 +35,25 @@ describe('rack-chassis section visibility', () => {
     expect(placementSection('Chassis')).toEqual(placementSection('Node'))
   })
 })
+
+// Dev builds only; Vitest runs with import.meta.env.DEV set.
+describe('data center sections', () => {
+  it.each([
+    ['Facility', 'facility'],
+    ['PowerDomain', 'power-domain'],
+    ['CoolingZone', 'cooling-zone'],
+    ['Room', 'room'],
+  ])('gives %s its class section and auto bind, as legacy', (objectClass, sectionId) => {
+    expect(ids(objectClass)).toEqual(expect.arrayContaining([sectionId, 'auto-bind']))
+  })
+
+  it('gives a rack its cabinet section', () => {
+    expect(ids('Rack')).toContain('rack')
+  })
+
+  it('puts the class section right after the Basic group', () => {
+    const sections = getSectionsForClass('Room')
+    const firstOther = sections.findIndex((s) => s.group !== 'Basic')
+    expect(sections[firstOther].id).toBe('room')
+  })
+})

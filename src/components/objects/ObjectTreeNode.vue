@@ -36,6 +36,8 @@ const props = defineProps({
   indentOffset: { type: Number, default: 0 },
   /** Height (rem) of the rows stuck above depth 0; `null` for a tree whose rows do not stick. */
   stickyOffset: { type: Number, default: null },
+  /** `(node) => boolean`; a row it refuses has no overflow button */
+  hasMenu: { type: Function, default: null },
 })
 
 const emit = defineEmits(['select', 'contextmenu', 'toggle'])
@@ -219,6 +221,7 @@ function handleOverflowClick(event) {
       />
       <!-- Follows the row's roving tabindex rather than adding a tab stop per row. -->
       <ActionOverflowButton
+        v-if="!hasMenu || hasMenu(node)"
         class="tree-overflow-btn"
         :tabindex="rowTabIndex"
         @click="handleOverflowClick"
@@ -241,6 +244,7 @@ function handleOverflowClick(event) {
         :level-offset="levelOffset"
         :indent-offset="indentOffset"
         :sticky-offset="stickyOffset"
+        :has-menu="hasMenu"
         @select="(n, p, e) => emit('select', n, p, e)"
         @contextmenu="(e, n, p) => emit('contextmenu', e, n, p)"
         @toggle="(path) => emit('toggle', path)"
@@ -277,9 +281,16 @@ function handleOverflowClick(event) {
 }
 
 .tree-toggle {
-  width: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  /* The 0.75rem chevron column, clickable over the row's height, its left padding and the
+     gap to the icon: padding grows the box, equal negative margins keep the layout. */
+  width: calc(0.75rem + 0.625rem);
+  padding: 0 0.375rem 0 0.25rem;
+  margin: -0.25rem -0.375rem -0.25rem -0.25rem;
   font-size: 0.5rem;
-  text-align: center;
   flex-shrink: 0;
   cursor: pointer;
 }

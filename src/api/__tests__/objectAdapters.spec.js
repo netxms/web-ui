@@ -695,3 +695,26 @@ describe('objectToPhysicalPlacementPayload', () => {
     expect(objectToPhysicalPlacementPayload({})).toEqual({ containerId: null })
   })
 })
+
+describe('adaptObject data center classes', () => {
+  it('copies the property group of the class for editing', () => {
+    const raw = {
+      id: 2090000010,
+      class: 'PowerDomain',
+      name: 'UPS-A',
+      powerDomain: { domainType: 'UPS', feedTag: 'A', ratedPower: 300000 },
+    }
+    const domain = adaptObject(raw)
+    expect(domain.powerDomain).toEqual({
+      domainType: raw.powerDomain.domainType,
+      feedTag: raw.powerDomain.feedTag,
+      ratedPower: raw.powerDomain.ratedPower,
+    })
+    expect(domain.powerDomain).not.toBe(raw.powerDomain)
+  })
+
+  it('reads a rack cabinet under the server names', () => {
+    const rack = adaptObject({ id: 1, class: 'Rack', height: 47, width: 800, depth: 1200 })
+    expect([rack.height, rack.width, rack.depth]).toEqual([47, 800, 1200])
+  })
+})

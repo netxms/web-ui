@@ -160,7 +160,7 @@ const emit = defineEmits([
 </template>
 
 <style scoped>
-/* Same card chrome as NetworkMapEditControls, so the two read as one stack. */
+/* Same card chrome as EditModeControls, so the two read as one stack. */
 .side-toolbar {
   display: flex;
   flex-direction: column;

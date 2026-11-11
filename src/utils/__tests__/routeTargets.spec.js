@@ -14,7 +14,18 @@ import {
   dciTarget,
   objectIdFromRoute,
   aiTarget,
+  floorPlanEditTarget,
 } from '@/utils/routeTargets'
+
+describe('floorPlanEditTarget', () => {
+  it('opens a room on its floor plan with the edit flag', () => {
+    expect(floorPlanEditTarget({ id: 45, class: 'Room' })).toEqual({
+      name: 'infrastructure',
+      params: { objectId: 45, viewId: 'floorPlan' },
+      query: { edit: '1' },
+    })
+  })
+})
 
 describe('perspectiveForClass', () => {
   it('routes each object class to its perspective', () => {

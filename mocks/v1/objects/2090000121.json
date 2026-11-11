@@ -1,0 +1,100 @@
+{
+  "id": 2090000121,
+  "guid": "9d0c6e2a-41b7-4c55-8f3e-000000000022",
+  "class": "Rack",
+  "timestamp": "2026-11-09T09:55:00.000Z",
+  "name": "MMR-01",
+  "alias": "",
+  "commentsSource": "",
+  "comments": "",
+  "status": 0,
+  "statusText": "Normal",
+  "statusCalcAlg": 0,
+  "statusPropAlg": 0,
+  "fixedStatus": -1,
+  "statusShift": 0,
+  "statusTranslation": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "statusSingleThreshold": 75,
+  "statusThresholds": [
+    80,
+    60,
+    40,
+    20
+  ],
+  "maintenanceEventId": 0,
+  "maintenanceInitiator": 0,
+  "mapImage": "00000000-0000-0000-0000-000000000000",
+  "geoLocation": {
+    "type": 0,
+    "latitude": 0,
+    "longitude": 0,
+    "accuracy": 0,
+    "timestamp": 0
+  },
+  "postalAddress": {
+    "country": "",
+    "region": "",
+    "city": "",
+    "district": null,
+    "streetAddress": "",
+    "postcode": ""
+  },
+  "drilldownObjectId": 0,
+  "dashboards": [],
+  "urls": [],
+  "accessList": [
+    {
+      "userId": 1073741825,
+      "access": 18874367
+    }
+  ],
+  "inheritAccessRights": true,
+  "trustedObjects": [],
+  "creationTime": "2026-09-28T08:00:00Z",
+  "categoryId": 0,
+  "aiHint": "",
+  "customAttributes": [],
+  "flags": 0,
+  "children": [],
+  "parents": [
+    2090000031,
+    2090000016,
+    2090000017,
+    2090000022
+  ],
+  "responsibleUsers": [],
+  "height": 45,
+  "topBottomNumbering": false,
+  "width": 600,
+  "depth": 1200,
+  "passiveElements": [
+    {
+      "id": 1,
+      "name": "Patch panel 24-port",
+      "type": 0,
+      "position": 45,
+      "height": 1,
+      "orientation": 0,
+      "portCount": 24
+    },
+    {
+      "id": 2,
+      "name": "Cable organizer",
+      "type": 2,
+      "position": 44,
+      "height": 1,
+      "orientation": 1
+    }
+  ],
+  "roomPlacement": {
+    "placed": true,
+    "x": 1200,
+    "y": 600,
+    "rotation": 0
+  }
+}

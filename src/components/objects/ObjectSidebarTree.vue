@@ -35,6 +35,8 @@ const props = defineProps({
   rootTargetFor: { type: Function, default: null },
   /** `(path) => object|null` */
   resolvePath: { type: Function, required: true },
+  /** `(object) => boolean`; a row it refuses has no overflow button and ignores right-click */
+  hasMenu: { type: Function, default: null },
 })
 
 /** Matches ObjectTreeNode; the stuck rows below stack under it. */
@@ -74,6 +76,7 @@ function onSelect(node, path, event) {
 // Inside a range the menu acts on the whole range; outside, it collapses it. Either way no row
 // opens: selecting one navigates.
 function onContextMenu(event, node, path) {
+  if (props.hasMenu && !props.hasMenu(node)) return
   const range = multiSelect.selectedPaths.value
   if (range && !range.has(path)) multiSelect.reset()
   const stillRanged = multiSelect.selectedPaths.value
@@ -261,6 +264,7 @@ defineExpose({
             }"
           />
           <ActionOverflowButton
+            v-if="!hasMenu || (root.object && hasMenu(root.object))"
             :tabindex="rootPath(root) === tabStopPath ? 0 : -1"
             class="tree-overflow-btn"
             @click.stop="onRootOverflowClick($event, root)"
@@ -293,6 +297,7 @@ defineExpose({
             :level-offset="1"
             :indent-offset="ROOT_CHILD_INDENT_REM"
             :sticky-offset="ROOT_ROW_HEIGHT_REM"
+            :has-menu="hasMenu"
             @select="onSelect"
             @contextmenu="onContextMenu"
             @toggle="(path) => emit('toggle', path)"
@@ -358,9 +363,16 @@ defineExpose({
 }
 
 .tree-toggle {
-  width: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  /* As in ObjectTreeNode: clickable over the row's height, its left padding and the gap to the
+     icon, with the layout unchanged. */
+  width: calc(0.75rem + 0.625rem);
+  padding: 0 0.375rem 0 0.25rem;
+  margin: -0.25rem -0.375rem -0.25rem -0.25rem;
   font-size: 0.6rem;
-  text-align: center;
   flex-shrink: 0;
   cursor: pointer;
 }

@@ -8,8 +8,9 @@ const baseURL = `http://localhost:${port}`
 
 // A built bundle, not the dev server: a fresh browser context would fetch a thousand unbundled
 // modules from it per page. The demo server adds the mock API; preview proxies to the real one.
+// PORT goes through webServer.env: an inline `PORT=… node` does not run under Windows cmd.
 const serve = useMocks
-  ? `yarn build --mode demo && PORT=${port} node docker/demo-server.js`
+  ? 'yarn build --mode demo && node docker/demo-server.js'
   : `yarn build && yarn preview --port ${port} --strictPort`
 
 export default defineConfig({
@@ -44,6 +45,7 @@ export default defineConfig({
   ],
   webServer: {
     command: serve,
+    env: { PORT: String(port) },
     url: baseURL,
     reuseExistingServer: true,
     timeout: 300_000,

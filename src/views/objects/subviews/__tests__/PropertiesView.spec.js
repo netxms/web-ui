@@ -5,8 +5,10 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import PrimeVue from 'primevue/config'
 
 const OBJECT = { id: 292, name: 'SNMP Nodes', class: 'Container', inheritAccessRights: true }
+let current = OBJECT
 
 const updateProperties = vi.fn()
+const updateGroup = vi.fn()
 const confirmRequire = vi.fn()
 
 const SectionStub = { name: 'SectionStub', props: ['draft'], render: () => null }
@@ -15,7 +17,7 @@ vi.mock('@/queries/useObjectQueries', () => {
   const mutation = () => ({ mutateAsync: vi.fn() })
   return {
     useObject: () => ({
-      data: ref(OBJECT),
+      data: ref(current),
       isError: ref(false),
       error: ref(null),
       refetch: vi.fn(),
@@ -42,6 +44,9 @@ vi.mock('@/queries/useObjectQueries', () => {
     useDeleteObjectUrl: mutation,
   }
 })
+vi.mock('@/queries/useDataCenterQueries', () => ({
+  useUpdateDataCenterGroup: () => ({ mutateAsync: updateGroup }),
+}))
 vi.mock('@/queries/useDashboardQueries', () => ({
   useDashboard: () => ({ data: ref(null) }),
   useSaveDashboard: () => ({ mutateAsync: vi.fn() }),
@@ -65,7 +70,7 @@ async function mountView(props = {}) {
   router.push('/infrastructure/292/properties')
   await router.isReady()
   const wrapper = mount(PropertiesView, {
-    props: { object: OBJECT, ...props },
+    props: { object: current, ...props },
     global: {
       plugins: [PrimeVue, router],
       stubs: { PropertiesSectionNav: true, QueryErrorState: true },
@@ -87,7 +92,9 @@ async function edit(wrapper, changes) {
 }
 
 beforeEach(() => {
+  current = OBJECT
   updateProperties.mockReset()
+  updateGroup.mockReset()
   confirmRequire.mockReset()
 })
 
@@ -150,5 +157,44 @@ describe('PropertiesView footer', () => {
     expect(confirmRequire).toHaveBeenCalledOnce()
     expect(updateProperties).not.toHaveBeenCalled()
     expect(wrapper.emitted('close')).toBeUndefined()
+  })
+})
+
+describe('PropertiesView data center groups', () => {
+  it('sends a changed property group through its own PATCH, changed fields only', async () => {
+    current = {
+      id: 2090000001,
+      name: 'DC-Alpha Site',
+      class: 'Facility',
+      inheritAccessRights: true,
+      facility: { settlementLag: 5, providerId: 'eed' },
+    }
+    const wrapper = await mountView()
+    const draft = wrapper.findComponent(SectionStub).props('draft')
+    draft.facility.providerId = '  '
+    await flushPromises()
+
+    await button(wrapper, 'Save').trigger('click')
+    await flushPromises()
+
+    expect(updateGroup).toHaveBeenCalledWith({
+      id: 2090000001,
+      group: 'facility',
+      payload: { providerId: null },
+    })
+  })
+
+  it('puts a rack cabinet change on the object PATCH', async () => {
+    current = { id: 2090000101, name: 'A01', class: 'Rack', width: 600, depth: 1200 }
+    const wrapper = await mountView()
+    await edit(wrapper, { depth: 1070 })
+
+    await button(wrapper, 'Save').trigger('click')
+    await flushPromises()
+
+    const { payload } = updateProperties.mock.calls[0][0]
+    expect(payload.depth).toBe(1070)
+    expect(payload).not.toHaveProperty('width')
+    expect(updateGroup).not.toHaveBeenCalled()
   })
 })

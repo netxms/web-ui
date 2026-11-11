@@ -1,0 +1,99 @@
+{
+  "id": 2090000001,
+  "guid": "9d0c6e2a-41b7-4c55-8f3e-000000000001",
+  "class": "Facility",
+  "timestamp": "2026-11-09T09:55:00.000Z",
+  "name": "DC-Alpha Site",
+  "alias": "DC-A",
+  "commentsSource": "Reporting boundary for energy and water KPIs. Two computer rooms on a 2N power chain (UPS-A / UPS-B), chilled water cooling with heat export to the district heating network.",
+  "comments": "Reporting boundary for energy and water KPIs. Two computer rooms on a 2N power chain (UPS-A / UPS-B), chilled water cooling with heat export to the district heating network.",
+  "status": 3,
+  "statusText": "Major",
+  "statusCalcAlg": 0,
+  "statusPropAlg": 0,
+  "fixedStatus": -1,
+  "statusShift": 0,
+  "statusTranslation": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "statusSingleThreshold": 75,
+  "statusThresholds": [
+    80,
+    60,
+    40,
+    20
+  ],
+  "maintenanceEventId": 0,
+  "maintenanceInitiator": 0,
+  "mapImage": "00000000-0000-0000-0000-000000000000",
+  "geoLocation": {
+    "type": 0,
+    "latitude": 0,
+    "longitude": 0,
+    "accuracy": 0,
+    "timestamp": 0
+  },
+  "postalAddress": {
+    "country": "",
+    "region": "",
+    "city": "",
+    "district": null,
+    "streetAddress": "1 Data Centre Way",
+    "postcode": ""
+  },
+  "drilldownObjectId": 0,
+  "dashboards": [],
+  "urls": [],
+  "accessList": [
+    {
+      "userId": 1073741825,
+      "access": 18874367
+    }
+  ],
+  "inheritAccessRights": true,
+  "trustedObjects": [],
+  "creationTime": "2026-09-28T08:00:00Z",
+  "categoryId": 0,
+  "aiHint": "",
+  "customAttributes": [
+    {
+      "name": "dc.tier",
+      "value": "Tier 3",
+      "flags": 0,
+      "sourceObject": 0
+    }
+  ],
+  "flags": 0,
+  "children": [
+    2090000010,
+    2090000011,
+    2090000020,
+    2090000030,
+    2090000031,
+    2090000032
+  ],
+  "parents": [
+    2
+  ],
+  "responsibleUsers": [],
+  "autoBindFilters": [
+    {
+      "autoBind": false,
+      "autoUnbind": false,
+      "source": ""
+    },
+    {
+      "autoBind": false,
+      "autoUnbind": false,
+      "source": ""
+    }
+  ],
+  "facility": {
+    "settlementLag": 5,
+    "providerId": "kpidirect",
+    "engineEnabled": true
+  }
+}

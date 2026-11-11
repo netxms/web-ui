@@ -18,7 +18,7 @@ import SidebarFilter from '@/components/layout/SidebarFilter.vue'
 import ObjectSidebarTree from '@/components/objects/ObjectSidebarTree.vue'
 import NetworkMapCanvas from '@/components/network-maps/NetworkMapCanvas.vue'
 import NetworkMapToolbar from '@/components/network-maps/NetworkMapToolbar.vue'
-import NetworkMapEditControls from '@/components/network-maps/NetworkMapEditControls.vue'
+import EditModeControls from '@/components/common/EditModeControls.vue'
 import NetworkMapSideToolbar from '@/components/network-maps/NetworkMapSideToolbar.vue'
 import ObjectToolsPanel from '@/components/common/ObjectToolsPanel.vue'
 import ActionContextMenu from '@/components/actions/ActionContextMenu.vue'
@@ -1822,8 +1822,9 @@ function handleEdgeContextMenu(event, edgeData) {
       <div class="map-canvas-area" @contextmenu.prevent="handleCanvasContextMenu">
         <!-- One flex column, so the gap below the controls holds however tall they get. -->
         <div class="canvas-controls-stack">
-          <NetworkMapEditControls
+          <EditModeControls
             v-if="layoutEditable"
+            mode-label="Map mode"
             :edit-mode="layoutEditMode"
             :dirty="layoutDirty"
             :saving="savingLayout"

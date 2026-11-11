@@ -46,6 +46,11 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  /** Tabs held at the front by the host: they cannot be dragged, nor another dropped on them. */
+  pinnedViewIds: {
+    type: Array,
+    default: () => [],
+  },
   /** How many more views the [+] button can add; shown on the button. */
   addableCount: {
     type: Number,
@@ -306,6 +311,10 @@ const draggedId = ref(null)
 const dropTargetId = ref(null)
 
 function onDragStart(event, viewId) {
+  if (props.pinnedViewIds.includes(viewId)) {
+    event.preventDefault()
+    return
+  }
   draggedId.value = viewId
   event.dataTransfer.effectAllowed = 'move'
   event.dataTransfer.setData('text/plain', viewId)
@@ -314,6 +323,7 @@ function onDragStart(event, viewId) {
 
 function onDragOver(event, viewId) {
   if (draggedId.value === null || draggedId.value === viewId) return
+  if (props.pinnedViewIds.includes(viewId)) return
   event.preventDefault()
   event.dataTransfer.dropEffect = 'move'
   dropTargetId.value = viewId
@@ -328,6 +338,7 @@ function onDragLeave(event, viewId) {
 function onDrop(event, viewId) {
   event.preventDefault()
   if (draggedId.value === null || draggedId.value === viewId) return
+  if (props.pinnedViewIds.includes(viewId)) return
 
   const ids = [...props.visibleViewIds]
   const fromIndex = ids.indexOf(draggedId.value)
@@ -380,7 +391,7 @@ function resetDrag() {
               'drop-target': view.id === dropTargetId,
             }"
             :data-tab-key="view.id"
-            draggable="true"
+            :draggable="pinnedViewIds.includes(view.id) ? 'false' : 'true'"
             role="tab"
             :aria-selected="view.id === activeView"
             v-bind="tabBindings(view.id)"

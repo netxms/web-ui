@@ -1,0 +1,230 @@
+{
+  "id": 2090000030,
+  "guid": "9d0c6e2a-41b7-4c55-8f3e-00000000000d",
+  "class": "Room",
+  "timestamp": "2026-11-09T09:55:00.000Z",
+  "name": "Hall A",
+  "alias": "",
+  "commentsSource": "Raised floor, 600 mm tiles. Rows A and B share a contained hot aisle; the east side is reserved for row C.",
+  "comments": "Raised floor, 600 mm tiles. Rows A and B share a contained hot aisle; the east side is reserved for row C.",
+  "status": 3,
+  "statusText": "Major",
+  "statusCalcAlg": 0,
+  "statusPropAlg": 0,
+  "fixedStatus": -1,
+  "statusShift": 0,
+  "statusTranslation": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "statusSingleThreshold": 75,
+  "statusThresholds": [
+    80,
+    60,
+    40,
+    20
+  ],
+  "maintenanceEventId": 0,
+  "maintenanceInitiator": 0,
+  "mapImage": "00000000-0000-0000-0000-000000000000",
+  "geoLocation": {
+    "type": 0,
+    "latitude": 0,
+    "longitude": 0,
+    "accuracy": 0,
+    "timestamp": 0
+  },
+  "postalAddress": {
+    "country": "",
+    "region": "",
+    "city": "",
+    "district": null,
+    "streetAddress": "",
+    "postcode": ""
+  },
+  "drilldownObjectId": 0,
+  "dashboards": [],
+  "urls": [],
+  "accessList": [
+    {
+      "userId": 1073741825,
+      "access": 18874367
+    }
+  ],
+  "inheritAccessRights": true,
+  "trustedObjects": [],
+  "creationTime": "2026-09-28T08:00:00Z",
+  "categoryId": 0,
+  "aiHint": "",
+  "customAttributes": [],
+  "flags": 0,
+  "children": [
+    2090000101,
+    2090000102,
+    2090000103,
+    2090000104,
+    2090000105,
+    2090000106,
+    2090000107,
+    2090000108,
+    2090000109,
+    2090000110,
+    2090000111,
+    2090000112,
+    2090000113,
+    2090000114,
+    2090000115,
+    2090000116,
+    2090000117,
+    2090000118
+  ],
+  "parents": [
+    2090000001
+  ],
+  "responsibleUsers": [],
+  "autoBindFilters": [
+    {
+      "autoBind": false,
+      "autoUnbind": false,
+      "source": ""
+    },
+    {
+      "autoBind": false,
+      "autoUnbind": false,
+      "source": ""
+    }
+  ],
+  "room": {
+    "roomType": "COMPUTER_ROOM",
+    "outline": [
+      {
+        "x": 0,
+        "y": 0
+      },
+      {
+        "x": 10800,
+        "y": 0
+      },
+      {
+        "x": 10800,
+        "y": 3000
+      },
+      {
+        "x": 14400,
+        "y": 3000
+      },
+      {
+        "x": 14400,
+        "y": 10800
+      },
+      {
+        "x": 0,
+        "y": 10800
+      }
+    ],
+    "area": 144.72,
+    "height": 3600,
+    "gridOriginX": 0,
+    "gridOriginY": 0,
+    "gridTileSize": 600,
+    "gridLabels": "LETTERS_NUMBERS",
+    "backgroundImage": null,
+    "backgroundScale": 0,
+    "backgroundX": 0,
+    "backgroundY": 0,
+    "passiveElements": [
+      {
+        "id": 1,
+        "name": "CRAH-1",
+        "type": "OTHER",
+        "x": 3600,
+        "y": 10800,
+        "rotation": 180,
+        "width": 2400,
+        "depth": 900
+      },
+      {
+        "id": 2,
+        "name": "CRAH-2",
+        "type": "OTHER",
+        "x": 7200,
+        "y": 10800,
+        "rotation": 180,
+        "width": 2400,
+        "depth": 900
+      },
+      {
+        "id": 3,
+        "name": "CRAH-3",
+        "type": "OTHER",
+        "x": 14400,
+        "y": 4200,
+        "rotation": 90,
+        "width": 2400,
+        "depth": 900
+      },
+      {
+        "id": 4,
+        "name": "CRAH-4",
+        "type": "OTHER",
+        "x": 14400,
+        "y": 7200,
+        "rotation": 90,
+        "width": 2400,
+        "depth": 900
+      },
+      {
+        "id": 5,
+        "name": "Column C1",
+        "type": "COLUMN",
+        "x": 9600,
+        "y": 5400,
+        "rotation": 0,
+        "width": 600,
+        "depth": 600
+      },
+      {
+        "id": 6,
+        "name": "Column C2",
+        "type": "COLUMN",
+        "x": 9600,
+        "y": 9000,
+        "rotation": 0,
+        "width": 600,
+        "depth": 600
+      },
+      {
+        "id": 7,
+        "name": "Loading door",
+        "type": "DOOR",
+        "x": 11400,
+        "y": 10700,
+        "rotation": 0,
+        "width": 1800,
+        "depth": 100
+      },
+      {
+        "id": 8,
+        "name": "Ramp",
+        "type": "RAMP",
+        "x": 11400,
+        "y": 9300,
+        "rotation": 0,
+        "width": 1800,
+        "depth": 1400
+      },
+      {
+        "id": 9,
+        "name": "Office door",
+        "type": "DOOR",
+        "x": 11400,
+        "y": 3000,
+        "rotation": 0,
+        "width": 1200,
+        "depth": 100
+      }
+    ]
+  }
+}

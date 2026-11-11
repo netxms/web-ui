@@ -581,11 +581,15 @@ export function useUpdateObjectProperties() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ id, payload }) => objectsApi.updateObjectProperties(id, payload),
-    onSuccess: (_, { id }) => {
+    onSuccess: (_, { id, payload }) => {
       queryClient.invalidateQueries({ queryKey: objectKeys.detail(id) })
       // `name` and `alias` show in the tree and in child lists such as Interfaces.
       queryClient.invalidateQueries({ queryKey: ['objects', 'subTree'] })
       queryClient.invalidateQueries({ queryKey: ['objects', 'children'] })
+      // A rack's cabinet is its footprint on floor plans (`dataCenterKeys.all()`).
+      if (payload && ('width' in payload || 'depth' in payload)) {
+        queryClient.invalidateQueries({ queryKey: ['dataCenter'] })
+      }
     },
   })
 }

@@ -39,6 +39,9 @@ const OBJECTS = {
     class: 'Node',
     customAttributes: [{ name: 'isFake', value: '1' }],
   },
+  300: { id: 300, name: 'DC-1', class: 'Facility' },
+  301: { id: 301, name: 'Hall 1', class: 'Room' },
+  302: { id: 302, name: 'UPS-A', class: 'PowerDomain' },
 }
 
 const TREES = {
@@ -49,6 +52,13 @@ const TREES = {
     { ...OBJECTS[109], children: [] },
     // In the tree but with no object document: `GET /v1/objects/{id}` pending or failed.
     { id: 111, name: 'no-details', class: 'Node', children: [] },
+    {
+      ...OBJECTS[300],
+      children: [
+        { ...OBJECTS[301], children: [] },
+        { ...OBJECTS[302], children: [] },
+      ],
+    },
   ],
 }
 
@@ -88,6 +98,7 @@ const ViewTabBar = (await import('@/components/views/ViewTabBar.vue')).default
 const ViewAddMenu = (await import('@/components/views/ViewAddMenu.vue')).default
 const ViewContainer = (await import('@/components/views/ViewContainer.vue')).default
 const { moduleRegistry } = await import('@/modules')
+const { useViewStore } = await import('@/stores/viewStore')
 
 async function mountAt(location) {
   const router = createRouter({
@@ -313,5 +324,40 @@ describe('ObjectsView - closing tabs', () => {
 
     expect(viewIdInRoute(router)).toBe('alarms')
     expect(tabIds(wrapper)).toContain('properties')
+  })
+})
+
+describe('ObjectsView - data center views', () => {
+  const viewProps = (wrapper) => wrapper.findComponent(ViewContainer).props('viewProps')
+
+  it('falls back to each data center class own view when the open one does not apply', async () => {
+    const { wrapper, router } = await mountAt('/infrastructure/108/interfaces')
+
+    await router.push(objectTarget(OBJECTS[300]))
+    await flushPromises()
+    expect(activeView(wrapper)).toBe('overview')
+
+    await router.push(objectTarget(OBJECTS[301]))
+    await flushPromises()
+    expect(activeView(wrapper)).toBe('floorPlan')
+
+    await router.push(objectTarget(OBJECTS[302]))
+    await flushPromises()
+    expect(activeView(wrapper)).toBe('power')
+  })
+
+  it("puts the class's own views first, ahead of a stored tab order", async () => {
+    const { wrapper } = await mountAt('/infrastructure/300/alarms')
+    useViewStore().setViewOrder('infrastructure', ['alarms', 'status', 'cooling', 'power'])
+    await flushPromises()
+    const ids = wrapper.findComponent(ViewTabBar).props('visibleViewIds')
+    expect(ids.slice(0, 3)).toEqual(['overview', 'power', 'cooling'])
+    expect(wrapper.findComponent(ViewTabBar).props('pinnedViewIds')).toContain('floorPlan')
+  })
+
+  it('hands the power view the facility the domain sits in', async () => {
+    const { wrapper } = await mountAt('/infrastructure/302/power')
+    expect(viewProps(wrapper).object.id).toBe(302)
+    expect(viewProps(wrapper).facility.id).toBe(300)
   })
 })

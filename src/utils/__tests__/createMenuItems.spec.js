@@ -30,7 +30,9 @@ describe('dispatchCreateObject', () => {
     listen('node:create')
 
     expect(dispatchCreateObject(SERVICE_ROOT, 'Node')).toBe(true)
-    expect(events).toEqual([{ name: 'node:create', detail: { parent: SERVICE_ROOT } }])
+    expect(events).toEqual([
+      { name: 'node:create', detail: { parent: SERVICE_ROOT, objectClass: 'Node' } },
+    ])
   })
 
   it('fires the generic event for a class without a dedicated dialog', () => {
@@ -78,6 +80,31 @@ describe('buildCreateMenuItems', () => {
     const node = buildCreateMenuItems(SERVICE_ROOT).find((i) => i.label === 'Node')
     node.command()
 
-    expect(events).toEqual([{ name: 'node:create', detail: { parent: SERVICE_ROOT } }])
+    expect(events).toEqual([
+      { name: 'node:create', detail: { parent: SERVICE_ROOT, objectClass: 'Node' } },
+    ])
+  })
+})
+
+// Dev builds only; Vitest runs with import.meta.env.DEV set.
+describe('data center classes', () => {
+  const FACILITY = { id: 30, class: 'Facility' }
+  const ROOM = { id: 31, class: 'Room' }
+
+  it('opens one dialog for the four classes, told the class', () => {
+    listen('dataCenterObject:create')
+
+    expect(dispatchCreateObject(SERVICE_ROOT, 'Facility')).toBe(true)
+    expect(dispatchCreateObject(FACILITY, 'PowerDomain')).toBe(true)
+    expect(events.map((e) => e.detail.objectClass)).toEqual(['Facility', 'PowerDomain'])
+  })
+
+  it('offers what legacy offers under a facility and a room', () => {
+    const labels = (target) => buildCreateMenuItems(target).map((item) => item.label)
+    expect(labels(FACILITY)).toEqual(
+      expect.arrayContaining(['Room', 'Power Domain', 'Cooling Zone', 'Rack', 'Container']),
+    )
+    expect(labels(FACILITY)).not.toContain('Facility')
+    expect(labels(ROOM).sort()).toEqual(['Chassis', 'Node', 'Rack', 'Sensor'])
   })
 })

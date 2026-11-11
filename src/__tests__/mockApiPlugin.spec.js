@@ -23,6 +23,14 @@ beforeAll(() => {
   write(path.join(mocksDir, 'v1', 'shared.json'), '{"from":"core"}')
   write(path.join(mocksDir, 'v1', 'core-only.json'), '{"from":"core"}')
   write(path.join(mocksDir, 'v1', 'objects', '7.json'), '{"from":"core exact"}')
+  write(
+    path.join(mocksDir, 'v1', 'objects', '_', 'plan', 'items', '_.js'),
+    'export default () => ({ from: "ids wildcard" })\n',
+  )
+  write(
+    path.join(mocksDir, 'v1', 'objects', '9', 'plan', 'items', '_.js'),
+    'export default () => ({ from: "object 9" })\n',
+  )
 
   write(path.join(modulesDir, 'alpha', 'index.js'), 'export default {}\n')
   write(path.join(modulesDir, 'alpha', 'mocks', 'v1', 'shared.json'), '{"from":"alpha"}')
@@ -98,6 +106,14 @@ describe('mockApiPlugin', () => {
   it('lets a module wildcard win over a core exact file', async () => {
     expect((await server(['alpha'])('/v1/objects/7')).body).toBe('{"from":"alpha wildcard"}')
     expect((await server([])('/v1/objects/7')).body).toBe('{"from":"core exact"}')
+  })
+
+  it('takes every numeric segment as a wildcard when nothing closer matches', async () => {
+    const get = server([])
+    expect((await get('/v1/objects/12/plan/items/5', 'PATCH')).body).toBe('{"from":"ids wildcard"}')
+    expect((await get('/v1/objects/9/plan/items/5', 'PATCH')).body).toBe('{"from":"object 9"}')
+    // Named segments stay as they are.
+    expect((await get('/v1/objects/12/plan/other/5')).status).toBe(404)
   })
 
   it('answers 404 when no folder has a match', async () => {

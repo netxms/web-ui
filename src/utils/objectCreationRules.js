@@ -13,7 +13,18 @@ const GENERIC_CONTAINER_CHILDREN = [
   'Circuit',
   'CloudDomain',
   'WirelessDomain',
+  'Facility',
+  'Room',
 ]
+
+const DEVICE_CHILDREN = ['Node', 'Chassis', 'Rack', 'Sensor']
+
+const DATA_CENTER_PARENTS = {
+  Facility: ['Container', 'PowerDomain', 'CoolingZone', 'Room', 'Cluster', ...DEVICE_CHILDREN],
+  PowerDomain: ['PowerDomain', 'Cluster', ...DEVICE_CHILDREN],
+  CoolingZone: ['CoolingZone', 'Cluster', ...DEVICE_CHILDREN],
+  Room: DEVICE_CHILDREN,
+}
 
 const NODE_CHILDREN = ['Interface', 'NetworkService', 'VPNConnector']
 
@@ -40,6 +51,7 @@ const PARENT_CLASS_CHILDREN = {
   AssetGroup: ASSET_GROUP_CHILDREN,
   BusinessServiceRoot: BUSINESS_SERVICE_CHILDREN,
   BusinessService: BUSINESS_SERVICE_CHILDREN,
+  ...DATA_CENTER_PARENTS,
 }
 
 /** @returns {string[]} */

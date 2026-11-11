@@ -18,12 +18,14 @@ const { isNavCollapsed } = useLayout()
 const navigationStore = useNavigationStore()
 const perspectiveStore = usePerspectiveStore()
 
-// Dev-only entry to the UI lab; stripped from production builds.
+// Dev-only entries (UI lab); stripped from production builds.
 const devSection = import.meta.env.DEV
   ? {
       id: 'dev',
       placement: 'bottom',
-      items: [{ label: 'Lab', icon: FlaskConical, route: '/dev-lab' }],
+      items: [
+        { label: 'Lab', icon: FlaskConical, route: '/dev-lab' },
+      ],
     }
   : null
 

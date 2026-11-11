@@ -78,7 +78,7 @@ server and the demo Docker image, and are never part of a bundle.
 | `VITE_USE_MOCKS` | `false` | Serve the API from `mocks/` |
 | `VITE_MODULES` | empty | Enterprise modules compiled into the build, e.g. `example`. Each module is a separate checkout of its own repository at `src/modules/<id>/`, which git ignores; an unknown id fails the build |
 | `VITE_FORCE_MODULES` | empty | Show these compiled-in modules even when the server does not report their component |
-| `VITE_DEMO_CONTENT` | on in `yarn dev` and `--mode demo`, off in release builds | Demo maps and dashboards and the map demo toolbar |
+| `VITE_DEMO_CONTENT` | on in `yarn dev` and `--mode demo`, off in release builds | Demo maps, dashboards and data center, and the map demo toolbar |
 | `VITE_THEME_PICKER` | `true` | `false` removes the color theme picker; the default theme applies |
 | `VITE_MAX_CONCURRENT_REQUESTS` | `6` | Requests the console keeps in flight at once |
 | `VITE_SOURCEMAP` | `false` | Emit sourcemaps from `yarn build` |

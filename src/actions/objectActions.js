@@ -190,7 +190,7 @@ const dedicatedCreateItems = DEDICATED_CREATE_CLASSES.map(
     priority,
     isApplicable: (ctx) => getCreatableClasses(ctx.object.class).includes(objectClass),
     command: ({ actionContext }) => {
-      dispatchObjectEvent(eventName, { parent: actionContext.object })
+      dispatchObjectEvent(eventName, { parent: actionContext.object, objectClass })
     },
   }),
 )

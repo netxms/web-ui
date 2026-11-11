@@ -1,5 +1,7 @@
 /**
- * The legacy DCI editor's "Interpretation" tag vocabulary, in the legacy order.
+ * The legacy DCI editor's "Interpretation" tag vocabulary, in the legacy order. A stored tag may
+ * carry a feed qualifier after a slash (`power.feed/A`). A base tag outside the list (retired
+ * `eed.ren`, or one set through the API) is kept as it is.
  *
  * Only the dotted form (`iface.inbound.bits`, not `iface-inbound-bits`) is valid since schema
  * 70.26. A WebAPI DCI update stores the tag as sent, so the old form makes the DCI invisible
@@ -20,10 +22,13 @@ export const DCI_SYSTEM_TAGS = [
   { tag: 'iface.outbound.util', label: 'Interface traffic - Outbound - Utilization %' },
   { tag: 'iface.speed', label: 'Interface speed' },
   { tag: 'eed.edc', label: 'EED - Total facility energy (EDC)' },
+  { tag: 'eed.edc_bg', label: 'EED - Back-up generator energy (EDC_BG)' },
+  { tag: 'eed.res_os', label: 'EED - On-site renewable energy (RES_OS)' },
   { tag: 'eed.eit', label: 'EED - IT equipment energy (EIT)' },
   { tag: 'eed.win', label: 'EED - Water intake (WIN)' },
+  { tag: 'eed.win_fre', label: 'EED - Freshwater intake (WIN_FRE)' },
   { tag: 'eed.reuse', label: 'EED - Reused energy (REUSE)' },
-  { tag: 'eed.ren', label: 'EED - Renewable energy (REN)' },
+  { tag: 'eed.reuse_upgrade', label: 'EED - Heat upgrade energy (HU)' },
   { tag: 'power.feed', label: 'Power - Feed power' },
   { tag: 'power.in', label: 'Power - Input side power' },
   { tag: 'power.out', label: 'Power - Output side power' },
@@ -63,7 +68,28 @@ export const DCI_SYSTEM_TAG_GROUPS = DCI_SYSTEM_TAGS.reduce((groups, { tag }) =>
   return groups
 }, [])
 
-/** @param {string} tag */
+/** @param {string} tag - base tag, without a qualifier */
 export function isKnownSystemTag(tag) {
   return DCI_SYSTEM_TAGS.some((entry) => entry.tag === tag)
+}
+
+/** Legacy's limit on the feed qualifier, the same as a power domain's feed tag. */
+export const FEED_QUALIFIER_MAX_LENGTH = 15
+
+/** `power.feed/A` -> `power.feed` */
+export function systemTagBase(tag) {
+  const i = (tag ?? '').indexOf('/')
+  return i < 0 ? (tag ?? '') : tag.slice(0, i)
+}
+
+/** `power.feed/A` -> `A` */
+export function systemTagQualifier(tag) {
+  const i = (tag ?? '').indexOf('/')
+  return i < 0 ? '' : tag.slice(i + 1)
+}
+
+/** No base tag means no tag at all, and a blank qualifier adds no slash (legacy OtherOptions). */
+export function joinSystemTag(base, qualifier) {
+  const q = (qualifier ?? '').trim()
+  return base && q ? `${base}/${q}` : (base ?? '')
 }

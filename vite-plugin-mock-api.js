@@ -43,13 +43,15 @@ export function createMockHandler({
 
   /** @returns {Promise<boolean>} whether `dir` answered the request */
   async function serveFrom(dir, urlPath, method, req, res) {
-    // JS mocks take priority over static JSON. Two `_` wildcards are tried after the exact path:
+    // JS mocks take priority over static JSON. These `_` wildcards are tried after the exact path:
     //   parent/_        for the last segment  (…/urls/{id})
     //   parent/_/child  for the id before it  (…/chains/{id}/rules)
+    //   every numeric segment as `_`, JS only (.../objects/{id}/floor-plan/passive-elements/{id})
     const parts = urlPath.split('/')
     const wildcardPath = [...parts.slice(0, -1), '_'].join('/')
     const parentWildcardPath =
       parts.length >= 2 ? [...parts.slice(0, -2), '_', parts[parts.length - 1]].join('/') : null
+    const idsWildcardPath = parts.map((part) => (/^\d+$/.test(part) ? '_' : part)).join('/')
     const jsCandidates = [
       path.join(dir, `${urlPath}.${method}.js`),
       path.join(dir, `${urlPath}.js`),
@@ -65,6 +67,8 @@ export function createMockHandler({
             path.join(dir, `${parentWildcardPath}.js`),
           ]
         : []),
+      path.join(dir, `${idsWildcardPath}.${method}.js`),
+      path.join(dir, `${idsWildcardPath}.js`),
     ]
 
     for (const filePath of jsCandidates) {

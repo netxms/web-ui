@@ -2,26 +2,21 @@
  * Object view registry: maps object classes to their views.
  *
  * A view entry is:
- *   { id, label, icon, objectClasses?: string[], objectFilter?: (object) => boolean }
+ *   { id, label, icon, objectClasses?: string[], objectFilter?: (object) => boolean,
+ *     leading?: boolean }
+ *
+ * `leading` marks a class's own view (Rack, Floor Plan): it heads that class's tab bar, ahead of
+ * the user's tab order, as legacy ranks these views before the object overview.
  *
  * `objectClasses` absent means every class. `objectFilter` needs the full object document,
  * which the object tree does not carry, so compatibility is three-valued (see
  * `getViewCompatibility`). A filter that needs more than the document returns null until it
  * can decide, and must read that data reactively.
  */
-import { TEMPLATE_APPLICABLE_CLASSES } from '@/utils/objectUtils'
+import { DCI_TARGET_CLASSES, TEMPLATE_APPLICABLE_CLASSES } from '@/utils/objectUtils'
 import { moduleRegistry, MODULE_STATE } from '@/modules'
 
-const DCI_CAPABLE_CLASSES = [
-  'Node',
-  'Cluster',
-  'MobileDevice',
-  'AccessPoint',
-  'Chassis',
-  'Sensor',
-  'Collector',
-  'Circuit',
-]
+const DCI_CAPABLE_CLASSES = [...DCI_TARGET_CLASSES].filter((c) => c !== 'Template')
 
 export const OBJECT_VIEW_GROUPS = {
   overview: {
@@ -50,12 +45,41 @@ export const OBJECT_VIEW_GROUPS = {
         label: 'Rack',
         icon: 'pi pi-server',
         objectClasses: ['Rack'],
+        leading: true,
       },
       {
         id: 'chassis',
         label: 'Chassis',
         icon: 'pi pi-server',
         objectClasses: ['Chassis'],
+      },
+      {
+        id: 'overview',
+        label: 'Overview',
+        icon: 'pi pi-gauge',
+        objectClasses: ['Facility'],
+        leading: true,
+      },
+      {
+        id: 'floorPlan',
+        label: 'Floor Plan',
+        icon: 'pi pi-th-large',
+        objectClasses: ['Room'],
+        leading: true,
+      },
+      {
+        id: 'power',
+        label: 'Power',
+        icon: 'pi pi-bolt',
+        objectClasses: ['Facility', 'PowerDomain'],
+        leading: true,
+      },
+      {
+        id: 'cooling',
+        label: 'Cooling',
+        icon: 'pi pi-cloud',
+        objectClasses: ['Facility', 'CoolingZone'],
+        leading: true,
       },
     ],
   },
