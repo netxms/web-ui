@@ -168,6 +168,56 @@ describe('floor plan editor', MOUNT_TIMEOUT, () => {
     expect(wrapper.find('.fp-edit-bar').exists()).toBe(false)
   })
 
+  it('gives one selected element resize handles, and saves the size a handle drag leaves', async () => {
+    await mountRoom('Hall A')
+    await enterEdit()
+    const handles = () => wrapper.findAll('.fp-handle').map((h) => h.attributes('data-handle'))
+    const field = (label) => {
+      const id = wrapper
+        .findAll('label')
+        .find((l) => l.text() === label)
+        .attributes('for')
+      return wrapper.find(`[id="${id}"]`).element.value
+    }
+
+    expect(handles()).toEqual([])
+    await emitCanvas('activate', `r:${A01}`)
+    expect(handles()).toEqual([])
+    // The office door at y 3000 is 1200 by 100, too thin on screen for its handles to sit on it:
+    // they spread out above and below.
+    await emitCanvas('activate', 'e:9')
+    expect(handles()).toEqual(['e', 'se', 's', 'sw', 'w', 'nw', 'n', 'ne'])
+    const middleY = (id) => {
+      const h = wrapper.find(`.fp-handle[data-handle="${id}"]`)
+      return Number(h.attributes('y')) + Number(h.attributes('height')) / 2
+    }
+    expect(middleY('n')).toBeLessThan(3000)
+    expect(middleY('s')).toBeGreaterThan(3100)
+    expect(middleY('e')).toBe(3050)
+    await emitCanvas('activate', 'e:8')
+    expect(handles()).toEqual(['e', 'se', 's', 'sw', 'w', 'nw', 'n', 'ne'])
+    expect(wrapper.find('.fp-resize').attributes('data-key')).toBe('e:8')
+    expect(wrapper.find('.fp-handle[tabindex]').exists()).toBe(false)
+    await emitCanvas('drag-start', { key: 'e:9', point: { x: 11500, y: 3050 }, toggle: true })
+    await emitCanvas('drag-end')
+    expect(handles()).toEqual([])
+
+    // The ramp stands at 11400, 9300 and is 1800 by 1400.
+    await emitCanvas('activate', 'e:8')
+    await emitCanvas('drag-start', { key: 's:8:se', point: { x: 13200, y: 10700 }, toggle: false })
+    await emitCanvas('drag-move', { x: 13700, y: 10000 })
+    expect(field('Width (mm)')).toBe('2400')
+    expect(field('Depth (mm)')).toBe('900')
+    await emitCanvas('drag-end')
+    expect(handles()).toHaveLength(8)
+
+    await button('Save').trigger('click')
+    await flushPromises()
+    expect(calls()).toEqual([
+      { roomId: HALL_A, kind: 'element-update', id: 8, payload: { width: 2400, depth: 900 } },
+    ])
+  })
+
   it('reports the calls that failed and sends only those again', async () => {
     await mountRoom('Hall A')
     await enterEdit()

@@ -70,6 +70,32 @@ describe('sidebarStore', () => {
     expect(store.showAliases).toBe(false)
   })
 
+  it('leaves drag and drop to the server until the user picks a mode, kept with the account', () => {
+    const store = useSidebarStore()
+    expect(store.dragAndDrop).toBe('server')
+
+    store.setDragAndDrop('confirm')
+
+    expect(store.dragAndDrop).toBe('confirm')
+    expect(userPrefs.get('sidebar.dragAndDrop')).toBe('confirm')
+  })
+
+  it('ignores a drag and drop mode it does not know, set or stored', () => {
+    userPrefs.set('sidebar.dragAndDrop', 'sometimes')
+    const store = useSidebarStore()
+    expect(store.dragAndDrop).toBe('server')
+
+    store.setDragAndDrop('always')
+    expect(store.dragAndDrop).toBe('server')
+  })
+
+  it("follows the account's drag and drop mode when sign-in brings it", async () => {
+    const store = useSidebarStore()
+    userPrefs.replace({ 'sidebar.dragAndDrop': 'disable' }, '7')
+    await nextTick()
+    expect(store.dragAndDrop).toBe('disable')
+  })
+
   it('re-clamps an out-of-range persisted width', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ sidebarWidth: 9000 }))
     setActivePinia(createPinia())

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, afterEach } from 'vitest'
 import { Terminal } from '@xterm/xterm'
 import { TERMINAL_RESET } from '@/utils/sshTerminalProtocol'

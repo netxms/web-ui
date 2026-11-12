@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import { PREVIEW_RANGE_SECONDS, lastCollectedAt, previewWindowEnd } from '@/utils/dciHistoryPreview'
 

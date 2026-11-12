@@ -1,3 +1,5 @@
+import { canBindChild } from '@/utils/objectCreationRules'
+
 /**
  * There is no move endpoint: bind into the new group, then unbind from the previous parents, so a
  * failure halfway leaves the object in both places. An object whose parent list is unknown is
@@ -30,7 +32,9 @@ export async function moveObjectsToGroup({ objects, group, fetchParents, bind, u
  * Bind `childId` under `parentId` and unbind it from `replacedIds`, binding first so a refused
  * bind changes nothing. The server takes one parent of some kinds only (a rack's room and
  * cooling zone, a power domain's facility line) and answers 409 to a second: then the old parents
- * go first, and come back when the bind still fails.
+ * go first, and come back when the bind still fails. Without an access list of its own an object
+ * has the rights of its parents, so one left with none is out of everyone's reach, the next bind
+ * included: a parent of the target holds it meanwhile, and without one the move is not tried.
  *
  * @param {object} options
  * @param {number} options.parentId
@@ -38,25 +42,50 @@ export async function moveObjectsToGroup({ objects, group, fetchParents, bind, u
  * @param {number[]} options.replacedIds
  * @param {(payload: {parentId: number, childId: number}) => Promise} options.bind
  * @param {(payload: {parentId: number, childId: number}) => Promise} options.unbind
+ * @param {(id: number) => Promise<{class: string, parents?: number[]}>} options.fetchObject
  */
-export async function bindInPlaceOf({ parentId, childId, replacedIds, bind, unbind }) {
-  const unbindReplaced = async () => {
-    for (const id of replacedIds) await unbind({ parentId: id, childId })
-  }
+export async function bindInPlaceOf({ parentId, childId, replacedIds, bind, unbind, fetchObject }) {
+  const link = (id) => bind({ parentId: id, childId })
+  const unlink = (id) => unbind({ parentId: id, childId })
   try {
-    await bind({ parentId, childId })
+    await link(parentId)
   } catch (error) {
-    if (error?.status !== 409 || !replacedIds.length) throw error
-    await unbindReplaced()
+    if (error?.status !== 409 || !replacedIds.length || !fetchObject) throw error
+    const holder = await interimParent({ parentId, childId, replacedIds, fetchObject })
+    if (holder === undefined) throw error
+    if (holder !== null) await link(holder)
     try {
-      await bind({ parentId, childId })
+      for (const id of replacedIds) await unlink(id)
+      await link(parentId)
     } catch (again) {
-      for (const id of replacedIds) await bind({ parentId: id, childId }).catch(() => {})
+      const restored = await Promise.all(
+        replacedIds.map((id) =>
+          link(id).then(
+            () => true,
+            () => false,
+          ),
+        ),
+      )
+      if (holder !== null && restored.every(Boolean)) await unlink(holder).catch(() => {})
       throw again
     }
+    if (holder !== null) await unlink(holder)
     return
   }
-  await unbindReplaced()
+  for (const id of replacedIds) await unlink(id)
+}
+
+/**
+ * Where the child stays bound while its replaced parents go: null when a parent of its own stays
+ * anyway, undefined when no parent of the target can hold it.
+ */
+async function interimParent({ parentId, childId, replacedIds, fetchObject }) {
+  const [child, target] = await Promise.all([fetchObject(childId), fetchObject(parentId)])
+  if ((child.parents ?? []).some((id) => !replacedIds.includes(id))) return null
+  for (const id of target.parents ?? []) {
+    if (canBindChild(child.class, (await fetchObject(id)).class)) return id
+  }
+  return undefined
 }
 
 /**
@@ -68,9 +97,10 @@ export async function bindInPlaceOf({ parentId, childId, replacedIds, bind, unbi
  * @param {{id: number, name: string}} options.target - destination container
  * @param {(payload: {parentId: number, childId: number}) => Promise} options.bind
  * @param {(payload: {parentId: number, childId: number}) => Promise} options.unbind
+ * @param {(id: number) => Promise<{class: string, parents?: number[]}>} options.fetchObject
  * @returns {Promise<{succeeded: Array, failed: Array}>}
  */
-export async function moveObjectsToContainer({ moves, target, bind, unbind }) {
+export async function moveObjectsToContainer({ moves, target, bind, unbind, fetchObject }) {
   const results = await Promise.allSettled(
     moves.map(async ({ object, sourceId }) => {
       if (sourceId === target.id) return
@@ -80,6 +110,7 @@ export async function moveObjectsToContainer({ moves, target, bind, unbind }) {
         replacedIds: [sourceId],
         bind,
         unbind,
+        fetchObject,
       })
     }),
   )

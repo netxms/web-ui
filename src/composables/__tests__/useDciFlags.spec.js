@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import { reactive } from 'vue'
 import { useDciFlags } from '@/composables/useDciFlags'

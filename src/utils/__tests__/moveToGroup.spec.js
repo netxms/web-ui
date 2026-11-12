@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, vi } from 'vitest'
 import { moveObjectsToContainer, moveObjectsToGroup } from '@/utils/moveToGroup'
 
@@ -150,43 +151,124 @@ describe('moveObjectsToContainer', () => {
     expect(failed).toEqual([{ id: 5, name: 'R01', status: 400, message: 'Refused' }])
   })
 
-  it('leaves the old room first when the server takes one room per rack', async () => {
+  // Rack 5 stands in room 20 only; target room 30 is in facility 40.
+  const OBJECTS = {
+    5: { class: 'Rack', parents: [20] },
+    30: { class: 'Room', parents: [40] },
+    40: { class: 'Facility', parents: [2] },
+  }
+  const fetchObject = async (id) => OBJECTS[id]
+  const hierarchy = () =>
+    Object.assign(new Error('violates object hierarchy rules'), { status: 409 })
+
+  /** Records the calls; `refuse(call)` makes a bind or unbind fail with its error. */
+  function server(refuse = () => null) {
     const calls = []
-    const hierarchy = Object.assign(new Error('violates object hierarchy rules'), { status: 409 })
-    const bind = vi.fn(async ({ parentId }) => {
-      calls.push(`bind ${parentId}`)
-      if (calls.length === 1) throw hierarchy
-    })
-    const unbind = vi.fn(async ({ parentId }) => calls.push(`unbind ${parentId}`))
+    const handle =
+      (verb) =>
+      async ({ parentId }) => {
+        const call = `${verb} ${parentId}`
+        calls.push(call)
+        const error = refuse(call, calls)
+        if (error) throw error
+      }
+    return { calls, bind: vi.fn(handle('bind')), unbind: vi.fn(handle('unbind')) }
+  }
+  const firstBindRefused = (call, calls) => (calls.length === 1 ? hierarchy() : null)
+
+  it('leaves the old room first, the facility holding the rack meanwhile', async () => {
+    const { calls, bind, unbind } = server(firstBindRefused)
 
     const { succeeded } = await moveObjectsToContainer({
       moves: [{ object: { id: 5, name: 'R01' }, sourceId: 20 }],
       target,
       bind,
       unbind,
+      fetchObject,
     })
 
-    expect(calls).toEqual(['bind 30', 'unbind 20', 'bind 30'])
+    // With no parent the rack would have no rights, and the next bind would be refused.
+    expect(calls).toEqual(['bind 30', 'bind 40', 'unbind 20', 'bind 30', 'unbind 40'])
     expect(succeeded).toEqual([{ id: 5, name: 'R01' }])
   })
 
-  it('puts the object back when the second bind fails too', async () => {
-    const calls = []
-    const bind = vi.fn(async ({ parentId }) => {
-      calls.push(`bind ${parentId}`)
-      if (parentId === 30) throw Object.assign(new Error('Conflict'), { status: 409 })
+  it('needs no holder when the object keeps another parent', async () => {
+    const { calls, bind, unbind } = server(firstBindRefused)
+    const zoned = async (id) => (id === 5 ? { class: 'Rack', parents: [20, 60] } : OBJECTS[id])
+
+    await moveObjectsToContainer({
+      moves: [{ object: { id: 5, name: 'R01' }, sourceId: 20 }],
+      target,
+      bind,
+      unbind,
+      fetchObject: zoned,
     })
-    const unbind = vi.fn(async ({ parentId }) => calls.push(`unbind ${parentId}`))
+
+    expect(calls).toEqual(['bind 30', 'unbind 20', 'bind 30'])
+  })
+
+  it('does not try when nothing could hold the object meanwhile', async () => {
+    const { calls, bind, unbind } = server(firstBindRefused)
+    const alone = async (id) => (id === 30 ? { class: 'Room', parents: [] } : OBJECTS[id])
 
     const { failed } = await moveObjectsToContainer({
       moves: [{ object: { id: 5, name: 'R01' }, sourceId: 20 }],
       target,
       bind,
       unbind,
+      fetchObject: alone,
     })
 
-    expect(calls).toEqual(['bind 30', 'unbind 20', 'bind 30', 'bind 20'])
+    expect(calls).toEqual(['bind 30'])
+    expect(failed).toEqual([
+      { id: 5, name: 'R01', status: 409, message: 'violates object hierarchy rules' },
+    ])
+  })
+
+  it('puts the object back and lets the holder go when the second bind fails too', async () => {
+    const { calls, bind, unbind } = server((call) =>
+      call === 'bind 30' ? Object.assign(new Error('Conflict'), { status: 409 }) : null,
+    )
+
+    const { failed } = await moveObjectsToContainer({
+      moves: [{ object: { id: 5, name: 'R01' }, sourceId: 20 }],
+      target,
+      bind,
+      unbind,
+      fetchObject,
+    })
+
+    expect(calls).toEqual(['bind 30', 'bind 40', 'unbind 20', 'bind 30', 'bind 20', 'unbind 40'])
     expect(failed).toEqual([{ id: 5, name: 'R01', status: 409, message: 'Conflict' }])
+  })
+
+  it('keeps the holder when the object cannot go back either', async () => {
+    const { calls, bind, unbind } = server((call) =>
+      call === 'bind 30' || call === 'bind 20' ? hierarchy() : null,
+    )
+
+    await moveObjectsToContainer({
+      moves: [{ object: { id: 5, name: 'R01' }, sourceId: 20 }],
+      target,
+      bind,
+      unbind,
+      fetchObject,
+    })
+
+    expect(calls).toEqual(['bind 30', 'bind 40', 'unbind 20', 'bind 30', 'bind 20'])
+  })
+
+  it('tries nothing more on a 409 without a way to look the objects up', async () => {
+    const { calls, bind, unbind } = server(firstBindRefused)
+
+    await moveObjectsToContainer({
+      moves: [{ object: { id: 5, name: 'R01' }, sourceId: 20 }],
+      target,
+      bind,
+      unbind,
+    })
+
+    expect(calls).toEqual(['bind 30'])
   })
 
   it('does nothing for an object already in the target', async () => {

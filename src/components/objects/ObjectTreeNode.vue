@@ -38,6 +38,10 @@ const props = defineProps({
   stickyOffset: { type: Number, default: null },
   /** `(node) => boolean`; a row it refuses has no overflow button */
   hasMenu: { type: Function, default: null },
+  /** `(node) => boolean`; the host tree handles the drag events */
+  canDrag: { type: Function, default: null },
+  /** The row a drag would drop onto. */
+  dropPath: { type: String, default: null },
 })
 
 const emit = defineEmits(['select', 'contextmenu', 'toggle'])
@@ -162,11 +166,17 @@ function handleOverflowClick(event) {
     <div
       class="tree-node-row"
       :class="[
-        { selected: isSelected, sticky: stickyOffset != null, 'menu-target': menuPath === nodePath },
+        {
+          selected: isSelected,
+          sticky: stickyOffset != null,
+          'menu-target': menuPath === nodePath,
+          'drop-target': dropPath === nodePath,
+        },
         rangeClass,
       ]"
       :style="rowStyle"
       v-bind="rowBindings"
+      :draggable="canDrag?.(node) ? 'true' : undefined"
       :data-path="nodePath"
       role="treeitem"
       :aria-level="ariaLevel"
@@ -245,6 +255,8 @@ function handleOverflowClick(event) {
         :indent-offset="indentOffset"
         :sticky-offset="stickyOffset"
         :has-menu="hasMenu"
+        :can-drag="canDrag"
+        :drop-path="dropPath"
         @select="(n, p, e) => emit('select', n, p, e)"
         @contextmenu="(e, n, p) => emit('contextmenu', e, n, p)"
         @toggle="(path) => emit('toggle', path)"

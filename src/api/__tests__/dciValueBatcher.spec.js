@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, vi } from 'vitest'
 import { createDciValueBatcher, BULK_MAX_DCI_ITEMS } from '../dciValueBatcher'
 import { ApiError } from '../client'

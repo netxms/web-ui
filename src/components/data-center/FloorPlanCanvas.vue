@@ -8,6 +8,11 @@ import {
   footprint,
   frontBand,
   nearestEdge,
+  RESIZE_HANDLES,
+  resizeCursor,
+  resizeHandlePoint,
+  resizeHandleSpread,
+  shortenMiddle,
   svgPoints,
   tileGrid,
 } from '@/utils/floorPlan'
@@ -84,7 +89,7 @@ const racks = computed(() =>
 
 const aisles = computed(() => deriveAisles(racks.value))
 
-const ELEMENT_LABEL_TYPES = new Set(['OTHER', 'RAMP', 'STAIRS'])
+const ELEMENT_LABEL_TYPES = new Set(['DOOR', 'OTHER', 'RAMP', 'STAIRS'])
 
 const elements = computed(() =>
   (props.plan.passiveElements ?? []).map((element) => {
@@ -172,14 +177,27 @@ const showGrid = computed(() => props.plan.gridTileSize * pxPerMm.value >= 3)
 const RACK_CHAR_EM = 0.68
 const MONO_CHAR_EM = 0.64
 const MIN_LABEL_PX = 8
+const MIN_RACK_LABEL_CHARS = 4
 
-/** Screen font size of a rack's name, or 0 when it does not fit across the rack. */
-function rackLabelSize(entry) {
+/**
+ * A rack's name across the rack and its screen font size: smaller as the rack gets smaller, then
+ * shortened at the smallest size. Null when the rack is too short, or under four letters fit.
+ */
+function rackLabel(entry) {
   const scale = pxPerMm.value
-  const byWidth = (entry.boxWidth * scale * 0.86) / (entry.rack.name.length * RACK_CHAR_EM)
-  const size = Math.min(12, (entry.boxHeight * scale) / 2.5, byWidth)
-  return size >= MIN_LABEL_PX ? size : 0
+  const { name } = entry.rack
+  const room = entry.boxWidth * scale * 0.86
+  const byHeight = (entry.boxHeight * scale) / 2.5
+  const size = Math.min(12, byHeight, room / (name.length * RACK_CHAR_EM))
+  if (size >= MIN_LABEL_PX) return { text: name, size }
+  if (byHeight < MIN_LABEL_PX) return null
+  // The ellipsis counts as a character.
+  const fit = Math.floor(room / (MIN_LABEL_PX * RACK_CHAR_EM))
+  if (fit <= MIN_RACK_LABEL_CHARS) return null
+  return { text: shortenMiddle(name, fit), size: MIN_LABEL_PX }
 }
+
+const rackLabels = computed(() => racks.value.map(rackLabel))
 
 /**
  * How a label of `text` fits a box of `width` × `height` mm: across, turned along a box taller
@@ -232,6 +250,34 @@ const insertHandles = computed(() => {
     const b = outline.value[(edge + 1) % n]
     return { edge, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
   })
+})
+
+const HANDLE_PX = 10
+
+/**
+ * `{ cursor, moved, spread }` of the resize handle being dragged; the size shows once it has
+ * moved.
+ */
+const resizing = ref(null)
+
+/**
+ * Resize handles of the one selected element. On an element under three handles across on
+ * screen they spread out from it, so all eight stay apart.
+ */
+const resize = computed(() => {
+  if (!props.editMode || props.selectedKeys.size !== 1) return null
+  const entry = elements.value.find((e) => props.selectedKeys.has(e.key))
+  if (!entry) return null
+  const { element } = entry
+  // Held through a drag: a spread that shrinks as the side grows would leave the handle behind
+  // the pointer.
+  const spread = resizing.value?.spread ?? resizeHandleSpread(element, px(HANDLE_PX * 3))
+  const handles = RESIZE_HANDLES.map((id) => {
+    const [x, y] = resizeHandlePoint(element, id, spread)
+    return { id, x, y, cursor: resizeCursor(id, element.rotation) }
+  })
+  const readoutY = Math.max(...handles.map((h) => h.y)) + px(20)
+  return { entry, element, handles, spread, readoutY }
 })
 
 function zoomBy(factor, center) {
@@ -310,6 +356,13 @@ function onItemPointerDown(key, event) {
   capture(event)
 }
 
+/** The SVG holds the pointer during the drag, so it shows the handle's cursor meanwhile. */
+function onHandlePointerDown(handle, event) {
+  const { element, spread } = resize.value
+  onItemPointerDown(`s:${element.id}:${handle.id}`, event)
+  if (gesture?.type === 'item') resizing.value = { cursor: handle.cursor, moved: false, spread }
+}
+
 function movedPast(event) {
   return Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y) > DRAG_THRESHOLD
 }
@@ -327,6 +380,9 @@ function onPointerMove(event) {
     }
   } else if (gesture.type === 'item') {
     gesture.moved ||= movedPast(event)
+    if (gesture.moved && resizing.value && !resizing.value.moved) {
+      resizing.value = { ...resizing.value, moved: true }
+    }
     const point = gesture.moved && toRoom(event)
     if (point) emit('drag-move', point)
   } else if (gesture.type === 'marquee') {
@@ -338,6 +394,7 @@ function onPointerMove(event) {
 function onPointerUp(event) {
   const done = gesture
   gesture = null
+  resizing.value = null
   svgRef.value?.releasePointerCapture?.(event.pointerId)
   if (!done) return
   if (done.type === 'item') {
@@ -498,6 +555,7 @@ defineExpose({ fit, viewCentre })
       preserveAspectRatio="xMidYMid meet"
       role="group"
       :aria-label="`Floor plan of ${plan.name}`"
+      :style="resizing ? { cursor: resizing.cursor } : undefined"
       @wheel="onWheel"
       @pointerdown="onPointerDown"
       @pointermove="onPointerMove"
@@ -677,7 +735,7 @@ defineExpose({ fit, viewCentre })
 
       <g class="fp-racks">
         <g
-          v-for="entry in racks"
+          v-for="(entry, i) in racks"
           :key="entry.rack.id"
           class="fp-rack"
           :class="{ selected: selectedKeys.has(entry.key), warned: warnedKeys.has(entry.key) }"
@@ -713,16 +771,16 @@ defineExpose({ fit, viewCentre })
             vector-effect="non-scaling-stroke"
           />
           <text
-            v-if="rackLabelSize(entry)"
+            v-if="rackLabels[i]"
             :x="entry.cx"
             :y="entry.cy"
             text-anchor="middle"
             dominant-baseline="central"
             class="fp-rack-label"
-            :font-size="px(rackLabelSize(entry))"
-            :stroke-width="px(Math.min(3, rackLabelSize(entry) / 4))"
+            :font-size="px(rackLabels[i].size)"
+            :stroke-width="px(Math.min(3, rackLabels[i].size / 4))"
           >
-            {{ entry.rack.name }}
+            {{ rackLabels[i].text }}
           </text>
         </g>
       </g>
@@ -769,6 +827,36 @@ defineExpose({ fit, viewCentre })
             vector-effect="non-scaling-stroke"
           />
         </g>
+      </g>
+
+      <!-- For the pointer only: Width and Depth in the side panel are the keyboard path. -->
+      <g v-if="resize" class="fp-resize" :data-key="resize.entry.key" aria-hidden="true">
+        <rect
+          v-for="handle in resize.handles"
+          :key="handle.id"
+          :x="handle.x - px(HANDLE_PX / 2)"
+          :y="handle.y - px(HANDLE_PX / 2)"
+          :width="px(HANDLE_PX)"
+          :height="px(HANDLE_PX)"
+          :transform="`rotate(${resize.element.rotation} ${handle.x} ${handle.y})`"
+          class="fp-handle"
+          :style="{ cursor: handle.cursor }"
+          :data-handle="handle.id"
+          vector-effect="non-scaling-stroke"
+          @pointerdown="onHandlePointerDown(handle, $event)"
+        />
+        <text
+          v-if="resizing?.moved"
+          :x="resize.entry.cx"
+          :y="resize.readoutY"
+          text-anchor="middle"
+          dominant-baseline="central"
+          class="fp-readout"
+          :font-size="px(11)"
+          :stroke-width="px(3)"
+        >
+          {{ resize.element.width }} &times; {{ resize.element.depth }}
+        </text>
       </g>
 
       <rect
@@ -993,13 +1081,18 @@ html.app-dark .fp-canvas {
   pointer-events: none;
 }
 
-.fp-rack-label {
+.fp-rack-label,
+.fp-readout {
   fill: var(--fp-ink);
   stroke: var(--fp-bg);
   paint-order: stroke;
   stroke-linejoin: round;
   font-weight: 600;
   pointer-events: none;
+}
+
+.fp-readout {
+  font-variant-numeric: tabular-nums;
 }
 
 .fp-rack:hover .fp-rack-body,
@@ -1026,16 +1119,21 @@ html.app-dark .fp-canvas {
   cursor: copy;
 }
 
-.fp-vertex {
+.fp-vertex,
+.fp-handle {
   fill: var(--fp-bg);
   stroke: var(--fp-ink);
   stroke-width: 1.5;
-  cursor: move;
   outline: none;
 }
 
+.fp-vertex {
+  cursor: move;
+}
+
 .fp-vertex:hover,
-.fp-vertex:focus-visible {
+.fp-vertex:focus-visible,
+.fp-handle:hover {
   stroke-width: 2.5;
 }
 

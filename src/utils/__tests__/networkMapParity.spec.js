@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * An unedited adapt -> serialize round trip of maps authored in the legacy client
  * (fixtures/legacyMapContent.js) must lose nothing the legacy client depends on.

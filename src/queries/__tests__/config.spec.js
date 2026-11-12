@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, vi } from 'vitest'
 import { QueryClient, QueryObserver } from '@tanstack/vue-query'
 import { queryClient, resyncAfterReconnect } from '../config'

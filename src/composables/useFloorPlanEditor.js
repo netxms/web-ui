@@ -9,6 +9,8 @@ import {
   polygonArea,
   polygonsOverlap,
   rectangleOf,
+  resizeHandlePoint,
+  resizeItem,
   resizeRectangle,
   rotateItems,
   rowPlacements,
@@ -36,8 +38,9 @@ const byName = (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true
 /**
  * Edit session over a floor plan: a working copy of the outline, the room's grid, passive
  * elements and rack placements, selection, undo history and the save. Item keys are `r:<rack id>`,
- * `e:<element id>` (negative for elements not saved yet) and `v:<outline index>`. The working
- * copy is replaced, never mutated, so a history entry is the model itself.
+ * `e:<element id>` (negative for elements not saved yet) and `v:<outline index>`; a drag also
+ * starts on `s:<element id>:<handle>`, a resize handle of an element. The working copy is
+ * replaced, never mutated, so a history entry is the model itself.
  *
  * @param {import('vue').MaybeRefOrGetter<object|null>} planSource - GET .../floor-plan document
  */
@@ -269,12 +272,26 @@ export function useFloorPlanEditor(planSource) {
 
   let drag = null
 
+  /** Pointer down on a resize handle: the element stays selected, its size follows `dragTo`. */
+  function beginResize(elementKey, handle, point) {
+    const element = itemOf(elementKey)
+    if (!element) return
+    selection.value = [elementKey]
+    const grip = resizeHandlePoint(element, handle)
+    drag = { start: point, items: [element], model: working.value, moved: false, handle, grip }
+  }
+
   /**
    * Pointer down on an item: it joins the selection, and the selection follows `dragTo`. A
    * press that does not move is a click, settled by `endDrag`.
    */
   function beginDrag(key, point, { toggle = false } = {}) {
     if (!editMode.value || saving.value) return
+    const [kind, id, handle] = key.split(':')
+    if (kind === 's') {
+      beginResize(`e:${id}`, handle, point)
+      return
+    }
     const wasSelected = selection.value.includes(key)
     if (!wasSelected) {
       if (key.startsWith('v:') || !toggle) selection.value = [key]
@@ -291,7 +308,15 @@ export function useFloorPlanEditor(planSource) {
     const dy = Math.round(point.y - drag.start.y)
     if (!drag.moved && dx === 0 && dy === 0) return
     let updates
-    if (drag.key.startsWith('v:')) {
+    if (drag.handle) {
+      // The handle moves as the pointer does, wherever on it the press landed.
+      const [element] = drag.items
+      const to = [drag.grip[0] + dx, drag.grip[1] + dy]
+      const size = resizeItem(element, drag.handle, to, { grid: snapGrid.value })
+      const unchanged = Object.entries(size).every(([field, value]) => element[field] === value)
+      if (!drag.moved && unchanged) return
+      updates = [{ key: element.key, ...size }]
+    } else if (drag.key.startsWith('v:')) {
       const [vertex] = drag.items
       updates = [{ key: vertex.key, ...snappedVertex(vertex.x + dx, vertex.y + dy) }]
     } else {
@@ -317,7 +342,7 @@ export function useFloorPlanEditor(planSource) {
   function endDrag() {
     const d = drag
     drag = null
-    if (!d || d.moved) return
+    if (!d || d.moved || d.handle) return
     if (!d.toggle) selection.value = [d.key]
     else if (d.wasSelected) selection.value = selection.value.filter((k) => k !== d.key)
   }

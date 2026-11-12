@@ -26,6 +26,10 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    // Creating jsdom for every file was half the run; a vm pool makes one per worker. Three
+    // workers peak near 5 GB, which a 16 GB workstation running an IDE can spare.
+    pool: 'vmThreads',
+    maxWorkers: 3,
     setupFiles: ['./vitest.setup.js'],
     exclude: [...configDefaults.exclude, 'e2e/**', '.claude/**'],
     root: fileURLToPath(new URL('./', import.meta.url)),

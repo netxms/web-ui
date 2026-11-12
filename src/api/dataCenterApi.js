@@ -6,7 +6,7 @@
  */
 import { get, patch, post, put, del } from './client'
 import { listDciConfig } from './dciConfigApi'
-import { getDciValues, getRackLayout } from './objectsApi'
+import { getDciValues, getObject, getRackLayout } from './objectsApi'
 import { DEMO_CONTENT_ENABLED } from '@/config/buildFlags'
 import { dciValueKey } from '@/utils/dciValues'
 import { bindInPlaceOf } from '@/utils/moveToGroup'
@@ -187,6 +187,7 @@ async function moveRackIntoRoom(roomId, op) {
       put(`/v1/objects/${parentId}/children/${childId}`, undefined, ITEM_ERRORS),
     unbind: ({ parentId, childId }) =>
       del(`/v1/objects/${parentId}/children/${childId}`, ITEM_ERRORS),
+    fetchObject: getObject,
   })
   return patch(`/v1/objects/${op.id}/room-placement`, op.payload, ITEM_ERRORS)
 }

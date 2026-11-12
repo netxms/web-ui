@@ -236,3 +236,160 @@ describe('ObjectSidebarTree', () => {
     expect(wrapper.emitted('toggle')).toBeUndefined()
   })
 })
+
+describe('ObjectSidebarTree drag and drop', () => {
+  const FOLDER = {
+    id: 20,
+    name: 'folder',
+    class: 'Container',
+    status: 0,
+    children: [{ id: 21, name: 'inner', class: 'Node', status: 0 }],
+  }
+
+  beforeEach(() => {
+    localStorage.clear()
+    pinia = createPinia()
+    setActivePinia(pinia)
+  })
+
+  function mountDraggable(props = {}) {
+    const objects = [ROOT, ...NODES, FOLDER, ...FOLDER.children]
+    const byPath = new Map([
+      ...objects.map((object) => [String(object.id), object]),
+      ['20-21', FOLDER.children[0]],
+    ])
+    return mountTree({
+      roots: [
+        {
+          object: ROOT,
+          label: 'Infrastructure',
+          fallbackClass: 'ServiceRoot',
+          nodes: [...NODES, FOLDER],
+        },
+      ],
+      resolvePath: (path) => byPath.get(path) ?? null,
+      canDrag: (object) => object.class === 'Node',
+      canDrop: ({ target }) => target.id !== 11,
+      ...props,
+    })
+  }
+
+  const row = (wrapper, path) => wrapper.find(`[data-path="${path}"]`)
+
+  /** jsdom has no DragEvent; a plain event carries what the handlers read. */
+  function fire(wrapper, path, type, init = {}) {
+    const event = new Event(type, { bubbles: true, cancelable: true })
+    const dataTransfer = { clearData: vi.fn(), setData: vi.fn(), effectAllowed: '', dropEffect: '' }
+    Object.assign(event, { dataTransfer, ctrlKey: false, metaKey: false, clientY: 0, ...init })
+    row(wrapper, path).element.dispatchEvent(event)
+    return event
+  }
+
+  it('makes no row draggable without drop rules', () => {
+    const wrapper = mountTree({ canDrag: () => true })
+
+    expect(row(wrapper, '10').attributes('draggable')).toBeUndefined()
+  })
+
+  it('drags the rows the rules allow and drops onto a row they accept', async () => {
+    const wrapper = mountDraggable()
+    expect(row(wrapper, '10').attributes('draggable')).toBe('true')
+    expect(row(wrapper, '20').attributes('draggable')).toBeUndefined()
+
+    const start = fire(wrapper, '10', 'dragstart')
+    expect(start.defaultPrevented).toBe(false)
+    expect(start.dataTransfer.setData).toHaveBeenCalledWith('text/plain', 'server-01')
+
+    const over = fire(wrapper, '20', 'dragover')
+    await wrapper.vm.$nextTick()
+    expect(over.defaultPrevented).toBe(true)
+    expect(over.dataTransfer.dropEffect).toBe('move')
+    expect(row(wrapper, '20').classes()).toContain('drop-target')
+
+    fire(wrapper, '20', 'drop')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.emitted('drop')).toEqual([
+      [{ rows: [{ object: NODES[0], path: '10' }], target: FOLDER, targetPath: '20', copy: false }],
+    ])
+    expect(row(wrapper, '20').classes()).not.toContain('drop-target')
+  })
+
+  it('lights a row up on dragenter, before any dragover', async () => {
+    const wrapper = mountDraggable()
+    fire(wrapper, '10', 'dragstart')
+
+    const enter = fire(wrapper, '20', 'dragenter')
+    await wrapper.vm.$nextTick()
+
+    expect(enter.defaultPrevented).toBe(true)
+    expect(row(wrapper, '20').classes()).toContain('drop-target')
+  })
+
+  it('leaves a refused row unmarked and drops nothing on it', async () => {
+    const wrapper = mountDraggable()
+    fire(wrapper, '10', 'dragstart')
+
+    const over = fire(wrapper, '11', 'dragover')
+    await wrapper.vm.$nextTick()
+    fire(wrapper, '11', 'drop')
+
+    expect(over.defaultPrevented).toBe(false)
+    expect(row(wrapper, '11').classes()).not.toContain('drop-target')
+    expect(wrapper.emitted('drop')).toBeUndefined()
+  })
+
+  it('copies while Ctrl is held', () => {
+    const canDrop = vi.fn(() => true)
+    const wrapper = mountDraggable({ canDrop })
+    fire(wrapper, '10', 'dragstart')
+
+    const over = fire(wrapper, '20', 'dragover', { ctrlKey: true })
+
+    expect(canDrop).toHaveBeenLastCalledWith(expect.objectContaining({ copy: true }))
+    expect(over.dataTransfer.dropEffect).toBe('copy')
+  })
+
+  it('drags a whole range when the drag starts inside it', async () => {
+    const wrapper = mountDraggable()
+    await row(wrapper, '10').trigger('click')
+    await row(wrapper, '11').trigger('click', { shiftKey: true })
+
+    fire(wrapper, '11', 'dragstart')
+    fire(wrapper, '20', 'drop')
+
+    const [drop] = wrapper.emitted('drop').at(-1)
+    expect(drop.rows.map((r) => r.path)).toEqual(['10', '11'])
+  })
+
+  it('refuses to start a drag that holds a row the rules do not allow', async () => {
+    const wrapper = mountDraggable({ canDrag: (object) => object.id === 10 })
+    await row(wrapper, '10').trigger('click')
+    await row(wrapper, '11').trigger('click', { shiftKey: true })
+
+    expect(fire(wrapper, '10', 'dragstart').defaultPrevented).toBe(true)
+  })
+
+  it('opens a collapsed row the drag rests on', () => {
+    vi.useFakeTimers()
+    try {
+      const wrapper = mountDraggable()
+      fire(wrapper, '10', 'dragstart')
+
+      fire(wrapper, '20', 'dragover')
+      vi.advanceTimersByTime(600)
+      fire(wrapper, '20', 'dragover')
+      expect(wrapper.emitted('toggle')).toBeUndefined()
+      vi.advanceTimersByTime(200)
+
+      expect(wrapper.emitted('toggle')).toEqual([['20']])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('ignores a drag that did not start in the tree', () => {
+    const wrapper = mountDraggable()
+
+    expect(fire(wrapper, '20', 'dragover').defaultPrevented).toBe(false)
+  })
+})

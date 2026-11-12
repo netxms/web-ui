@@ -37,6 +37,10 @@ import MoveToContainerDialog from '@/components/objects/MoveToContainerDialog.vu
 import MaintenanceDialog from '@/components/objects/MaintenanceDialog.vue'
 import StatusExplanationDialog from '@/components/objects/StatusExplanationDialog.vue'
 import { useContextMenu } from '@/composables/useContextMenu'
+import { useTreeDrop } from '@/composables/useTreeDrop'
+import { BIND_TO_CONTAINER_CLASSES, MOVABLE_CLASSES } from '@/actions/objectActions'
+import { canBindChild } from '@/utils/objectCreationRules'
+import { DRAG_AND_DROP_PREFERENCES } from '@/utils/treeDragDrop'
 import { useActions, extractPrimaryActions } from '@/composables/useActions'
 import { useTemplateBinding } from '@/composables/useTemplateBinding'
 import { useActionShortcuts } from '@/composables/useActionShortcuts'
@@ -59,7 +63,10 @@ import {
   useObjectsByIds,
   useBindObjectChild,
   useUnbindObjectChild,
+  objectKeys,
 } from '@/queries/useObjectQueries'
+import { getObject } from '@/api/objectsApi'
+import { queryClient } from '@/queries/config'
 import { moveObjectsToContainer } from '@/utils/moveToGroup'
 import { useObjectToolIcons, useObjectToolsForObject } from '@/queries/useObjectToolQueries'
 import { useObjectIcons } from '@/composables/useObjectIcons'
@@ -354,11 +361,26 @@ function toggleCreateObjectMenu(event) {
 
 const sidebarStore = useSidebarStore()
 const settingsMenuRef = ref(null)
+const DRAG_AND_DROP_LABELS = {
+  server: 'Controlled by server',
+  enable: 'Enable',
+  confirm: 'Confirm',
+  disable: 'Disable',
+}
 const settingsMenuItems = computed(() => [
   {
     label: 'Show aliases',
     icon: sidebarStore.showAliases ? 'pi pi-check' : 'pi pi-fw',
     command: () => sidebarStore.toggleAliases(),
+  },
+  { separator: true },
+  {
+    label: 'Drag and drop',
+    items: DRAG_AND_DROP_PREFERENCES.map((value) => ({
+      label: DRAG_AND_DROP_LABELS[value],
+      icon: sidebarStore.dragAndDrop === value ? 'pi pi-check' : 'pi pi-fw',
+      command: () => sidebarStore.setDragAndDrop(value),
+    })),
   },
 ])
 
@@ -439,8 +461,11 @@ function bindSummary(childCount, containerCount) {
  * Every selected object into every selected container, as the legacy `bindToContainer()`
  * does: the selection is bound, not just the row the menu was opened on.
  */
-async function onContainerSelected(containers) {
-  const children = bindToContainerTargets.value ?? []
+function onContainerSelected(containers) {
+  return bindObjects(bindToContainerTargets.value ?? [], containers)
+}
+
+async function bindObjects(children, containers) {
   if (children.length === 0) return
   try {
     await Promise.all(
@@ -485,12 +510,17 @@ function leftRoomNote(moves, succeeded) {
     : 'Their floor plan positions were cleared.'
 }
 
+function fetchObject(id) {
+  return queryClient.fetchQuery({ queryKey: objectKeys.detail(id), queryFn: () => getObject(id) })
+}
+
 async function onMoveTargetSelected({ target, moves }) {
   const { succeeded, failed } = await moveObjectsToContainer({
     moves: moves.map((m) => ({ object: m.object, sourceId: m.source.id })),
     target,
     bind: bindChildAsync,
     unbind: unbindChildAsync,
+    fetchObject,
   })
 
   if (succeeded.length > 0) {
@@ -1068,6 +1098,15 @@ function treeParentOf(path) {
   if (findNodeByPath(networkFilteredTree.value, path)) return networkRootObject.value
   return null
 }
+
+const treeDrop = useTreeDrop({
+  movableClasses: new Set(MOVABLE_CLASSES),
+  copyableClasses: new Set(BIND_TO_CONTAINER_CLASSES),
+  canBind: canBindChild,
+  parentOf: treeParentOf,
+  onMove: onMoveTargetSelected,
+  onCopy: ({ target, objects }) => bindObjects(objects, [target]),
+})
 
 function handleTreeContextMenu(event, node, { selection, path, paths } = {}) {
   contextMenuTargetObject.value = node
@@ -1694,10 +1733,13 @@ watch(
         :target-for="treeNodeTarget"
         :root-target-for="treeNodeTarget"
         :resolve-path="resolveTreePath"
+        :can-drag="treeDrop.canDrag"
+        :can-drop="treeDrop.canDrop"
         @select="selectTreeNode"
         @contextmenu="handleTreeContextMenu"
         @toggle="handleToggleExpand"
         @selection-change="handleTreeSelectionChange"
+        @drop="treeDrop.onDrop"
       />
     </div>
   </Teleport>

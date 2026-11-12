@@ -3,6 +3,9 @@ import { ref } from 'vue'
 import { mount } from '@vue/test-utils'
 import { useSessionSync } from '@/composables/useSessionSync'
 
+const reload = vi.fn()
+vi.mock('@/utils/navigation', () => ({ reloadPage: () => reload() }))
+
 // Torn down after each test, or the `storage` listeners pile up across tests.
 let mounted = []
 
@@ -42,13 +45,9 @@ function fireStorage({ key, newValue = null, storageArea = localStorage }) {
   return event
 }
 
-let reload
-
 beforeEach(() => {
   localStorage.clear()
-  reload = vi.fn()
-  // jsdom's location.reload is not configurable by assignment.
-  vi.spyOn(window, 'location', 'get').mockReturnValue({ reload })
+  reload.mockClear()
 })
 
 afterEach(() => {

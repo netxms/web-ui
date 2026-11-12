@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // Chats live in module state, so each test re-imports the module for a clean registry.

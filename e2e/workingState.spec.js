@@ -28,7 +28,7 @@ function dciPage(page) {
     description: table.locator('thead th').filter({ hasText: 'Description' }),
     currentPage: page.locator('.p-paginator-page-selected'),
     scroller: page.locator('.app-table-wrap').first(),
-    selectedCount: page.getByText('1 selected'),
+    selectedCount: page.getByRole('group', { name: 'Selection' }).getByText('1 selected'),
   }
 }
 

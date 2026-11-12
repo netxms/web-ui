@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import { dciSource, isTemplateItem, resolveDciSourceRoot } from '@/utils/dciSource'
 import { DCF_TEMPLATE_OVERRIDE } from '@/composables/useDciFlags'

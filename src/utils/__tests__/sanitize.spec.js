@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import { escapeHtml, isSafeExternalUrl, REMOTE_ACCESS_SCHEMES } from '../sanitize'
 

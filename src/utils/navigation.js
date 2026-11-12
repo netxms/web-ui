@@ -41,3 +41,8 @@ export function openInNewTab(to) {
   const opened = window.open(resolveHref(to), '_blank')
   if (opened) opened.opener = null
 }
+
+/** A spec mocks this module: jsdom's `location` cannot be redefined. */
+export function reloadPage() {
+  window.location.reload()
+}

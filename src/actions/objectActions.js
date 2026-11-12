@@ -163,7 +163,7 @@ function dispatchObjectEvent(name, detail) {
 
 // Bind to / Unbind from container only applies to non-container objects.
 // Containers and Collectors use "Bind object into" on the target container instead.
-const BIND_TO_CONTAINER_CLASSES = [
+export const BIND_TO_CONTAINER_CLASSES = [
   'Node',
   'Cluster',
   'Chassis',
@@ -176,7 +176,7 @@ const BIND_TO_CONTAINER_CLASSES = [
 ]
 
 // Legacy's movable classes, plus Chassis, which it binds but does not move.
-const MOVABLE_CLASSES = [
+export const MOVABLE_CLASSES = [
   'Node',
   'Cluster',
   'Chassis',

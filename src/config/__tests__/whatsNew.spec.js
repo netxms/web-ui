@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import { freshEntries, CHANGELOG_MAX_AGE_DAYS, CHANGELOG_MAX_ENTRIES } from '@/config/whatsNew'
 

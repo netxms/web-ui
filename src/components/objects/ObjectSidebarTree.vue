@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import ProgressSpinner from 'primevue/progressspinner'
 import ObjectTreeNode from './ObjectTreeNode.vue'
 import ActionOverflowButton from '@/components/actions/ActionOverflowButton.vue'
@@ -37,6 +37,13 @@ const props = defineProps({
   resolvePath: { type: Function, required: true },
   /** `(object) => boolean`; a row it refuses has no overflow button and ignores right-click */
   hasMenu: { type: Function, default: null },
+  /** `(object) => boolean`; with `canDrop`, the rows it accepts can be dragged */
+  canDrag: { type: Function, default: null },
+  /**
+   * `({ rows, target, targetPath, copy }) => boolean`, rows being `{ object, path }`; `copy` is
+   * Ctrl (Cmd) held. A drop it accepts is emitted as `drop` with the same argument.
+   */
+  canDrop: { type: Function, default: null },
 })
 
 /** Matches ObjectTreeNode; the stuck rows below stack under it. */
@@ -44,7 +51,7 @@ const ROOT_ROW_HEIGHT_REM = 2
 
 const ROOT_CHILD_INDENT_REM = 0.5
 
-const emit = defineEmits(['select', 'contextmenu', 'toggle', 'selection-change', 'retry'])
+const emit = defineEmits(['select', 'contextmenu', 'toggle', 'selection-change', 'retry', 'drop'])
 
 const containerRef = ref(null)
 const { navBindings } = useNavTarget()
@@ -85,6 +92,105 @@ function onContextMenu(event, node, path) {
   menuPath.value = path
   emit('contextmenu', event, node, { selection, path, paths })
 }
+
+// A collapsed row opens after the pointer rests on it this long during a drag.
+const DRAG_EXPAND_DELAY_MS = 700
+// Within this distance of the tree's top or bottom edge, a drag scrolls it.
+const DRAG_SCROLL_EDGE_PX = 32
+const DRAG_SCROLL_STEP_PX = 12
+
+/** The rows being dragged, `{ object, path }` each; null when no drag started in this tree. */
+const dragRows = ref(null)
+const dropPath = ref(null)
+let expandTimer = null
+let expandPath = null
+
+const rowOf = (event) => event.target.closest?.('.tree-node-row[data-path]') ?? null
+
+function dropOf(event, row) {
+  const targetPath = row?.dataset.path
+  const target = targetPath ? props.resolvePath(targetPath) : null
+  if (!target) return null
+  return { rows: dragRows.value, target, targetPath, copy: event.ctrlKey || event.metaKey }
+}
+
+function scheduleExpand(row) {
+  const path = row?.getAttribute('aria-expanded') === 'false' ? row.dataset.path : null
+  if (path === expandPath) return
+  clearTimeout(expandTimer)
+  expandPath = path
+  if (!path) return
+  expandTimer = setTimeout(() => {
+    expandPath = null
+    if (!props.expandedIds.has(path)) emit('toggle', path)
+  }, DRAG_EXPAND_DELAY_MS)
+}
+
+function endDrag() {
+  dragRows.value = null
+  dropPath.value = null
+  scheduleExpand(null)
+}
+
+// Inside a range the whole range moves, as the menu acts on it; outside, only the row.
+function onDragStart(event) {
+  if (!props.canDrag || !props.canDrop) return
+  const path = rowOf(event)?.dataset.path
+  const range = multiSelect.selectedPaths.value
+  const paths = path && range?.has(path) ? [...range] : [path]
+  const rows = path ? paths.map((p) => ({ object: props.resolvePath(p), path: p })) : []
+  if (!rows.length || !rows.every((row) => row.object && props.canDrag(row.object))) {
+    event.preventDefault()
+    return
+  }
+  dragRows.value = rows
+  // A drag that starts on an icon image would otherwise carry the image's URL.
+  event.dataTransfer.clearData()
+  event.dataTransfer.effectAllowed = 'copyMove'
+  event.dataTransfer.setData('text/plain', rows.map((row) => row.object.name).join('\n'))
+}
+
+// On dragenter as well: a drop target is the row whose dragenter was cancelled, and the highlight
+// should not wait for the first dragover.
+function onDragHover(event) {
+  if (!dragRows.value) return
+  const el = containerRef.value
+  const { top, bottom } = el.getBoundingClientRect()
+  if (event.clientY < top + DRAG_SCROLL_EDGE_PX) el.scrollTop -= DRAG_SCROLL_STEP_PX
+  else if (event.clientY > bottom - DRAG_SCROLL_EDGE_PX) el.scrollTop += DRAG_SCROLL_STEP_PX
+
+  const row = rowOf(event)
+  scheduleExpand(row)
+  const drop = dropOf(event, row)
+  if (!drop || !props.canDrop(drop)) {
+    dropPath.value = null
+    return
+  }
+  event.preventDefault()
+  event.dataTransfer.dropEffect = drop.copy ? 'copy' : 'move'
+  dropPath.value = drop.targetPath
+}
+
+// By position: Chrome has sent drag events without a relatedTarget.
+function onDragLeave(event) {
+  if (!dragRows.value) return
+  const { left, right, top, bottom } = containerRef.value.getBoundingClientRect()
+  const { clientX: x, clientY: y } = event
+  if (x <= left || x >= right || y <= top || y >= bottom) {
+    dropPath.value = null
+    scheduleExpand(null)
+  }
+}
+
+function onDrop(event) {
+  if (!dragRows.value) return
+  event.preventDefault()
+  const drop = dropOf(event, rowOf(event))
+  endDrag()
+  if (drop && props.canDrop(drop)) emit('drop', drop)
+}
+
+onUnmounted(() => clearTimeout(expandTimer))
 
 // Views also select programmatically (e.g. moving to the neighbour after a delete), which
 // never goes through onSelect.
@@ -207,6 +313,12 @@ defineExpose({
     tabindex="-1"
     @keydown.capture="multiSelect.handleKeydownCapture"
     @keydown="multiSelect.handleKeydown"
+    @dragstart="onDragStart"
+    @dragenter="onDragHover"
+    @dragover="onDragHover"
+    @dragleave="onDragLeave"
+    @drop="onDrop"
+    @dragend="endDrag"
   >
     <div v-if="loading" class="tree-loading">
       <ProgressSpinner style="width: 1.5rem; height: 1.5rem" stroke-width="3" />
@@ -220,7 +332,11 @@ defineExpose({
         <div
           class="tree-node-row root-tree-node"
           :class="[
-            { selected: isRowSelected(rootPath(root)), 'menu-target': menuPath === rootPath(root) },
+            {
+              selected: isRowSelected(rootPath(root)),
+              'menu-target': menuPath === rootPath(root),
+              'drop-target': dropPath === rootPath(root),
+            },
             rootRangeClass(rootPath(root)),
           ]"
           v-bind="rootBindings(root)"
@@ -297,6 +413,8 @@ defineExpose({
             :indent-offset="ROOT_CHILD_INDENT_REM"
             :sticky-offset="ROOT_ROW_HEIGHT_REM"
             :has-menu="hasMenu"
+            :can-drag="canDrop ? canDrag : null"
+            :drop-path="dropPath"
             @select="onSelect"
             @contextmenu="onContextMenu"
             @toggle="(path) => emit('toggle', path)"

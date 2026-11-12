@@ -435,6 +435,125 @@ export function rotateItems(items, degrees, centre) {
   })
 }
 
+/**
+ * Resize handles, named by compass with the width axis pointing east and the depth axis south:
+ * `nw` is the reference corner. Clockwise, each 45 degrees on from the one before.
+ */
+export const RESIZE_HANDLES = ['e', 'se', 's', 'sw', 'w', 'nw', 'n', 'ne']
+
+/** Smallest side a handle drag leaves, in millimetres. */
+export const MIN_RESIZE_SIDE = 50
+
+const RIGHT_ANGLE_AXES = { 0: [1, 0], 90: [0, 1], 180: [-1, 0], 270: [0, -1] }
+
+/** Unit vectors of an item's width and depth axes in room space; exact at right angles. */
+function itemAxes(rotation) {
+  const right = RIGHT_ANGLE_AXES[normalizeRotation(rotation)]
+  if (right) return { u: right, v: [-right[1], right[0]], right: true }
+  const a = (rotation * Math.PI) / 180
+  const u = [Math.cos(a), Math.sin(a)]
+  return { u, v: [-u[1], u[0]], right: false }
+}
+
+/**
+ * Where a resize handle sits: a corner or the middle of a side, drawn `spread` further out.
+ *
+ * @param {Placed} item
+ * @param {string} handle - one of RESIZE_HANDLES
+ * @param {{ along: number, across: number }} [spread] - beyond the width and depth sides, in mm
+ * @returns {Point}
+ */
+export function resizeHandlePoint(item, handle, spread = { along: 0, across: 0 }) {
+  const { u, v } = itemAxes(item.rotation)
+  const side = (low, high) => (handle.includes(low) ? -1 : handle.includes(high) ? 1 : 0)
+  const su = side('w', 'e')
+  const sv = side('n', 's')
+  const along = ((su + 1) / 2) * item.width + su * spread.along
+  const across = ((sv + 1) / 2) * item.depth + sv * spread.across
+  return [item.x + u[0] * along + v[0] * across, item.y + u[1] * along + v[1] * across]
+}
+
+/**
+ * How far out to draw the handles of an item smaller than `minSide` (mm) either way, so that
+ * the frame they make is `minSide` across, centred on the item, and no two of them overlap.
+ *
+ * @param {{ width: number, depth: number }} item
+ * @param {number} minSide
+ * @returns {{ along: number, across: number }}
+ */
+export function resizeHandleSpread(item, minSide) {
+  return {
+    along: Math.max(0, (minSide - item.width) / 2),
+    across: Math.max(0, (minSide - item.depth) / 2),
+  }
+}
+
+/**
+ * An item's place and size with `handle` dragged to `point`. Sides change along the item's own
+ * axes and the opposite edge or corner stays put, so a handle on a reference side moves `x` and
+ * `y`. No side goes below `min`, which wins over the grid. With a grid, at a right angle, the
+ * dragged edges land on grid lines; otherwise on whole millimetres.
+ *
+ * @param {Placed} item
+ * @param {string} handle - one of RESIZE_HANDLES
+ * @param {Point} point
+ * @param {{ grid?: { tile: number, originX: number, originY: number } | null,
+ *   min?: number }} [options]
+ * @returns {{ x: number, y: number, width: number, depth: number }}
+ */
+export function resizeItem(item, handle, point, { grid = null, min = MIN_RESIZE_SIDE } = {}) {
+  const { u, v, right } = itemAxes(item.rotation)
+  const dx = point[0] - item.x
+  const dy = point[1] - item.y
+  const snapped = right && grid?.tile > 0
+
+  /** The dragged edge's distance from the reference corner along `axis`. */
+  function edgeAlong(axis) {
+    const distance = dx * axis[0] + dy * axis[1]
+    if (!snapped) return distance
+    // At a right angle the axis is a room axis, and the edge has one coordinate on it.
+    return axis[0]
+      ? (snap(item.x + axis[0] * distance, grid.originX, grid.tile) - item.x) * axis[0]
+      : (snap(item.y + axis[1] * distance, grid.originY, grid.tile) - item.y) * axis[1]
+  }
+
+  /** New length of a side, and how far its reference edge moved along the axis. */
+  function side(length, axis, near, far) {
+    if (far) return { length: Math.max(min, Math.round(edgeAlong(axis))), shift: 0 }
+    if (!near) return { length, shift: 0 }
+    const next = Math.max(min, Math.round(length - edgeAlong(axis)))
+    return { length: next, shift: length - next }
+  }
+
+  const width = side(item.width, u, handle.includes('w'), handle.includes('e'))
+  const depth = side(item.depth, v, handle.includes('n'), handle.includes('s'))
+  return {
+    x: Math.round(item.x + u[0] * width.shift + v[0] * depth.shift) || 0,
+    y: Math.round(item.y + u[1] * width.shift + v[1] * depth.shift) || 0,
+    width: width.length,
+    depth: depth.length,
+  }
+}
+
+const RESIZE_CURSORS = ['ew-resize', 'nwse-resize', 'ns-resize', 'nesw-resize']
+
+/** CSS cursor along a handle's drag direction on an item turned by `rotation`. */
+export function resizeCursor(handle, rotation) {
+  const steps = RESIZE_HANDLES.indexOf(handle) + Math.round(rotation / 45)
+  return RESIZE_CURSORS[((steps % 4) + 4) % 4]
+}
+
+/**
+ * `text` in at most `max` characters, an ellipsis in the middle and the larger half kept from
+ * the end: names in a row tend to share a prefix and differ at the end (Rack-A01, Rack-A02).
+ */
+export function shortenMiddle(text, max) {
+  if (text.length <= max) return text
+  const keep = Math.max(0, max - 1)
+  const tail = Math.ceil(keep / 2)
+  return text.slice(0, keep - tail) + '\u2026' + text.slice(text.length - tail)
+}
+
 const FACING_ROTATION = { S: 0, W: 90, N: 180, E: 270 }
 
 /**

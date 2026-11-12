@@ -1,3 +1,4 @@
+// @vitest-environment node
 // The legacy-authored corpus through adaptApiDashboard -> serializeDashboard with no edits must
 // lose or corrupt nothing the legacy client depends on.
 import { describe, it, expect } from 'vitest'

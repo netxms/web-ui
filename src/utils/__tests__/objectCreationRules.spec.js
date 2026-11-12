@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import { CONTAINER_PARENT_CLASSES, canBindChild } from '@/utils/objectCreationRules'
 

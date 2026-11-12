@@ -27,6 +27,16 @@
   outline-offset: -1px;
 }
 
+/* The row a drag would drop onto. Dashed, so it never reads as focus or the menu row. */
+.tree-node-row.drop-target {
+  outline: 2px dashed var(--p-primary-color);
+  outline-offset: -2px;
+}
+
+.tree-node-row.selected.drop-target {
+  outline-color: var(--p-primary-contrast-color);
+}
+
 /*
  * Focus on a selected row (the common case): a ring in the contrast colour would cut lines
  * across a range, so it is a short bar centred in the fill, the accent-bar pattern of the nav

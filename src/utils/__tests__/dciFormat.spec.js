@@ -1,3 +1,4 @@
+// @vitest-environment node
 // The "desktop DataFormatterTest" cases are copied from netxms-client DataFormatterTest.java,
 // which pins Locale.US; these pass 'en-US'.
 import { describe, it, expect } from 'vitest'

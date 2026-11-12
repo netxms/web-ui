@@ -97,6 +97,9 @@ vi.mock('@/composables/useObjectDeletionNavigation', () => ({
 }))
 vi.mock('@/composables/useToolExecution', () => ({ useToolExecution: () => ({}) }))
 vi.mock('@/composables/usePageTitle', () => ({ usePageTitle: () => {} }))
+vi.mock('@/composables/useTreeDrop', () => ({
+  useTreeDrop: () => ({ canDrag: () => false, canDrop: () => false, onDrop: () => {} }),
+}))
 vi.mock('primevue/usetoast', () => ({ useToast: () => ({ add: vi.fn() }) }))
 
 const ObjectsView = (await import('@/views/objects/ObjectsView.vue')).default

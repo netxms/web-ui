@@ -14,6 +14,7 @@ yarn build --mode demo  # Demo maps/dashboards (.env.demo)
 yarn test:unit          # Vitest (jsdom)
 yarn test:parity        # Live parity specs; needs NETXMS_URL/USER/PASSWORD
 yarn test:e2e           # Playwright, headless Chromium; NETXMS_USER/PASSWORD in .env.local, or VITE_USE_MOCKS=true
+yarn test:e2e --last-failed  # Only the tests that failed in the previous run
 yarn test:e2e:gallery   # Same setup; every main screen, light/dark/narrow, in e2e/.gallery/index.html
 yarn lint               # oxlint + ESLint with --fix (rewrites files); must pass
 yarn lint:ci            # Same, no fixing

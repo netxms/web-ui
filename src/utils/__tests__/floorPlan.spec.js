@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import {
   bounds,
@@ -15,10 +16,15 @@ import {
   polygonWithin,
   polygonsOverlap,
   rectangleOf,
+  resizeCursor,
+  resizeHandlePoint,
+  resizeHandleSpread,
+  resizeItem,
   resizeRectangle,
   rotateItems,
   rowPlacements,
   selfIntersects,
+  shortenMiddle,
   snap,
   snapDelta,
   snapOffset,
@@ -369,5 +375,153 @@ describe('rowPlacements', () => {
       expect(boxes[1].minY - boxes[0].maxY).toBe(100)
     }
     expect(rowPlacements([], 'S', 0, [0, 0])).toEqual([])
+  })
+})
+
+describe('resizing an item by a handle', () => {
+  const box = { x: 1000, y: 2000, width: 600, depth: 400, rotation: 0 }
+  const grid = { tile: 600, originX: 0, originY: 0 }
+  /** `item` with `handle` dragged by (dx, dy) from where it sits. */
+  const dragged = (item, handle, dx, dy, options) => {
+    const [x, y] = resizeHandlePoint(item, handle)
+    return resizeItem(item, handle, [x + dx, y + dy], options)
+  }
+  const corners = (item, size) => footprint(size.x, size.y, size.width, size.depth, item.rotation)
+
+  it('puts the handles on the corners and edge midpoints, turned with the item', () => {
+    expect(resizeHandlePoint(box, 'nw')).toEqual([1000, 2000])
+    expect(resizeHandlePoint(box, 'n')).toEqual([1300, 2000])
+    expect(resizeHandlePoint(box, 'e')).toEqual([1600, 2200])
+    expect(resizeHandlePoint(box, 'se')).toEqual([1600, 2400])
+    const turned = { ...box, rotation: 90 }
+    expect(resizeHandlePoint(turned, 'nw')).toEqual([1000, 2000])
+    expect(resizeHandlePoint(turned, 'e')).toEqual([800, 2600])
+    expect(resizeHandlePoint(turned, 'se')).toEqual([600, 2600])
+    expect(resizeHandlePoint(turned, 's')).toEqual([600, 2300])
+  })
+
+  it('changes only the sides the handle holds, and moves the reference corner with its own', () => {
+    const same = { x: 1000, y: 2000, width: 600, depth: 400 }
+    const expected = {
+      e: { width: 700 },
+      se: { width: 700, depth: 450 },
+      s: { depth: 450 },
+      sw: { x: 1100, width: 500, depth: 450 },
+      w: { x: 1100, width: 500 },
+      nw: { x: 1100, y: 2050, width: 500, depth: 350 },
+      n: { y: 2050, depth: 350 },
+      ne: { y: 2050, width: 700, depth: 350 },
+    }
+    for (const [handle, change] of Object.entries(expected)) {
+      expect(dragged(box, handle, 100, 50), `handle ${handle}`).toEqual({ ...same, ...change })
+    }
+  })
+
+  it('resizes along the item own axes at a right angle', () => {
+    const turned = { ...box, rotation: 90 }
+    const same = { x: 1000, y: 2000, width: 600, depth: 400 }
+    expect(dragged(turned, 'e', 30, 100)).toEqual({ ...same, width: 700 })
+    expect(dragged(turned, 'w', 30, -100)).toEqual({ ...same, y: 1900, width: 700 })
+    expect(dragged(turned, 's', -100, 30)).toEqual({ ...same, depth: 500 })
+    expect(dragged(turned, 'n', 100, 30)).toEqual({ ...same, x: 1100, depth: 500 })
+  })
+
+  it('keeps the opposite corner where it was, at any rotation', () => {
+    for (const rotation of [0, 90, 180, 270, 30, 45, 200]) {
+      const item = { ...box, rotation }
+      const before = footprint(item.x, item.y, item.width, item.depth, rotation)
+      const opposite = { nw: 2, ne: 3, se: 0, sw: 1 }
+      // At an odd angle every value lands on a whole millimetre, so the far corner may give a little.
+      const slack = rotation % 90 === 0 ? 0 : 2
+      for (const [handle, index] of Object.entries(opposite)) {
+        const after = corners(item, dragged(item, handle, 137, -61))
+        const off = Math.max(
+          Math.abs(after[index][0] - before[index][0]),
+          Math.abs(after[index][1] - before[index][1]),
+        )
+        expect(off, `${handle} at ${rotation}`).toBeLessThanOrEqual(slack)
+      }
+    }
+  })
+
+  it('gives whole millimetres at an odd angle, grid or not', () => {
+    const item = { ...box, rotation: 30 }
+    const size = dragged(item, 'se', 123.4, 56.7, { grid })
+    expect(Object.values(size).every(Number.isInteger)).toBe(true)
+    // 123.4 and 56.7 along the turned axes: 135.2 of width, -12.6 of depth.
+    expect(size).toEqual({ x: 1000, y: 2000, width: 735, depth: 387 })
+  })
+
+  it('snaps the dragged edge to the grid at a right angle', () => {
+    const same = { x: 1000, y: 2000, width: 600, depth: 400 }
+    // East edge at 1600: 1750 is nearer 1800, 1850 too.
+    expect(dragged(box, 'e', 150, 0, { grid })).toEqual({ ...same, width: 800 })
+    expect(dragged(box, 'e', 250, 0, { grid })).toEqual({ ...same, width: 800 })
+    expect(dragged(box, 'w', -150, 0, { grid })).toEqual({ ...same, x: 600, width: 1000 })
+    expect(dragged(box, 'se', 150, 250, { grid })).toEqual({ ...same, width: 800, depth: 400 })
+    expect(dragged(box, 'n', 0, -150, { grid })).toEqual({ ...same, y: 1800, depth: 600 })
+    expect(dragged(box, 'e', 150, 0, { grid: { ...grid, originX: 100 } })).toEqual({
+      ...same,
+      width: 900,
+    })
+    // Turned half way round the item spans 400..1000 by 1600..2000.
+    const turned = { ...box, rotation: 180 }
+    expect(dragged(turned, 'e', -150, 0, { grid })).toEqual({ ...same, width: 1000 })
+    expect(dragged(turned, 's', 0, -150, { grid })).toEqual({ ...same, depth: 800 })
+    expect(dragged(turned, 'n', 0, 250, { grid })).toEqual({ ...same, y: 2400, depth: 800 })
+  })
+
+  it('never flips: a side stops at the minimum, the opposite edge still in place', () => {
+    const same = { x: 1000, y: 2000, width: 600, depth: 400 }
+    expect(dragged(box, 'e', -5000, 0)).toEqual({ ...same, width: 50 })
+    expect(dragged(box, 'w', 5000, 0)).toEqual({ ...same, x: 1550, width: 50 })
+    expect(dragged(box, 'nw', 5000, 5000)).toEqual({ x: 1550, y: 2350, width: 50, depth: 50 })
+    expect(dragged(box, 'e', -800, 0, { grid })).toEqual({ ...same, width: 50 })
+    expect(dragged(box, 's', 0, -5000, { min: 100 })).toEqual({ ...same, depth: 100 })
+    const turned = { ...box, rotation: 90 }
+    expect(dragged(turned, 'w', 0, 5000)).toEqual({ ...same, y: 2550, width: 50 })
+  })
+
+  it('spreads the handles of a small item out to a frame of the minimum side, centred on it', () => {
+    expect(resizeHandleSpread(box, 300)).toEqual({ along: 0, across: 0 })
+    expect(resizeHandleSpread({ width: 50, depth: 50 }, 300)).toEqual({ along: 125, across: 125 })
+    const wall = { x: 1000, y: 2000, width: 1200, depth: 100, rotation: 0 }
+    const spread = resizeHandleSpread(wall, 300)
+    expect(spread).toEqual({ along: 0, across: 100 })
+    expect(resizeHandlePoint(wall, 'n', spread)).toEqual([1600, 1900])
+    expect(resizeHandlePoint(wall, 's', spread)).toEqual([1600, 2200])
+    expect(resizeHandlePoint(wall, 'e', spread)).toEqual([2200, 2050])
+    expect(resizeHandlePoint(wall, 'nw', spread)).toEqual([1000, 1900])
+    // Along the item's own axes when turned.
+    const turned = { ...wall, rotation: 90 }
+    expect(resizeHandlePoint(turned, 'n', spread)).toEqual([1100, 2600])
+    expect(resizeHandlePoint(turned, 'se', spread)).toEqual([800, 3200])
+  })
+
+  it('points the cursor along the drag, turned with the item in steps of 45 degrees', () => {
+    expect(['e', 'se', 's', 'sw', 'w', 'nw', 'n', 'ne'].map((h) => resizeCursor(h, 0))).toEqual([
+      'ew-resize',
+      'nwse-resize',
+      'ns-resize',
+      'nesw-resize',
+      'ew-resize',
+      'nwse-resize',
+      'ns-resize',
+      'nesw-resize',
+    ])
+    expect(resizeCursor('e', 90)).toBe('ns-resize')
+    expect(resizeCursor('se', 45)).toBe('ns-resize')
+    expect(resizeCursor('e', 30)).toBe('nwse-resize')
+    expect(resizeCursor('e', 20)).toBe('ew-resize')
+    expect(resizeCursor('n', 315)).toBe('nwse-resize')
+  })
+})
+
+describe('shortening a name in the middle', () => {
+  it('keeps the start and the larger half from the end around an ellipsis', () => {
+    expect(shortenMiddle('Rack-A01', 8)).toBe('Rack-A01')
+    expect(shortenMiddle('Rack-A01', 6)).toBe('Ra\u2026A01')
+    expect(shortenMiddle('TestRack2', 7)).toBe('Tes\u2026ck2')
+    expect(shortenMiddle('TestRack2', 2)).toBe('\u20262')
   })
 })

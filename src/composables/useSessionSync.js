@@ -3,6 +3,7 @@
  * tab except the writer. Not a router guard: an idle tab would keep polling a dead session.
  */
 import { onMounted, onUnmounted } from 'vue'
+import { reloadPage } from '@/utils/navigation'
 
 const SESSION_KEY = 'sessionGuid'
 
@@ -33,7 +34,7 @@ export function useSessionSync(router, authStore) {
 
     // Possibly a different user: reload rather than keep the previous user's cached data.
     if (incoming !== authStore.sessionGuid.value) {
-      window.location.reload()
+      reloadPage()
     }
   }
 

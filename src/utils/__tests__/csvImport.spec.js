@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import { parseCsv } from '../csvImport'
 import { toCsv } from '../csvExport'

@@ -35,7 +35,9 @@ import { useObjectDeletionNavigation } from '@/composables/useObjectDeletionNavi
 import { useWorkingState } from '@/composables/useWorkingState'
 import { findNodeByPath } from '@/utils/objectTreeNavigation'
 import { filterObjectTree } from '@/utils/objectTreeSort'
-import { moveObjectsToGroup } from '@/utils/moveToGroup'
+import { moveObjectsToContainer, moveObjectsToGroup } from '@/utils/moveToGroup'
+import { getCreatableClasses } from '@/utils/objectCreationRules'
+import { useTreeDrop } from '@/composables/useTreeDrop'
 
 const PERSPECTIVE_ID = 'templates'
 const DEFAULT_ROOT_ID = 3
@@ -154,7 +156,22 @@ async function onMoveGroupSelected(group) {
     bind: bindChildAsync,
     unbind: unbindChildAsync,
   })
+  reportMove(succeeded, failed, group)
+}
 
+/** A drop moves each row out of the parent it hangs under only, as legacy drag and drop does. */
+async function onTreeMove({ target, moves }) {
+  const { succeeded, failed } = await moveObjectsToContainer({
+    moves: moves.map((move) => ({ object: move.object, sourceId: move.source.id })),
+    target,
+    bind: bindChildAsync,
+    unbind: unbindChildAsync,
+    fetchObject: fetchParents,
+  })
+  reportMove(succeeded, failed, target)
+}
+
+function reportMove(succeeded, failed, group) {
   if (succeeded.length > 0) {
     toast.add({
       severity: 'success',
@@ -397,6 +414,20 @@ function resolveTreePath(path) {
   return findNodeByPath(filteredTree.value, path)
 }
 
+/** A top-level row hangs under the root, which has a row of its own. */
+function treeParentOf(path) {
+  const ids = path.split('-')
+  if (ids.length > 1) return resolveTreePath(ids.slice(0, -1).join('-'))
+  return path === String(rootId.value) ? null : rootObject.value
+}
+
+const treeDrop = useTreeDrop({
+  movableClasses: new Set(['Template', 'TemplateGroup']),
+  canBind: (childClass, parentClass) => getCreatableClasses(parentClass).includes(childClass),
+  parentOf: treeParentOf,
+  onMove: onTreeMove,
+})
+
 function handleSelectionChange(objects) {
   selectionStore.setPrimarySelection(
     objects.length ? objects : [selectionStore.primaryObject].filter(Boolean),
@@ -541,11 +572,14 @@ watch([viewIdFromRoute, currentObjectClass], ([viewId, objectClass]) => {
         :target-for="treeNodeTarget"
         :root-target-for="treeNodeTarget"
         :resolve-path="resolveTreePath"
+        :can-drag="treeDrop.canDrag"
+        :can-drop="treeDrop.canDrop"
         @select="handleSelectNode"
         @contextmenu="handleTreeContextMenu"
         @toggle="handleToggle"
         @selection-change="handleSelectionChange"
         @retry="refetchTree"
+        @drop="treeDrop.onDrop"
       />
     </div>
   </Teleport>

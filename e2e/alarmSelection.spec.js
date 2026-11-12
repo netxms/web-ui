@@ -53,6 +53,7 @@ async function serveAlarms(page) {
 const rows = (page) => page.locator('.alarms-table tbody tr:not(.app-table__expansion-row)')
 const checkbox = (page, index) => rows(page).nth(index).getByRole('checkbox')
 const selection = (page) => page.getByRole('group', { name: 'Selection' })
+const menuItem = (page, name) => page.getByRole('menuitem', { name, exact: true })
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 900 })
@@ -139,15 +140,14 @@ test('the menu follows the selection', async ({ page }) => {
   await page.goto('/alarms')
 
   await rows(page).nth(3).click({ button: 'right' })
-  const menu = page.getByRole('menu')
-  await expect(menu.getByRole('menuitem', { name: 'Details' })).toBeVisible()
-  await expect(menu.getByRole('menuitem', { name: 'Object' })).toBeVisible()
+  await expect(menuItem(page, 'Details')).toBeVisible()
+  await expect(menuItem(page, 'Object')).toBeVisible()
   await page.keyboard.press('Escape')
 
   await checkbox(page, 0).click()
   await checkbox(page, 1).click()
   await rows(page).nth(1).click({ button: 'right' })
-  await expect(menu.getByRole('menuitem', { name: 'Resolve (2)' })).toBeVisible()
-  await expect(menu.getByRole('menuitem', { name: 'Details' })).toHaveCount(0)
-  await expect(menu.getByRole('menuitem', { name: 'Object' })).toHaveCount(0)
+  await expect(menuItem(page, 'Resolve (2)')).toBeVisible()
+  await expect(menuItem(page, 'Details')).toHaveCount(0)
+  await expect(menuItem(page, 'Object')).toHaveCount(0)
 })

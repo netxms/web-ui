@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import { createClassSelectionFilter, DEFAULT_NAVIGABLE_CLASSES } from '@/utils/objectSelection'
 

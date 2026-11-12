@@ -1,6 +1,7 @@
+// @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { del, get, patch, post, put } from '../client'
-import { getDciValues } from '../objectsApi'
+import { getDciValues, getObject } from '../objectsApi'
 import {
   isDemoDataCenterId,
   getFloorPlan,
@@ -27,6 +28,7 @@ vi.mock('../client', async (importOriginal) => ({
 vi.mock('../objectsApi', async (importOriginal) => ({
   ...(await importOriginal()),
   getDciValues: vi.fn(() => Promise.resolve({ '42:7': { id: 7, value: '1' } })),
+  getObject: vi.fn(),
 }))
 
 const FACILITY = 2090000001
@@ -181,8 +183,21 @@ describe('dataCenterApi demo content', () => {
 
   it('takes a rack out of its room first when the server allows one room only', async () => {
     const { calls, record } = recordCalls()
-    put.mockImplementationOnce(record('PUT', hierarchy())).mockImplementationOnce(record('PUT'))
-    del.mockImplementationOnce(record('DELETE'))
+    const objects = {
+      44: { class: 'Rack', parents: [50] },
+      42: { class: 'Room', parents: [40] },
+      40: { class: 'Facility', parents: [2] },
+    }
+    const lookUp = (id) => Promise.resolve(objects[id])
+    getObject
+      .mockImplementationOnce(lookUp)
+      .mockImplementationOnce(lookUp)
+      .mockImplementationOnce(lookUp)
+    put
+      .mockImplementationOnce(record('PUT', hierarchy()))
+      .mockImplementationOnce(record('PUT'))
+      .mockImplementationOnce(record('PUT'))
+    del.mockImplementationOnce(record('DELETE')).mockImplementationOnce(record('DELETE'))
     patch.mockImplementationOnce(record('PATCH', {}))
 
     await saveFloorPlanOperation(42, {
@@ -192,10 +207,13 @@ describe('dataCenterApi demo content', () => {
       payload: PLACEMENT,
     })
 
+    // The facility holds the rack while it has no room: with no parent it would have no rights.
     expect(calls).toEqual([
       'PUT /v1/objects/42/children/44',
+      'PUT /v1/objects/40/children/44',
       'DELETE /v1/objects/50/children/44',
       'PUT /v1/objects/42/children/44',
+      'DELETE /v1/objects/40/children/44',
       'PATCH /v1/objects/44/room-placement',
     ])
   })
