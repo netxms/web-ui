@@ -662,6 +662,37 @@ export function getCanvasBackground(background) {
 /** Used for a geographic backdrop when the map stores no size. */
 export const DEFAULT_GEO_BACKDROP_PAGE = { w: 1024, h: 768 }
 
+/** Highest zoom a geographic backdrop is drawn at. */
+export const GEO_BACKDROP_MAX_ZOOM = 19
+
+/** Smallest side, in map units, that dragging the backdrop page leaves. */
+const MIN_BACKDROP_PAGE = 16
+
+/**
+ * The backdrop page after dragging its right edge (`e`), bottom edge (`s`) or corner (`se`) by
+ * `dx`, `dy` map units. The top left corner is the map origin and stays. With `aspect` (width over
+ * height) the corner keeps that shape, following whichever side the pointer pulls further.
+ *
+ * @param {{ w: number, h: number }} page
+ * @param {'e'|'s'|'se'} handle
+ * @param {number} dx
+ * @param {number} dy
+ * @param {{ aspect?: number|null }} [options]
+ * @returns {{ width: number, height: number }}
+ */
+export function resizeBackdropPage(page, handle, dx, dy, { aspect = null } = {}) {
+  let width = handle.includes('e') ? page.w + dx : page.w
+  let height = handle.includes('s') ? page.h + dy : page.h
+  if (handle === 'se' && aspect > 0) {
+    if (width / aspect >= height) height = width / aspect
+    else width = height * aspect
+  }
+  return {
+    width: Math.max(MIN_BACKDROP_PAGE, Math.round(width)),
+    height: Math.max(MIN_BACKDROP_PAGE, Math.round(height)),
+  }
+}
+
 /**
  * The background image, distinct from the colour (getCanvasBackground). `background` UUID:
  * null / MAP_BACKGROUND_NONE - none; MAP_BACKGROUND_GEOMAP - OSM tiles at
@@ -688,7 +719,9 @@ export function resolveMapBackdrop(mapData) {
       type: 'geo',
       lat: Number(raw.backgroundLatitude) || 0,
       lon: Number(raw.backgroundLongitude) || 0,
-      zoom: Number.isFinite(zoom) ? Math.min(19, Math.max(0, Math.floor(zoom))) : 1,
+      zoom: Number.isFinite(zoom)
+        ? Math.min(GEO_BACKDROP_MAX_ZOOM, Math.max(0, Math.floor(zoom)))
+        : 1,
       page: { w: w || DEFAULT_GEO_BACKDROP_PAGE.w, h: h || DEFAULT_GEO_BACKDROP_PAGE.h },
     }
   }

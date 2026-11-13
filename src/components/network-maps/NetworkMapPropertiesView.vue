@@ -23,7 +23,12 @@ import {
   parseMapFlags,
   serializeMapFlags,
 } from '@/utils/networkMapAdapters'
-import { MAP_TYPE_LABELS, MAP_TYPE_CUSTOM } from '@/utils/networkMapUtils'
+import {
+  MAP_BACKGROUND_FIT_MODES,
+  MAP_TYPE_LABELS,
+  MAP_TYPE_CUSTOM,
+  backgroundFitModeFromFlags,
+} from '@/utils/networkMapUtils'
 import {
   configuredMergeThreshold,
   DEFAULT_LINK_MERGE_THRESHOLD,
@@ -43,7 +48,7 @@ const props = defineProps({
   editMode: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['close', 'preview', 'update:width', 'update:geoActive'])
+const emit = defineEmits(['close', 'preview', 'update:width', 'update:backdropAdjust'])
 
 const MIN_WIDTH = 340
 const MAX_WIDTH = 900
@@ -268,41 +273,47 @@ watch(draft, (value) => emit('preview', buildRawContentPatch(value)), {
   immediate: true,
 })
 
-// "Pick on map": while active the canvas lets the geographic backdrop be dragged and reports
-// the new center through setGeoCenter.
-const geoPick = reactive({
+// "Adjust on map": while active the canvas lets the backdrop page be sized (and a geographic
+// one dragged and zoomed) and reports the new fields through setBackdropFields.
+const backdropAdjust = reactive({
   active: false,
   toggle() {
-    geoPick.active = !geoPick.active
+    backdropAdjust.active = !backdropAdjust.active
   },
 })
-provide('mapGeoPick', geoPick)
+provide('mapBackdropAdjust', backdropAdjust)
 
-watch(
-  () => draft.value.backgroundType,
-  (type) => {
-    if (type !== 'geo') geoPick.active = false
-  },
-)
-// The toggle lives in the Background section; pick mode must not outlive it.
+// A native-size image has no page to place.
+const backdropAdjustable = computed(() => {
+  const { backgroundType, flags } = draft.value
+  if (backgroundType === 'geo') return true
+  return (
+    backgroundType === 'image' &&
+    backgroundFitModeFromFlags(flags) !== MAP_BACKGROUND_FIT_MODES.NATIVE
+  )
+})
+watch(backdropAdjustable, (adjustable) => {
+  if (!adjustable) backdropAdjust.active = false
+})
+// The toggle lives in the Background section; the mode must not outlive it.
 watch(activeSection, (id) => {
-  if (id !== 'background') geoPick.active = false
+  if (id !== 'background') backdropAdjust.active = false
 })
 watch(
-  () => geoPick.active,
-  (active) => emit('update:geoActive', active),
+  () => backdropAdjust.active,
+  (active) => emit('update:backdropAdjust', active),
 )
 
-function setGeoCenter(lat, lon) {
-  draft.value.backgroundLatitude = lat
-  draft.value.backgroundLongitude = lon
+/** @param {object} fields - draft fields from the canvas: width, height, background* */
+function setBackdropFields(fields) {
+  Object.assign(draft.value, fields)
 }
 
-defineExpose({ setGeoCenter, isDirty })
+defineExpose({ setBackdropFields, isDirty })
 
 onBeforeUnmount(() => {
   emit('preview', null)
-  emit('update:geoActive', false)
+  emit('update:backdropAdjust', false)
 })
 </script>
 

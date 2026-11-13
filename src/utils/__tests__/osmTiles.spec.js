@@ -88,6 +88,20 @@ describe('offsetLatLon', () => {
 })
 
 describe('tilesForRect', () => {
+  it('keys every tile apart when a page wider than the world repeats a column', () => {
+    // zoom 1: the world is 512 px wide, so a 1024 px page shows each column twice.
+    const tiles = tilesForRect(0, 0, 1, 1024, 512)
+    const urls = new Set(tiles.map((t) => `${t.x}/${t.y}`))
+    expect(urls.size).toBeLessThan(tiles.length)
+    expect(new Set(tiles.map((t) => t.key)).size).toBe(tiles.length)
+  })
+
+  it('keys the same tile apart at another zoom', () => {
+    const near = tilesForRect(0, 0, 3, 256, 256).map((t) => t.key)
+    const far = tilesForRect(0, 0, 4, 256, 256).map((t) => t.key)
+    expect(near.filter((key) => far.includes(key))).toEqual([])
+  })
+
   it('returns nothing for a non-positive page', () => {
     expect(tilesForRect(0, 0, 3, 0, 500)).toEqual([])
     expect(tilesForRect(0, 0, 3, 500, 0)).toEqual([])

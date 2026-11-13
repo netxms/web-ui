@@ -28,6 +28,7 @@ import {
   resolveMapBackdrop,
   backgroundFitModeFromFlags,
   flagsWithBackgroundFitMode,
+  resizeBackdropPage,
   MAP_BACKGROUND_FIT_MODES,
   DEFAULT_GEO_BACKDROP_PAGE,
   DEFAULT_MAP_FLAGS,
@@ -1008,6 +1009,37 @@ describe('resolveMapBackdrop', () => {
       flags: MAP_FLAGS.CENTER_BKGND_IMAGE,
     })
     expect(b.mode).toBe('center')
+  })
+})
+
+describe('resizeBackdropPage', () => {
+  const page = { w: 800, h: 400 }
+
+  it('moves only the side its handle holds', () => {
+    expect(resizeBackdropPage(page, 'e', 100, 50)).toEqual({ width: 900, height: 400 })
+    expect(resizeBackdropPage(page, 's', 100, 50)).toEqual({ width: 800, height: 450 })
+    expect(resizeBackdropPage(page, 'se', 100, 50)).toEqual({ width: 900, height: 450 })
+  })
+
+  it("keeps the corner on the image's proportions, following the side pulled further", () => {
+    // 2:1 image: 100 across pulls further than 10 down.
+    expect(resizeBackdropPage(page, 'se', 100, 10, { aspect: 2 })).toEqual({
+      width: 900,
+      height: 450,
+    })
+    expect(resizeBackdropPage(page, 'se', 10, 100, { aspect: 2 })).toEqual({
+      width: 1000,
+      height: 500,
+    })
+    // The edges stay free.
+    expect(resizeBackdropPage(page, 'e', 100, 0, { aspect: 2 })).toEqual({
+      width: 900,
+      height: 400,
+    })
+  })
+
+  it('never folds the page past 16 units', () => {
+    expect(resizeBackdropPage(page, 'se', -2000, -2000)).toEqual({ width: 16, height: 16 })
   })
 })
 

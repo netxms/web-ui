@@ -490,7 +490,7 @@ function closeEditorDialogs() {
   dciContainerDialogVisible.value = false
   dciImageDialogVisible.value = false
   mapPropertiesOpen.value = false
-  mapGeoPickActive.value = false
+  mapBackdropAdjust.value = false
   propertiesVisible.value = false
 }
 
@@ -747,8 +747,8 @@ function applyDciImageProperties(patch) {
 
 const mapPropertiesOpen = ref(false)
 const mapPropertiesRef = ref(null)
-// Toggled from the properties Background section; unlocks the backdrop for drag-to-position.
-const mapGeoPickActive = ref(false)
+// Toggled from the properties Background section: the backdrop is placed on the map itself.
+const mapBackdropAdjust = ref(false)
 
 // A "Canvas type" edit must win over the toolbar override, or the canvas would not move and
 // the edit would read as unsaved. Must be declared after mapPropertiesOpen: watch() evaluates its
@@ -777,11 +777,11 @@ function closeMapProperties() {
   }
   mapPropertiesOpen.value = false
   mapPreviewPatch.value = null
-  mapGeoPickActive.value = false
+  mapBackdropAdjust.value = false
 }
 
-function handleGeoCenterChange({ lat, lon }) {
-  mapPropertiesRef.value?.setGeoCenter(lat, lon)
+function handleBackdropChange(fields) {
+  mapPropertiesRef.value?.setBackdropFields(fields)
 }
 
 /**
@@ -2211,9 +2211,9 @@ function handleEdgeContextMenu(event, edgeData) {
           @update:table-offsets="setTableOffsets"
           :search-term="searchTerm"
           :edit-mode="layoutEditMode"
-          :geo-pick-mode="mapGeoPickActive"
+          :backdrop-adjust="mapBackdropAdjust"
           :image-urls="mapImageUrls ?? {}"
-          @geo-center-change="handleGeoCenterChange"
+          @backdrop-change="handleBackdropChange"
           @node-moved="handleNodeMoved"
           @layout-applied="handleLayoutApplied"
           @node-dblclick="handleCanvasNodeDblClick"
@@ -2263,7 +2263,7 @@ function handleEdgeContextMenu(event, edgeData) {
         :width="mapViewState.propertiesWidth"
         :edit-mode="layoutEditMode"
         @update:width="mapViewState.propertiesWidth = $event"
-        @update:geo-active="mapGeoPickActive = $event"
+        @update:backdrop-adjust="mapBackdropAdjust = $event"
         @preview="mapPreviewPatch = $event"
         @close="closeMapProperties"
       />

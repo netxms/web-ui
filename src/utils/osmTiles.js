@@ -71,15 +71,16 @@ export function offsetLatLon(lat, lon, zoom, dxPx, dyPx) {
 
 /**
  * Tiles covering the page rectangle `[0,0, width,height]` centred on a point: the wrapped tile
- * x/y (for the URL) and the tile's top-left offset in the rectangle (`px`, `py`, map units).
- * Rows outside the valid range are dropped; columns wrap around the antimeridian.
+ * x/y (for the URL), the tile's top-left offset in the rectangle (`px`, `py`, map units), and a
+ * `key` unique within the page. Rows outside the valid range are dropped; columns wrap around the
+ * antimeridian, so a page wider than the world shows the same x more than once.
  *
  * @param {number} centerLat degrees
  * @param {number} centerLon degrees
  * @param {number} zoom integer zoom
  * @param {number} width map units
  * @param {number} height map units
- * @returns {{ x: number, y: number, px: number, py: number }[]}
+ * @returns {{ x: number, y: number, px: number, py: number, key: string }[]}
  */
 export function tilesForRect(centerLat, centerLon, zoom, width, height) {
   const z = Math.max(0, Math.floor(zoom || 0))
@@ -105,6 +106,7 @@ export function tilesForRect(centerLat, centerLon, zoom, width, height) {
         y: ty,
         px: tx * TILE_SIZE - originX,
         py: ty * TILE_SIZE - originY,
+        key: `${z}/${tx}/${ty}`,
       })
     }
   }

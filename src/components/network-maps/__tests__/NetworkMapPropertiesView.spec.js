@@ -79,3 +79,22 @@ describe('NetworkMapPropertiesView footer', () => {
     expect(wrapper.emitted('close')).toBeUndefined()
   })
 })
+
+describe('NetworkMapPropertiesView backdrop placement', () => {
+  it('takes page and centre fields from the map into the previewed draft', async () => {
+    const wrapper = mountPanel()
+    wrapper.vm.setBackdropFields({ width: 640, height: 480, backgroundZoom: 7 })
+    await flushPromises()
+    expect(wrapper.emitted('preview').at(-1)[0]).toMatchObject({
+      width: 640,
+      height: 480,
+      backgroundZoom: 7,
+    })
+  })
+
+  it('reports the mode off when it closes', () => {
+    const wrapper = mountPanel()
+    wrapper.unmount()
+    expect(wrapper.emitted('update:backdropAdjust')).toEqual([[false]])
+  })
+})

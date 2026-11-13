@@ -38,7 +38,19 @@ const fitMode = computed({
 
 const imageUsesArea = computed(() => fitMode.value !== MAP_BACKGROUND_FIT_MODES.NATIVE)
 
-const geoPick = inject('mapGeoPick', null)
+const adjust = inject('mapBackdropAdjust', null)
+
+const adjustHint = computed(() => {
+  if (props.draft.backgroundType === 'geo') {
+    return adjust?.active
+      ? 'Drag the map to move it and scroll over it to zoom; drag the right or bottom edge, or the corner, to size it.'
+      : 'Place the map on the map itself instead of typing coordinates and sizes.'
+  }
+  if (!adjust?.active) return 'Size the image area on the map itself instead of typing numbers.'
+  return fitMode.value === MAP_BACKGROUND_FIT_MODES.FIT
+    ? "Drag the right or bottom edge, or the corner, on the map. The corner keeps the image's proportions; hold Shift to stretch it."
+    : 'Drag the right or bottom edge, or the corner, on the map to size the area the image is centered in.'
+})
 </script>
 
 <template>
@@ -73,24 +85,30 @@ const geoPick = inject('mapGeoPick', null)
             />
           </FormField>
           <template v-if="imageUsesArea">
-            <div class="two-col">
-              <FormField label="Image area width (px)" v-slot="{ id }">
-                <InputNumber
-                  :input-id="id"
-                  v-model="draft.width"
-                  :min="0"
-                  :max="10000"
-                  show-buttons
-                />
+            <div class="form-row">
+              <FormField label="Image area width" v-slot="{ id }">
+                <div class="number-row">
+                  <InputNumber
+                    :input-id="id"
+                    v-model="draft.width"
+                    :min="0"
+                    :max="10000"
+                    class="number-input"
+                  />
+                  <span class="unit">px</span>
+                </div>
               </FormField>
-              <FormField label="Image area height (px)" v-slot="{ id }">
-                <InputNumber
-                  :input-id="id"
-                  v-model="draft.height"
-                  :min="0"
-                  :max="10000"
-                  show-buttons
-                />
+              <FormField label="Image area height" v-slot="{ id }">
+                <div class="number-row">
+                  <InputNumber
+                    :input-id="id"
+                    v-model="draft.height"
+                    :min="0"
+                    :max="10000"
+                    class="number-input"
+                  />
+                  <span class="unit">px</span>
+                </div>
               </FormField>
             </div>
             <small class="field-hint">
@@ -99,17 +117,21 @@ const geoPick = inject('mapGeoPick', null)
               this area. Nodes are placed freely and are not clipped to it.
             </small>
           </template>
+          <small v-else class="field-hint">
+            At native size the image sits at the map's top left corner. Choose Center or Fit to
+            area to size it on the map.
+          </small>
         </template>
 
         <template v-if="draft.backgroundType === 'geo'">
-          <div class="two-col">
+          <div class="form-row">
             <FormField label="Latitude" v-slot="{ id }">
               <InputNumber
                 :input-id="id"
                 v-model="draft.backgroundLatitude"
                 :min-fraction-digits="0"
                 :max-fraction-digits="8"
-                class="form-input"
+                class="number-input"
               />
             </FormField>
             <FormField label="Longitude" v-slot="{ id }">
@@ -118,26 +140,9 @@ const geoPick = inject('mapGeoPick', null)
                 v-model="draft.backgroundLongitude"
                 :min-fraction-digits="0"
                 :max-fraction-digits="8"
-                class="form-input"
+                class="number-input"
               />
             </FormField>
-          </div>
-          <div v-if="geoPick" class="form-field">
-            <Button
-              :label="geoPick.active ? 'Done positioning' : 'Pick on map'"
-              :icon="geoPick.active ? 'pi pi-check' : 'pi pi-arrows-alt'"
-              size="small"
-              :outlined="!geoPick.active"
-              :severity="geoPick.active ? 'primary' : 'secondary'"
-              @click="geoPick.toggle()"
-            />
-            <small class="field-hint">
-              {{
-                geoPick.active
-                  ? 'Drag the map to reposition it; the coordinates update as you drag.'
-                  : 'Set the center by dragging the map instead of typing coordinates.'
-              }}
-            </small>
           </div>
           <FormField label="Zoom" v-slot="{ id }">
             <InputNumber
@@ -146,32 +151,58 @@ const geoPick = inject('mapGeoPick', null)
               :min="0"
               :max="20"
               show-buttons
+              class="number-input"
             />
           </FormField>
-          <div class="two-col">
-            <FormField label="Map area width (px)" v-slot="{ id }">
-              <InputNumber
-                :input-id="id"
-                v-model="draft.width"
-                :min="0"
-                :max="10000"
-                show-buttons
-              />
+          <div class="form-row">
+            <FormField label="Map area width" v-slot="{ id }">
+              <div class="number-row">
+                <InputNumber
+                  :input-id="id"
+                  v-model="draft.width"
+                  :min="0"
+                  :max="10000"
+                  class="number-input"
+                />
+                <span class="unit">px</span>
+              </div>
             </FormField>
-            <FormField label="Map area height (px)" v-slot="{ id }">
-              <InputNumber
-                :input-id="id"
-                v-model="draft.height"
-                :min="0"
-                :max="10000"
-                show-buttons
-              />
+            <FormField label="Map area height" v-slot="{ id }">
+              <div class="number-row">
+                <InputNumber
+                  :input-id="id"
+                  v-model="draft.height"
+                  :min="0"
+                  :max="10000"
+                  class="number-input"
+                />
+                <span class="unit">px</span>
+              </div>
             </FormField>
           </div>
           <small class="field-hint">
             The static map fills this area, centered on the coordinates above.
           </small>
         </template>
+
+        <div
+          v-if="
+            adjust &&
+            (draft.backgroundType === 'geo' || (draft.backgroundType === 'image' && imageUsesArea))
+          "
+          class="form-field"
+        >
+          <Button
+            :label="adjust.active ? 'Done adjusting' : 'Adjust on map'"
+            :icon="adjust.active ? 'pi pi-check' : 'pi pi-arrows-alt'"
+            size="small"
+            :outlined="!adjust.active"
+            :severity="adjust.active ? 'primary' : 'secondary'"
+            :aria-pressed="adjust.active"
+            @click="adjust.toggle()"
+          />
+          <small class="field-hint">{{ adjustHint }}</small>
+        </div>
       </div>
     </fieldset>
 
@@ -200,10 +231,31 @@ const geoPick = inject('mapGeoPick', null)
   font-size: 0.8125rem;
 }
 
-.two-col {
+/* Fixed-width number fields with their unit, as in the object property sections. */
+.form-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: 0.75rem;
+}
+
+.number-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.number-input {
+  width: 10rem;
+  flex-shrink: 0;
+}
+
+:deep(.number-input input) {
+  max-width: 100%;
+}
+
+.unit {
+  font-size: 0.8125rem;
+  color: var(--p-text-muted-color);
 }
 
 .field-hint {

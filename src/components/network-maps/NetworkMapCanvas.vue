@@ -18,6 +18,8 @@ import {
   snapPoint,
   resolveMapRenderOptions,
   resolveMapBackdrop,
+  resizeBackdropPage,
+  GEO_BACKDROP_MAX_ZOOM,
   GRID_SIZE,
 } from '@/utils/networkMapUtils'
 import { linkLabelBoxes, groupLabelBoxes } from '@/utils/networkMapLinkLabels'
@@ -79,8 +81,11 @@ const props = defineProps({
    * Null keeps them in this canvas only.
    */
   tableOffsets: { type: Object, default: null },
-  /** Modal: dragging the geographic backdrop repositions the map center (legacy "grab the map"). */
-  geoPickMode: { type: Boolean, default: false },
+  /**
+   * Modal: the backdrop page takes the pointer. Its edges size the page; a geographic backdrop
+   * also drags to a new centre (legacy "grab the map") and zooms on the wheel.
+   */
+  backdropAdjust: { type: Boolean, default: false },
 })
 
 const emit = defineEmits([
@@ -105,8 +110,8 @@ const emit = defineEmits([
   'element-updated',
   // link bend-point editing
   'link-updated',
-  // geographic backdrop repositioning ("Pick on map")
-  'geo-center-change',
+  // backdrop placement: draft fields (width, height, backgroundLatitude/Longitude/Zoom)
+  'backdrop-change',
   // an overflow table dragged, or put back (see tableOffsets)
   'update:tableOffsets',
 ])
@@ -646,7 +651,7 @@ const backdropTiles = computed(() => {
   if (b.type !== 'geo') return []
   const template = tileUrl.value
   return tilesForRect(b.lat, b.lon, b.zoom, b.page.w, b.page.h).map((t) => ({
-    key: `${t.x}:${t.y}`,
+    key: t.key,
     x: t.px,
     y: t.py,
     href: buildTileUrl(template, t.x, t.y, b.zoom),
@@ -663,7 +668,88 @@ const backdropBoundary = computed(() => {
   return null
 })
 
-const geoPickActive = computed(() => props.geoPickMode && mapBackdrop.value.type === 'geo')
+/** Placing the backdrop; a native-size image has no page to place. */
+const backdropAdjusting = computed(() => {
+  if (!props.backdropAdjust) return false
+  const b = mapBackdrop.value
+  return b.type === 'geo' || (b.type === 'image' && b.mode !== 'default')
+})
+
+/** The page being placed; an image area with no size yet starts at the image's own size. */
+const adjustPage = computed(() => {
+  if (!backdropAdjusting.value) return null
+  const b = mapBackdrop.value
+  if (b.page.w > 0 && b.page.h > 0) return b.page
+  const nat = backdropImageNatural.value
+  return nat ? { w: nat.w, h: nat.h } : null
+})
+
+const PAGE_HANDLE_CURSORS = { e: 'ew-resize', s: 'ns-resize', se: 'nwse-resize' }
+
+// The top left corner is the map origin, so only the right and bottom side move.
+const pageHandles = computed(() => {
+  const p = adjustPage.value
+  if (!p) return []
+  const at = { e: [p.w, p.h / 2], s: [p.w / 2, p.h], se: [p.w, p.h] }
+  return Object.entries(at).map(([id, [x, y]]) => ({ id, x, y, cursor: PAGE_HANDLE_CURSORS[id] }))
+})
+
+const pageResizeState = ref(null)
+
+function onPageHandleMousedown(event, handle) {
+  if (event.button !== 0 || !adjustPage.value) return
+  const b = mapBackdrop.value
+  const nat = backdropImageNatural.value
+  // Measured from this snapshot, as the geo drag is, so the live preview never feeds back.
+  pageResizeState.value = {
+    handle,
+    startClientX: event.clientX,
+    startClientY: event.clientY,
+    page: { ...adjustPage.value },
+    // Only a stretched image has proportions to keep.
+    aspect: b.type === 'image' && b.mode === 'fit' && nat ? nat.w / nat.h : null,
+  }
+  window.addEventListener('mousemove', onPageResizeMove)
+  window.addEventListener('mouseup', onPageResizeUp)
+}
+
+function onPageResizeMove(event) {
+  const s = pageResizeState.value
+  if (!s) return
+  const dx = (event.clientX - s.startClientX) / zoomLevel.value
+  const dy = (event.clientY - s.startClientY) / zoomLevel.value
+  const aspect = event.shiftKey ? null : s.aspect
+  emit('backdrop-change', resizeBackdropPage(s.page, s.handle, dx, dy, { aspect }))
+}
+
+function onPageResizeUp() {
+  window.removeEventListener('mousemove', onPageResizeMove)
+  window.removeEventListener('mouseup', onPageResizeUp)
+  pageResizeState.value = null
+}
+
+// A wheel notch is about 100 pixels of delta; a trackpad sends many small ones.
+const WHEEL_STEP = 100
+let geoWheelDelta = 0
+
+/** Wheel over a geographic backdrop: one zoom level per notch, as tiles exist only at whole ones. */
+function onGeoWheel(event) {
+  const b = mapBackdrop.value
+  if (b.type !== 'geo') return
+  geoWheelDelta += event.deltaMode === 1 ? event.deltaY * 33 : event.deltaY
+  if (Math.abs(geoWheelDelta) < WHEEL_STEP) return
+  const zoom = Math.min(GEO_BACKDROP_MAX_ZOOM, Math.max(0, b.zoom + (geoWheelDelta < 0 ? 1 : -1)))
+  geoWheelDelta = 0
+  if (zoom !== b.zoom) emit('backdrop-change', { backgroundZoom: zoom })
+}
+
+// Nodes keep still and unselected while the backdrop is placed; the view still pans and zooms.
+watch(backdropAdjusting, (on) => {
+  if (!cy) return
+  cy.autoungrabify(on)
+  cy.autounselectify(on)
+  cy.boxSelectionEnabled(!on)
+})
 
 const geoDragState = ref(null)
 
@@ -689,9 +775,9 @@ function onGeoDragMove(event) {
   const dx = (event.clientX - s.startClientX) / zoomLevel.value
   const dy = (event.clientY - s.startClientY) / zoomLevel.value
   const { lat, lon } = offsetLatLon(s.lat, s.lon, s.zoom, dx, dy)
-  emit('geo-center-change', {
-    lat: Math.round(lat * 1e6) / 1e6,
-    lon: Math.round(lon * 1e6) / 1e6,
+  emit('backdrop-change', {
+    backgroundLatitude: Math.round(lat * 1e6) / 1e6,
+    backgroundLongitude: Math.round(lon * 1e6) / 1e6,
   })
 }
 
@@ -1945,6 +2031,7 @@ watch(
     bendDragState,
     floorPlanResizeState,
     geoDragState,
+    pageResizeState,
   ],
   () => {
     if (!cy) return
@@ -1956,7 +2043,8 @@ watch(
         baseResizeState.value === null &&
         bendDragState.value === null &&
         floorPlanResizeState.value === null &&
-        geoDragState.value === null,
+        geoDragState.value === null &&
+        pageResizeState.value === null,
     )
   },
 )
@@ -2248,7 +2336,13 @@ defineExpose({
 </script>
 
 <template>
-  <div ref="canvasWrapRef" class="network-map-canvas-wrap" tabindex="-1" :style="wrapStyle">
+  <div
+    ref="canvasWrapRef"
+    class="network-map-canvas-wrap"
+    :class="{ 'network-map-canvas-wrap--backdrop-adjust': backdropAdjusting }"
+    tabindex="-1"
+    :style="wrapStyle"
+  >
     <svg class="network-map-backdrop" xmlns="http://www.w3.org/2000/svg">
       <g ref="backdropGroupRef">
         <!-- Keeps edge tiles from spilling past the dashed page boundary. -->
@@ -2945,20 +3039,48 @@ defineExpose({
           @click.stop
         />
 
-        <!-- Geo pick surface: dragging repositions the map center -->
-        <rect
-          v-if="geoPickActive"
-          x="0"
-          y="0"
-          :width="mapBackdrop.page.w"
-          :height="mapBackdrop.page.h"
-          fill="transparent"
-          :style="{ cursor: geoDragState ? 'grabbing' : 'grab', pointerEvents: 'auto' }"
-          @mousedown.stop="onGeoDragMousedown"
-          @pointerdown.stop
-          @click.stop
-          @contextmenu.stop.prevent
-        />
+        <!-- Placing the backdrop: the page frame and its edges; a map also drags and zooms. -->
+        <g v-if="adjustPage" class="network-map-backdrop-adjust">
+          <rect
+            x="0"
+            y="0"
+            :width="adjustPage.w"
+            :height="adjustPage.h"
+            class="network-map-backdrop-adjust__frame"
+            :stroke-width="1.5 / zoomLevel"
+            :stroke-dasharray="`${6 / zoomLevel} ${4 / zoomLevel}`"
+          />
+          <rect
+            v-if="mapBackdrop.type === 'geo'"
+            x="0"
+            y="0"
+            :width="adjustPage.w"
+            :height="adjustPage.h"
+            fill="transparent"
+            :style="{ cursor: geoDragState ? 'grabbing' : 'grab', pointerEvents: 'auto' }"
+            @mousedown.stop="onGeoDragMousedown"
+            @wheel.prevent.stop="onGeoWheel"
+            @pointerdown.stop
+            @click.stop
+            @contextmenu.stop.prevent
+          />
+          <rect
+            v-for="handle in pageHandles"
+            :key="handle.id"
+            :x="handle.x - 5 / zoomLevel"
+            :y="handle.y - 5 / zoomLevel"
+            :width="10 / zoomLevel"
+            :height="10 / zoomLevel"
+            rx="1"
+            class="network-map-backdrop-adjust__handle"
+            :stroke-width="1.5 / zoomLevel"
+            :style="{ cursor: handle.cursor, pointerEvents: 'auto' }"
+            :data-handle="handle.id"
+            @mousedown.stop.prevent="onPageHandleMousedown($event, handle.id)"
+            @pointerdown.stop
+            @click.stop
+          />
+        </g>
 
         <!-- Link bend-point editing: "+" midpoint handles + draggable point handles -->
         <template v-if="bendEditGeom">
@@ -3085,5 +3207,38 @@ defineExpose({
   height: 100%;
   pointer-events: none;
   overflow: visible;
+}
+
+/* Placing the backdrop: everything on the map fades and keeps still. */
+.network-map-canvas-wrap--backdrop-adjust :is(.network-map-graph, .network-map-leaders),
+.network-map-canvas-wrap--backdrop-adjust
+  .network-map-overlay
+  > g
+  > :not(.network-map-backdrop-adjust) {
+  opacity: 0.3;
+}
+
+/* Decorations set pointer-events inline, which only !important outranks. */
+.network-map-canvas-wrap--backdrop-adjust
+  .network-map-overlay
+  > g
+  > :not(.network-map-backdrop-adjust),
+.network-map-canvas-wrap--backdrop-adjust
+  .network-map-overlay
+  > g
+  > :not(.network-map-backdrop-adjust)
+  * {
+  pointer-events: none !important;
+}
+
+.network-map-backdrop-adjust__frame {
+  fill: none;
+  stroke: var(--p-primary-color);
+  pointer-events: none;
+}
+
+.network-map-backdrop-adjust__handle {
+  fill: var(--p-content-background);
+  stroke: var(--p-primary-color);
 }
 </style>
