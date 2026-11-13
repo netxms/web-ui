@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import PrimeVue from 'primevue/config'
 import ActionContextMenu from '@/components/actions/ActionContextMenu.vue'
+import { SUBMENU_SWITCH_DELAY_MS } from '@/components/actions/SubmenuDelayContextMenu'
 
 // PrimeVue's overlay listens for a touch-capable media query on mount; jsdom has no
 // matchMedia at all.
@@ -99,5 +100,70 @@ describe('ActionContextMenu shortcuts', () => {
     press('F2')
 
     expect(rename).not.toHaveBeenCalled()
+  })
+})
+
+describe('ActionContextMenu submenu switching', () => {
+  const items = () => [
+    { id: 'tools', label: 'Tools', items: [{ id: 'ssh', label: 'SSH terminal' }] },
+    { id: 'maintenance', label: 'Maintenance', items: [{ id: 'enter', label: 'Enter' }] },
+    { id: 'rename', label: 'Rename' },
+  ]
+
+  const itemRow = (label) =>
+    [...document.querySelectorAll('li[role="menuitem"]')].find(
+      (li) => li.querySelector('.p-contextmenu-item-content').textContent.trim() === label,
+    )
+  const content = (label) => itemRow(label).querySelector('.p-contextmenu-item-content')
+  const expanded = (label) => itemRow(label).getAttribute('aria-expanded') === 'true'
+
+  async function hover(label, type = 'mouseenter') {
+    content(label).dispatchEvent(new MouseEvent(type))
+    await wrapper.vm.$nextTick()
+  }
+
+  beforeEach(async () => {
+    vi.useFakeTimers()
+    wrapper = mountMenu(items())
+    wrapper.vm.show(openEvent())
+    await wrapper.vm.$nextTick()
+    await hover('Tools')
+  })
+
+  afterEach(() => {
+    wrapper.unmount()
+    vi.useRealTimers()
+  })
+
+  it('opens the first submenu at once', () => {
+    expect(expanded('Tools')).toBe(true)
+  })
+
+  it('keeps the open submenu while the pointer brushes a sibling', async () => {
+    await hover('Maintenance')
+    expect(expanded('Tools')).toBe(true)
+    expect(expanded('Maintenance')).toBe(false)
+
+    await vi.advanceTimersByTimeAsync(SUBMENU_SWITCH_DELAY_MS)
+    expect(expanded('Maintenance')).toBe(true)
+    expect(expanded('Tools')).toBe(false)
+  })
+
+  it('does not switch when the pointer reaches the open submenu first', async () => {
+    await hover('Maintenance')
+    await hover('Maintenance', 'mouseleave')
+    await hover('SSH terminal')
+
+    await vi.advanceTimersByTimeAsync(SUBMENU_SWITCH_DELAY_MS)
+    expect(expanded('Tools')).toBe(true)
+    expect(expanded('Maintenance')).toBe(false)
+  })
+
+  it('closes the open submenu only after resting on a plain item', async () => {
+    await hover('Rename')
+    expect(expanded('Tools')).toBe(true)
+
+    await vi.advanceTimersByTimeAsync(SUBMENU_SWITCH_DELAY_MS)
+    expect(expanded('Tools')).toBe(false)
   })
 })

@@ -1,6 +1,6 @@
 <script setup>
 import { onUnmounted, ref } from 'vue'
-import ContextMenu from 'primevue/contextmenu'
+import ContextMenu from './SubmenuDelayContextMenu'
 import ActionMenuIcon from './ActionMenuIcon.vue'
 import { menuAnchorEvent } from '@/utils/menuAnchor'
 import { isPlainLeftClick } from '@/utils/navigation'
