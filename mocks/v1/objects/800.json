@@ -2,6 +2,7 @@
   "id": 800,
   "guid": "b8c9d0e1-f2a3-4567-bcde-f89012345678",
   "class": "Rack",
+  "webServiceProxy": 0,
   "timestamp": "2026-03-10T09:00:00Z",
   "name": "Rack-DC1-A01",
   "alias": "DC1-A01",

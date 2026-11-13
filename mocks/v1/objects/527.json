@@ -2,6 +2,7 @@
   "id": 527,
   "guid": "d8e9f0a1-b2c3-4567-1234-678901234567",
   "class": "AccessPoint",
+  "webServiceProxy": 0,
   "timestamp": "2026-02-26T10:00:00Z",
   "name": "AP-DC-Floor1-01",
   "alias": "",

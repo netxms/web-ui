@@ -93,7 +93,7 @@ async function onCreate() {
       vendor: vendor.value.trim() || undefined,
       model: model.value.trim() || undefined,
       serialNumber: serialNumber.value.trim() || undefined,
-      modbusUnitId: modbusUnitId.value ?? undefined,
+      modbus: modbusUnitId.value == null ? undefined : { unitId: modbusUnitId.value },
       gatewayNode: gatewayNode.value?.id ?? undefined,
     },
     successMessage: 'Sensor created',

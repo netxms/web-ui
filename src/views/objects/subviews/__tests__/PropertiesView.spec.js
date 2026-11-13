@@ -198,3 +198,55 @@ describe('PropertiesView data center groups', () => {
     expect(updateGroup).not.toHaveBeenCalled()
   })
 })
+
+describe('PropertiesView node communication', () => {
+  const NODE = {
+    id: 501,
+    name: 'gw-01',
+    class: 'Node',
+    inheritAccessRights: true,
+    primaryName: '10.0.0.1',
+    externalGateway: false,
+    ssh: { port: 22, proxy: 0, keyId: 0, login: 'netxms', password: '' },
+  }
+
+  it('puts changed protocol settings on the object PATCH', async () => {
+    current = NODE
+    const wrapper = await mountView()
+    wrapper.findComponent(SectionStub).props('draft').ssh.port = 2222
+    await flushPromises()
+
+    await button(wrapper, 'Save').trigger('click')
+    await flushPromises()
+
+    expect(updateProperties).toHaveBeenCalledOnce()
+    expect(updateProperties.mock.calls[0][0].payload.ssh).toEqual({ port: 2222 })
+  })
+
+  it('sends a new primary host name after the external gateway flag', async () => {
+    current = NODE
+    const wrapper = await mountView()
+    await edit(wrapper, { externalGateway: true, primaryName: ' 10.0.0.9 ' })
+
+    await button(wrapper, 'Save').trigger('click')
+    await flushPromises()
+
+    expect(updateProperties).toHaveBeenCalledTimes(2)
+    const [first, second] = updateProperties.mock.calls.map(([call]) => call.payload)
+    expect(first.externalGateway).toBe(true)
+    expect(first).not.toHaveProperty('primaryName')
+    expect(second).toEqual({ primaryName: '10.0.0.9' })
+  })
+
+  it('refuses an invalid host name before anything is sent', async () => {
+    current = NODE
+    const wrapper = await mountView()
+    await edit(wrapper, { primaryName: 'not a host', alias: 'x' })
+
+    await button(wrapper, 'Save').trigger('click')
+    await flushPromises()
+
+    expect(updateProperties).not.toHaveBeenCalled()
+    expect(wrapper.find('.save-error').text()).toContain('not a valid host name')
+  })
+})

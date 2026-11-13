@@ -2,6 +2,40 @@
   "id": 518,
   "guid": "a9b0c1d2-e3f4-5678-2345-789012345678",
   "class": "Node",
+  "webServiceProxy": 0,
+  "ssh": {
+    "port": 22,
+    "proxy": 0,
+    "keyId": 0,
+    "login": "",
+    "password": ""
+  },
+  "vnc": {
+    "port": 5900,
+    "proxy": 0,
+    "password": ""
+  },
+  "modbus": {
+    "tcpPort": 502,
+    "unitId": 255,
+    "proxy": 0
+  },
+  "etherNetIp": {
+    "address": null,
+    "port": 44818,
+    "proxy": 0
+  },
+  "netconf": {
+    "port": 830,
+    "proxy": 0
+  },
+  "icmp": {
+    "proxy": 0,
+    "statCollectionMode": "default",
+    "targets": []
+  },
+  "mqttProxy": 0,
+  "externalGateway": false,
   "timestamp": "2026-02-26T10:00:00Z",
   "name": "blade-02.dc-alpha.example.com",
   "alias": "blade-02",
@@ -66,7 +100,6 @@
   "pollerNodeId": 0,
   "agentProxyNodeId": 0,
   "snmpProxyNodeId": 0,
-  "icmpProxyNodeId": 0,
   "lastEvents": [],
   "children": [519],
   "parents": [515],

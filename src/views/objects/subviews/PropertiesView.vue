@@ -39,6 +39,7 @@ import {
   objectToPhysicalPlacementPayload,
 } from '@/api/objectAdapters'
 import { interfacePropertiesPatch, isValidMacAddress } from '@/utils/interfaceDisplay'
+import { communicationPatch, isValidHostName } from '@/utils/nodeCommunication'
 import { propertyGroupPatch, rackCabinetPatch } from '@/utils/dataCenterProperties'
 import { useUpdateDataCenterGroup } from '@/queries/useDataCenterQueries'
 
@@ -306,8 +307,19 @@ const { draft, isDirty, isSaving, saveError, save, cancel } = usePropertyEditor(
       }
       Object.assign(payload, interfacePatch)
     }
+    const primaryNameChanged =
+      data.class === 'Node' && data.primaryName !== details.value?.primaryName
+    if (primaryNameChanged && !isValidHostName(data.primaryName ?? '')) {
+      throw new Error('The primary host name is not a valid host name or IP address.')
+    }
     Object.assign(payload, rackCabinetPatch(data, details.value))
+    Object.assign(payload, communicationPatch(data, details.value))
     await updateProperties({ id: data.id, payload })
+    // After the patch that carries `externalGateway`: the server checks the new name for an
+    // address conflict against the flag it holds at that moment.
+    if (primaryNameChanged) {
+      await updateProperties({ id: data.id, payload: { primaryName: data.primaryName.trim() } })
+    }
     const orig = details.value
 
     const groupPatch = propertyGroupPatch(data, orig)

@@ -37,6 +37,36 @@ describe('rack-chassis section visibility', () => {
   })
 })
 
+describe('communication section visibility', () => {
+  it.each([
+    'Node',
+    'Chassis',
+    'MobileDevice',
+    'Sensor',
+    'AccessPoint',
+    'Collector',
+    'Circuit',
+    'Rack',
+    'Facility',
+    'PowerDomain',
+    'CoolingZone',
+    'Room',
+  ])('is offered on %s, a data collection target', (objectClass) => {
+    expect(ids(objectClass)).toContain('communication')
+  })
+
+  it.each(['Cluster', 'Template', 'Container', 'Interface', 'Dashboard'])(
+    'is not offered on %s, as in legacy',
+    (objectClass) => {
+      expect(ids(objectClass)).not.toContain('communication')
+    },
+  )
+
+  it('keeps polling on a Cluster', () => {
+    expect(ids('Cluster')).toEqual(expect.arrayContaining(['polling', 'auto-bind']))
+  })
+})
+
 // Dev builds only; Vitest runs with import.meta.env.DEV set.
 describe('data center sections', () => {
   it.each([

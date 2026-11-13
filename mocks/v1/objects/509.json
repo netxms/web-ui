@@ -2,6 +2,40 @@
   "id": 509,
   "guid": "d0e1f2a3-b4c5-6789-3456-890123456789",
   "class": "Node",
+  "webServiceProxy": 0,
+  "ssh": {
+    "port": 22,
+    "proxy": 0,
+    "keyId": 0,
+    "login": "netxms",
+    "password": ""
+  },
+  "vnc": {
+    "port": 5900,
+    "proxy": 0,
+    "password": ""
+  },
+  "modbus": {
+    "tcpPort": 502,
+    "unitId": 255,
+    "proxy": 0
+  },
+  "etherNetIp": {
+    "address": null,
+    "port": 44818,
+    "proxy": 0
+  },
+  "netconf": {
+    "port": 830,
+    "proxy": 0
+  },
+  "icmp": {
+    "proxy": 0,
+    "statCollectionMode": "default",
+    "targets": []
+  },
+  "mqttProxy": 0,
+  "externalGateway": false,
   "timestamp": "2026-02-26T10:00:00Z",
   "name": "db-primary.dc-alpha.example.com",
   "alias": "db-primary",
@@ -63,9 +97,6 @@
   "pollerNodeId": 0,
   "agentProxyNodeId": 0,
   "snmpProxyNodeId": 0,
-  "icmpProxyNodeId": 0,
-  "sshLogin": "netxms",
-  "sshPort": 22,
   "lastEvents": [],
   "children": [510, 511],
   "parents": [508],

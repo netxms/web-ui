@@ -66,7 +66,7 @@ const portEntries = computed(() =>
   [
     { key: 'agent', label: 'Agent', port: details.value?.agentPort },
     { key: 'snmp', label: 'SNMP', port: details.value?.snmpPort },
-    { key: 'ssh', label: 'SSH', port: details.value?.sshPort },
+    { key: 'ssh', label: 'SSH', port: details.value?.ssh?.port },
   ].filter((p) => p.port),
 )
 

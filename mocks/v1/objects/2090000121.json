@@ -2,6 +2,7 @@
   "id": 2090000121,
   "guid": "9d0c6e2a-41b7-4c55-8f3e-000000000022",
   "class": "Rack",
+  "webServiceProxy": 0,
   "timestamp": "2026-11-09T09:55:00.000Z",
   "name": "MMR-01",
   "alias": "",

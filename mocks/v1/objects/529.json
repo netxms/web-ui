@@ -2,6 +2,7 @@
   "id": 529,
   "guid": "f0a1b2c3-d4e5-6789-3456-890123456789",
   "class": "MobileDevice",
+  "webServiceProxy": 0,
   "timestamp": "2026-02-20T09:00:00Z",
   "name": "iPad-Admin-01",
   "alias": "",

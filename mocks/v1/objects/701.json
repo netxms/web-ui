@@ -2,6 +2,7 @@
   "id": 701,
   "guid": "d4e5f6a7-b8c9-0123-defa-23456789abcd",
   "class": "Rack",
+  "webServiceProxy": 0,
   "timestamp": "2026-04-01T10:00:00Z",
   "name": "Server Room - Rack B",
   "alias": "",

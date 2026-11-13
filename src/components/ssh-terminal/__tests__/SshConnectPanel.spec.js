@@ -12,15 +12,15 @@ const { default: SshConnectPanel } = await import('@/components/ssh-terminal/Ssh
 
 const NODE = {
   id: 42,
+  class: 'Node',
   name: 'sw-core',
-  sshLogin: 'admin',
-  sshPort: 2222,
+  ssh: { login: 'admin', port: 2222 },
   effectiveRights: { modify: true, readCredentials: true },
 }
-const NODE_WITHOUT_LOGIN = { ...NODE, sshLogin: '' }
+const NODE_WITHOUT_LOGIN = { ...NODE, ssh: { login: '', port: 2222 } }
 const NODE_LOGIN_HIDDEN = {
   ...NODE,
-  sshLogin: '',
+  ssh: { login: '', port: 2222 },
   effectiveRights: { modify: false, readCredentials: false },
 }
 
@@ -29,7 +29,7 @@ function render(props) {
     props: { object: NODE, message: null, remembered: null, active: true, ...props },
     global: {
       plugins: [PrimeVue],
-      stubs: { Select: true },
+      stubs: { Select: true, AppLink: { template: '<a class="app-link-stub"><slot /></a>' } },
       directives: { tooltip: {} },
     },
   })
@@ -129,6 +129,15 @@ describe('SshConnectPanel', () => {
       sshKeys.data = ref([{ id: 5, name: 'ops' }])
       const withKeys = render({ object: NODE_WITHOUT_LOGIN })
       expect(withKeys.text()).toContain('SSH key')
+    })
+
+    it('links to the stored settings only for a user who may change them', () => {
+      expect(render().find('.app-link-stub').text()).toBe('Change in Properties')
+
+      const readOnly = render({
+        object: { ...NODE, effectiveRights: { modify: false, readCredentials: true } },
+      })
+      expect(readOnly.find('.app-link-stub').exists()).toBe(false)
     })
   })
 

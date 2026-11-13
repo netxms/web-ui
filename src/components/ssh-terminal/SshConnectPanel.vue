@@ -6,8 +6,11 @@ import Message from 'primevue/message'
 import Password from 'primevue/password'
 import Select from 'primevue/select'
 import SelectButton from 'primevue/selectbutton'
+import AppLink from '@/components/common/AppLink.vue'
 import FormField from '@/components/common/FormField.vue'
+import { hasObjectRight } from '@/auth/objectAccessRights'
 import { useSshKeys } from '@/queries/useSshKeyQueries'
+import { objectTarget } from '@/utils/routeTargets'
 import { storedCredentialsState } from '@/utils/sshTerminalProtocol'
 
 const MODE_OPTIONS = [
@@ -34,12 +37,17 @@ const storedState = computed(() => storedCredentialsState(props.object))
 const hasStored = computed(() => storedState.value !== 'none')
 
 const mode = ref(props.remembered?.mode ?? 'stored')
-const login = ref(props.remembered?.login || props.object.sshLogin || '')
+const login = ref(props.remembered?.login || props.object.ssh?.login || '')
 const password = ref('')
 const keyId = ref(props.remembered?.keyId ?? 0)
 const loginError = ref('')
 
 const usesForm = computed(() => !hasStored.value || mode.value === 'custom')
+
+const canEditSettings = computed(() => hasObjectRight(props.object, 'MODIFY'))
+const settingsTarget = computed(() =>
+  objectTarget(props.object, 'properties', { query: { section: 'communication' } }),
+)
 
 const { data: sshKeys } = useSshKeys()
 const keyOptions = computed(() => [{ id: 0, name: 'None' }, ...(sshKeys.value ?? [])])
@@ -93,7 +101,10 @@ defineExpose({
 <template>
   <form ref="formRef" class="ssh-connect" @submit.prevent="submit">
     <h2 class="ssh-connect-title">Connect to {{ object.name }}</h2>
-    <p class="ssh-connect-route">Through the NetXMS SSH proxy, port {{ object.sshPort || 22 }}.</p>
+    <p class="ssh-connect-route">
+      Through the NetXMS SSH proxy, port {{ object.ssh?.port || 22 }}.
+      <AppLink v-if="canEditSettings" :to="settingsTarget">Change in Properties</AppLink>
+    </p>
 
     <SelectButton
       v-if="hasStored"
@@ -159,7 +170,7 @@ defineExpose({
     </template>
     <p v-else class="ssh-connect-stored">
       <template v-if="storedState === 'known'">
-        Logs in as <strong>{{ object.sshLogin }}</strong> with the credentials stored on the node.
+        Logs in as <strong>{{ object.ssh.login }}</strong> with the credentials stored on the node.
       </template>
       <template v-else>Logs in with the credentials stored on the node.</template>
     </p>

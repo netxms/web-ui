@@ -1,9 +1,5 @@
 <script setup>
 import { computed, ref } from 'vue'
-import Accordion from 'primevue/accordion'
-import AccordionPanel from 'primevue/accordionpanel'
-import AccordionHeader from 'primevue/accordionheader'
-import AccordionContent from 'primevue/accordioncontent'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
 import InputNumber from 'primevue/inputnumber'
@@ -13,8 +9,11 @@ import Select from 'primevue/select'
 import SelectButton from 'primevue/selectbutton'
 import ObjectPickerField from '@/components/objects/ObjectPickerField.vue'
 import SnmpAgentDialog from '@/components/properties/SnmpAgentDialog.vue'
+import CommunicationPanel from '@/components/properties/communication/CommunicationPanel.vue'
+import NodeProtocolPanels from '@/components/properties/communication/NodeProtocolPanels.vue'
 import { useObjects } from '@/queries/useObjectQueries'
 import FormField from '@/components/common/FormField.vue'
+import { NODE_WITHOUT_IP, isValidHostName } from '@/utils/nodeCommunication'
 import {
   SNMP_AUTH_METHOD_OPTIONS,
   SNMP_PRIV_METHOD_OPTIONS,
@@ -60,6 +59,35 @@ const proxyPerspectives = computed(() => {
     .filter((o) => PROXY_PERSPECTIVE_MAP[o.class])
     .map((o) => ({ id: String(o.id), label: PROXY_PERSPECTIVE_MAP[o.class], rootId: o.id }))
   return found.length ? found : [{ id: '2', label: 'Infrastructure', rootId: 2 }]
+})
+
+const isNode = computed(() => props.draft.class === 'Node')
+
+// Came with the protocol groups; a server without it ignores them on PATCH and still answers 200.
+const settingsSupported = computed(() => 'webServiceProxy' in props.object)
+const isNodeSelectable = (o) => o.class === 'Node'
+
+// Legacy keeps the typed name when "Node without IP address" is cleared; this restores it.
+const hostNameBeforeNoIp = ref(
+  props.draft.primaryName === NODE_WITHOUT_IP ? '' : (props.draft.primaryName ?? ''),
+)
+const withoutIp = computed({
+  get: () => props.draft.primaryName === NODE_WITHOUT_IP,
+  set: (on) => {
+    if (on) {
+      hostNameBeforeNoIp.value = props.draft.primaryName
+      props.draft.primaryName = NODE_WITHOUT_IP
+    } else {
+      props.draft.primaryName = hostNameBeforeNoIp.value
+    }
+  },
+})
+
+const primaryNameError = computed(() => {
+  const name = props.draft.primaryName ?? ''
+  if (name === props.object.primaryName) return ''
+  if (!name.trim()) return 'Enter a host name or IP address.'
+  return isValidHostName(name) ? '' : 'Not a valid host name or IP address.'
 })
 
 function onSecretInput() {
@@ -120,51 +148,56 @@ function onToggleSnmpTrap(enabled) {
 
 <template>
   <div class="communication-section">
-    <fieldset class="form-fieldset">
-      <legend>General</legend>
-      <div class="form-fields">
-        <div class="form-field">
-          <label class="form-label" for="comm-primary-host">Primary host name</label>
-          <InputText
-            id="comm-primary-host"
-            :model-value="draft.primaryName"
-            class="form-input"
-            disabled
-          />
-        </div>
-        <div class="flags-grid">
-          <label class="flag-row">
-            <Checkbox :model-value="false" :binary="true" disabled />
-            <span class="flag-label">Node without IP address</span>
-          </label>
-          <label class="flag-row">
-            <Checkbox :model-value="false" :binary="true" disabled />
-            <span class="flag-label">Communication through external gateway</span>
-          </label>
-          <label class="flag-row">
-            <Checkbox :model-value="false" :binary="true" disabled />
-            <span class="flag-label"
-              >Use ICMP ping on primary IP address to determine node status</span
-            >
-          </label>
-        </div>
-      </div>
-      <p class="form-hint pending-hint">
-        These general communication settings are not yet exposed by the API and cannot be edited
-        here.
-      </p>
-    </fieldset>
-
-    <Accordion v-if="draft.agent" :value="[]" multiple class="comm-accordion">
-      <AccordionPanel value="agent">
-        <AccordionHeader>
-          <div class="panel-header">
-            <span>Agent</span>
-            <span class="panel-summary">TCP port {{ draft.agent.port }}</span>
+    <template v-if="isNode">
+      <fieldset class="form-fieldset">
+        <legend>General</legend>
+        <div class="form-fields">
+          <FormField
+            label="Primary host name"
+            :error="primaryNameError"
+            v-slot="{ id, describedBy }"
+          >
+            <InputText
+              :id="id"
+              v-model="draft.primaryName"
+              class="form-input"
+              :disabled="withoutIp"
+              :invalid="!!primaryNameError"
+              :aria-describedby="describedBy"
+            />
+          </FormField>
+          <div class="flags-grid">
+            <label class="flag-row">
+              <Checkbox v-model="withoutIp" :binary="true" />
+              <span class="flag-label">Node without IP address</span>
+            </label>
+            <label class="flag-row">
+              <Checkbox
+                v-model="draft.externalGateway"
+                :binary="true"
+                :disabled="!settingsSupported"
+              />
+              <span class="flag-label">Communication through external gateway</span>
+            </label>
           </div>
-        </AccordionHeader>
-        <AccordionContent>
-          <div class="panel-content form-fields">
+          <p v-if="!settingsSupported" class="form-hint">
+            This server does not report the external gateway flag or the SSH, NETCONF, VNC, ICMP,
+            EtherNet/IP, Modbus, MQTT, syslog and web service settings yet.
+          </p>
+        </div>
+      </fieldset>
+
+      <NodeProtocolPanels
+        :draft="draft"
+        :proxy-perspectives="proxyPerspectives"
+        :supported="settingsSupported"
+      >
+        <template #agent>
+          <CommunicationPanel
+            v-if="draft.agent"
+            title="Agent"
+            :summary="`TCP port ${draft.agent.port}`"
+          >
             <div class="agent-top-row">
               <div class="form-field">
                 <label class="form-label" for="comm-agent-port">TCP port</label>
@@ -264,27 +297,19 @@ function onToggleSnmpTrap(enabled) {
                 </FormField>
               </div>
             </div>
-          </div>
-        </AccordionContent>
-      </AccordionPanel>
-    </Accordion>
-    <fieldset v-else class="form-fieldset">
-      <legend>Agent</legend>
-      <p class="form-hint">Loading agent configuration...</p>
-    </fieldset>
+          </CommunicationPanel>
+          <fieldset v-else class="form-fieldset">
+            <legend>Agent</legend>
+            <p class="form-hint">Loading agent configuration...</p>
+          </fieldset>
+        </template>
 
-    <Accordion v-if="draft.snmp" :value="[]" multiple class="comm-accordion">
-      <AccordionPanel value="snmp">
-        <AccordionHeader>
-          <div class="panel-header">
-            <span>SNMP</span>
-            <span class="panel-summary"
-              >v{{ draft.snmp.version }} &middot; UDP port {{ draft.snmp.port }}</span
-            >
-          </div>
-        </AccordionHeader>
-        <AccordionContent>
-          <div class="panel-content form-fields">
+        <template #snmp>
+          <CommunicationPanel
+            v-if="draft.snmp"
+            title="SNMP"
+            :summary="[`v${draft.snmp.version}`, `UDP port ${draft.snmp.port}`]"
+          >
             <div class="snmp-top-row">
               <FormField label="Version" v-slot="{ id }">
                 <Select
@@ -515,27 +540,17 @@ function onToggleSnmpTrap(enabled) {
                 </div>
               </div>
             </div>
-          </div>
-        </AccordionContent>
-      </AccordionPanel>
-    </Accordion>
-    <fieldset v-else class="form-fieldset">
-      <legend>SNMP</legend>
-      <p class="form-hint">Loading SNMP configuration...</p>
-    </fieldset>
+          </CommunicationPanel>
+          <fieldset v-else class="form-fieldset">
+            <legend>SNMP</legend>
+            <p class="form-hint">Loading SNMP configuration...</p>
+          </fieldset>
 
-    <Accordion v-if="draft.snmp" :value="[]" multiple class="comm-accordion">
-      <AccordionPanel value="snmpAgents">
-        <AccordionHeader>
-          <div class="panel-header">
-            <span>SNMP Agents</span>
-            <span class="panel-summary">
-              {{ snmpAgents.length }} additional agent{{ snmpAgents.length === 1 ? '' : 's' }}
-            </span>
-          </div>
-        </AccordionHeader>
-        <AccordionContent>
-          <div class="panel-content form-fields">
+          <CommunicationPanel
+            v-if="draft.snmp"
+            title="SNMP Agents"
+            :summary="`${snmpAgents.length} additional agent${snmpAgents.length === 1 ? '' : 's'}`"
+          >
             <p class="form-hint">
               Alternative SNMP endpoints on this node. Data collection items can target one of them
               by name instead of the node's primary SNMP agent.
@@ -610,17 +625,81 @@ function onToggleSnmpTrap(enabled) {
                 @click="addSnmpAgent"
               />
             </div>
-          </div>
-        </AccordionContent>
-      </AccordionPanel>
-    </Accordion>
+          </CommunicationPanel>
+        </template>
+      </NodeProtocolPanels>
 
-    <SnmpAgentDialog
-      v-model:visible="agentDialogVisible"
-      :agent="editingAgent"
-      :existing-names="otherAgentNames"
-      @confirm="onSnmpAgentConfirm"
-    />
+      <SnmpAgentDialog
+        v-model:visible="agentDialogVisible"
+        :agent="editingAgent"
+        :existing-names="otherAgentNames"
+        @confirm="onSnmpAgentConfirm"
+      />
+    </template>
+
+    <fieldset v-if="draft.class === 'Chassis'" class="form-fieldset">
+      <legend>Controller</legend>
+      <div class="form-fields">
+        <FormField label="Controller" group>
+          <ObjectPickerField
+            v-model="draft.controllerId"
+            empty-label="None"
+            dialog-title="Select Controller Node"
+            :perspectives="proxyPerspectives"
+            :selectable="isNodeSelectable"
+          />
+        </FormField>
+        <label class="flag-row">
+          <Checkbox
+            v-model="draft.bindUnderController"
+            :binary="true"
+            :disabled="!settingsSupported"
+          />
+          <span class="flag-label">Bind chassis object under controller node object</span>
+        </label>
+        <p v-if="!settingsSupported" class="form-hint">
+          This server does not report this flag yet.
+        </p>
+      </div>
+    </fieldset>
+
+    <fieldset v-if="draft.class === 'Sensor'" class="form-fieldset">
+      <legend>Modbus</legend>
+      <div class="form-fields">
+        <p v-if="!settingsSupported" class="form-hint">
+          This server does not report the Modbus unit ID yet.
+        </p>
+        <FormField v-else label="Unit ID" v-slot="{ id }">
+          <InputNumber
+            v-model="draft.modbus.unitId"
+            :input-id="id"
+            :min="0"
+            :max="255"
+            :use-grouping="false"
+            :allow-empty="false"
+            class="unit-id-input"
+          />
+        </FormField>
+      </div>
+    </fieldset>
+
+    <fieldset v-if="!isNode" class="form-fieldset">
+      <legend>Web Services</legend>
+      <div class="form-fields">
+        <p v-if="!settingsSupported" class="form-hint">
+          This server does not report the web service proxy yet.
+        </p>
+        <FormField v-else label="Proxy" group>
+          <ObjectPickerField
+            v-model="draft.webServiceProxy"
+            empty-label="Default"
+            dialog-title="Select Web Service Proxy Node"
+            :perspectives="proxyPerspectives"
+            :selectable="isNodeSelectable"
+          />
+        </FormField>
+      </div>
+    </fieldset>
   </div>
 </template>
 
@@ -667,40 +746,6 @@ function onToggleSnmpTrap(enabled) {
   width: 100%;
 }
 
-.comm-accordion {
-  display: flex;
-  flex-direction: column;
-}
-
-:deep(.comm-accordion .p-accordionpanel) {
-  border-radius: var(--p-border-radius-lg, 0.5rem) !important;
-  border: 1px solid var(--p-surface-border) !important;
-  overflow: hidden;
-}
-
-:deep(.comm-accordion .p-accordionheader) {
-  padding: 0.75rem 1.25rem;
-}
-
-:deep(.comm-accordion .p-accordioncontent-content) {
-  padding: 1rem 1.25rem;
-}
-
-.panel-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex: 1;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.panel-summary {
-  font-size: 0.8rem;
-  font-weight: 400;
-  color: var(--p-text-muted-color);
-}
-
 .form-subsection {
   display: flex;
   flex-direction: column;
@@ -743,9 +788,14 @@ function onToggleSnmpTrap(enabled) {
   line-height: 1.3;
 }
 
-.pending-hint {
-  margin: 0.5rem 0 0;
-  font-style: italic;
+.form-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+}
+
+.unit-id-input {
+  width: 8rem;
 }
 
 .agent-table-card {

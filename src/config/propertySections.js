@@ -285,13 +285,17 @@ const CONTAINER_SECTIONS = [
   },
 ]
 
+// Legacy shows it on every data collection target but Cluster. A Node has all the protocol
+// settings; the other classes have a web service proxy (and a few class fields).
+const COMMUNICATION_SECTION = {
+  id: 'communication',
+  label: 'Communication',
+  icon: 'pi pi-wifi',
+  group: 'Network',
+}
+
 const NODE_SECTIONS = [
-  {
-    id: 'communication',
-    label: 'Communication',
-    icon: 'pi pi-wifi',
-    group: 'Network',
-  },
+  COMMUNICATION_SECTION,
   {
     id: 'polling',
     label: 'Polling',
@@ -323,7 +327,10 @@ const PLACEMENT_SECTION = {
   group: 'Network',
 }
 
-const CLUSTER_SECTIONS = [...NODE_SECTIONS, AUTO_BIND_SECTION]
+const CLUSTER_SECTIONS = [
+  ...NODE_SECTIONS.filter((s) => s !== COMMUNICATION_SECTION),
+  AUTO_BIND_SECTION,
+]
 
 const NETWORK_MAP_GROUP_SECTIONS = COMMON_SECTIONS.filter(
   (s) => s.id !== 'location' && s.id !== 'dashboards-maps',
@@ -368,24 +375,41 @@ const DASHBOARD_SECTIONS = [
 const dataCenterSection = (id, label, icon) => ({ id, label, icon, group: 'Data Center' })
 
 const DATA_CENTER_EXTRA_SECTIONS = {
-  Facility: [dataCenterSection('facility', 'Facility', 'pi pi-building'), AUTO_BIND_SECTION],
-  PowerDomain: [dataCenterSection('power-domain', 'Power Domain', 'pi pi-bolt'), AUTO_BIND_SECTION],
-  CoolingZone: [dataCenterSection('cooling-zone', 'Cooling Zone', 'pi pi-cloud'), AUTO_BIND_SECTION],
-  Room: [dataCenterSection('room', 'Room', 'pi pi-th-large'), AUTO_BIND_SECTION],
-  Rack: [dataCenterSection('rack', 'Rack', 'pi pi-server')],
+  Facility: [
+    dataCenterSection('facility', 'Facility', 'pi pi-building'),
+    COMMUNICATION_SECTION,
+    AUTO_BIND_SECTION,
+  ],
+  PowerDomain: [
+    dataCenterSection('power-domain', 'Power Domain', 'pi pi-bolt'),
+    COMMUNICATION_SECTION,
+    AUTO_BIND_SECTION,
+  ],
+  CoolingZone: [
+    dataCenterSection('cooling-zone', 'Cooling Zone', 'pi pi-cloud'),
+    COMMUNICATION_SECTION,
+    AUTO_BIND_SECTION,
+  ],
+  Room: [
+    dataCenterSection('room', 'Room', 'pi pi-th-large'),
+    COMMUNICATION_SECTION,
+    AUTO_BIND_SECTION,
+  ],
+  Rack: [dataCenterSection('rack', 'Rack', 'pi pi-server'), COMMUNICATION_SECTION],
 }
 
 const CLASS_EXTRA_SECTIONS = {
   Node: [...NODE_SECTIONS, PLACEMENT_SECTION],
-  Chassis: [PLACEMENT_SECTION],
+  Chassis: [COMMUNICATION_SECTION, PLACEMENT_SECTION],
   Interface: [INTERFACE_POLLING_SECTION],
   Container: CONTAINER_SECTIONS,
   Cluster: CLUSTER_SECTIONS,
   MobileDevice: NODE_SECTIONS,
   Sensor: NODE_SECTIONS,
+  AccessPoint: [COMMUNICATION_SECTION],
   NetworkMap: [AUTO_BIND_SECTION],
-  Collector: [AUTO_BIND_SECTION],
-  Circuit: [AUTO_BIND_SECTION],
+  Collector: [COMMUNICATION_SECTION, AUTO_BIND_SECTION],
+  Circuit: [COMMUNICATION_SECTION, AUTO_BIND_SECTION],
   ...DATA_CENTER_EXTRA_SECTIONS,
 }
 

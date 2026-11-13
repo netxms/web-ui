@@ -2,6 +2,7 @@
   "id": 2090000113,
   "guid": "9d0c6e2a-41b7-4c55-8f3e-00000000001c",
   "class": "Rack",
+  "webServiceProxy": 0,
   "timestamp": "2026-11-09T09:55:00.000Z",
   "name": "B03",
   "alias": "",

@@ -184,19 +184,19 @@ describe('hasUsablePrimaryIp', () => {
 
 describe('storedCredentialsState', () => {
   it('knows the login when the server sent one', () => {
-    expect(storedCredentialsState({ sshLogin: 'admin' })).toBe('known')
+    expect(storedCredentialsState({ ssh: { login: 'admin' } })).toBe('known')
   })
 
   it('knows there is none when the user could have read it', () => {
     expect(
-      storedCredentialsState({ sshLogin: '', effectiveRights: { readCredentials: true } }),
+      storedCredentialsState({ ssh: { login: '' }, effectiveRights: { readCredentials: true } }),
     ).toBe('none')
   })
 
   it('cannot tell when the server withholds it from this user', () => {
     expect(
       storedCredentialsState({
-        sshLogin: '',
+        ssh: { login: '' },
         effectiveRights: { readCredentials: false, modify: false },
       }),
     ).toBe('hidden')

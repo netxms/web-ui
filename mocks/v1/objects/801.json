@@ -2,6 +2,8 @@
   "id": 801,
   "guid": "c9d0e1f2-a3b4-5678-cdef-012345678901",
   "class": "Chassis",
+  "webServiceProxy": 0,
+  "bindUnderController": false,
   "timestamp": "2026-03-10T09:00:00Z",
   "name": "Chassis-DC1-A02",
   "alias": "DC1-A02",

@@ -190,10 +190,7 @@ function adaptNodeLike(base, raw) {
     lldpNodeId: raw.lldpNodeId ?? '',
     bootTime: raw.bootTime ?? null,
     downSince: raw.downSince ?? null,
-    sshLogin: raw.sshLogin ?? '',
-    sshPort: raw.sshPort ?? 22,
     pollerNodeId: raw.pollerNodeId ?? 0,
-    icmpProxyNodeId: raw.icmpProxyNodeId ?? 0,
     // The API returns parsed objects, not raw bitmasks.
     capabilities: raw.capabilities ?? {},
     state: raw.state ?? {},
@@ -241,6 +238,60 @@ function adaptNodeLike(base, raw) {
 }
 
 /**
+ * Node: NodeLike plus its protocol groups. A proxy of 0 is the default (zone proxy or server).
+ * Login and passwords come only with Modify or Read credentials access.
+ * @param {object} base
+ * @param {object} raw
+ * @returns {object}
+ */
+function adaptNode(base, raw) {
+  const ssh = raw.ssh ?? {}
+  const vnc = raw.vnc ?? {}
+  const modbus = raw.modbus ?? {}
+  const eip = raw.etherNetIp ?? {}
+  const netconf = raw.netconf ?? {}
+  const icmp = raw.icmp ?? {}
+  return {
+    ...adaptNodeLike(base, raw),
+    // Flat `sshLogin` / `sshPort`: servers before the groups; the SSH terminal reads both.
+    ssh: {
+      port: ssh.port ?? raw.sshPort ?? 22,
+      proxy: ssh.proxy ?? 0,
+      keyId: ssh.keyId ?? 0,
+      login: ssh.login ?? raw.sshLogin ?? '',
+      password: ssh.password ?? '',
+    },
+    vnc: { port: vnc.port ?? 5900, proxy: vnc.proxy ?? 0, password: vnc.password ?? '' },
+    modbus: {
+      tcpPort: modbus.tcpPort ?? 502,
+      unitId: modbus.unitId ?? 255,
+      proxy: modbus.proxy ?? 0,
+    },
+    // `address` null: the node's primary address.
+    etherNetIp: { address: eip.address ?? null, port: eip.port ?? 44818, proxy: eip.proxy ?? 0 },
+    netconf: { port: netconf.port ?? 830, proxy: netconf.proxy ?? 0 },
+    icmp: {
+      proxy: icmp.proxy ?? 0,
+      statCollectionMode: icmp.statCollectionMode ?? 'default',
+      targets: [...(icmp.targets ?? [])],
+    },
+    mqttProxy: raw.mqttProxy ?? 0,
+    syslogCodepage: raw.syslogCodepage ?? '',
+    externalGateway: raw.externalGateway === true,
+  }
+}
+
+/**
+ * Sensor: NodeLike plus the one Modbus setting a sensor has.
+ * @param {object} base
+ * @param {object} raw
+ * @returns {object}
+ */
+function adaptSensor(base, raw) {
+  return { ...adaptNodeLike(base, raw), modbus: { unitId: raw.modbus?.unitId ?? 255 } }
+}
+
+/**
  * Chassis — extends NodeLike with chassis-specific dimensions and imagery.
  * @param {object} base
  * @param {object} raw
@@ -250,6 +301,7 @@ function adaptChassis(base, raw) {
   return {
     ...adaptNodeLike(base, raw),
     controllerId: raw.controllerId ?? 0,
+    bindUnderController: raw.bindUnderController === true,
     chassisWidth: raw.chassisWidth ?? 80,
     chassisHeight: raw.chassisHeight ?? 2,
     unitSystem: raw.unitSystem ?? 'hp-ru',
@@ -450,12 +502,20 @@ function adaptInterface(base, raw) {
  */
 export function adaptObject(raw) {
   if (!raw) return null
-  const base = adaptBaseObject(raw)
+  const adapted = adaptByClass(adaptBaseObject(raw), raw)
+  // Present on every data collection target; 0 is the default proxy.
+  if ('webServiceProxy' in raw) adapted.webServiceProxy = raw.webServiceProxy ?? 0
+  return adapted
+}
+
+function adaptByClass(base, raw) {
   switch (raw.class) {
     case 'Node':
+      return adaptNode(base, raw)
+    case 'Sensor':
+      return adaptSensor(base, raw)
     case 'Cluster':
     case 'MobileDevice':
-    case 'Sensor':
     case 'AccessPoint':
       return adaptNodeLike(base, raw)
     case 'Chassis':

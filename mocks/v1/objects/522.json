@@ -2,6 +2,40 @@
   "id": 522,
   "guid": "e3f4a5b6-c7d8-9012-6789-123456789012",
   "class": "Node",
+  "webServiceProxy": 0,
+  "ssh": {
+    "port": 22,
+    "proxy": 0,
+    "keyId": 0,
+    "login": "",
+    "password": ""
+  },
+  "vnc": {
+    "port": 5900,
+    "proxy": 0,
+    "password": ""
+  },
+  "modbus": {
+    "tcpPort": 502,
+    "unitId": 255,
+    "proxy": 0
+  },
+  "etherNetIp": {
+    "address": null,
+    "port": 44818,
+    "proxy": 0
+  },
+  "netconf": {
+    "port": 830,
+    "proxy": 0
+  },
+  "icmp": {
+    "proxy": 0,
+    "statCollectionMode": "default",
+    "targets": []
+  },
+  "mqttProxy": 0,
+  "externalGateway": false,
   "timestamp": "2026-02-26T10:00:00Z",
   "name": "fw-dmz-01.dc-alpha.example.com",
   "alias": "fw-dmz-01",
@@ -62,7 +96,6 @@
   "pollerNodeId": 0,
   "agentProxyNodeId": 0,
   "snmpProxyNodeId": 0,
-  "icmpProxyNodeId": 0,
   "lastEvents": [],
   "children": [523, 524, 525],
   "parents": [520],

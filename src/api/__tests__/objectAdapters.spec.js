@@ -48,7 +48,6 @@ describe('adaptObject', () => {
       id: 100,
       class: 'Node',
       name: 'core-sw-01',
-      sshPort: 22,
       agent: { port: 4700, proxy: 7 },
       snmp: { version: '2c', port: 161, proxy: 9, authName: 'public' },
     })
@@ -58,6 +57,60 @@ describe('adaptObject', () => {
     expect(node.snmpPort).toBe(161)
     expect(node.snmpProxyNodeId).toBe(9)
     expect(node.snmpCommunity).toBe('public')
+  })
+
+  it('reads the node protocol groups and single communication fields', () => {
+    const node = adaptObject({
+      id: 100,
+      class: 'Node',
+      name: 'plc-gw',
+      ssh: { port: 2222, proxy: 3, keyId: 4, login: 'ops', password: 'pw' },
+      vnc: { port: 5901, proxy: 0 },
+      modbus: { tcpPort: 1502, unitId: 7, proxy: 5 },
+      etherNetIp: { address: null, port: 44818, proxy: 0 },
+      netconf: { port: 8300, proxy: 6 },
+      icmp: { proxy: 8, statCollectionMode: 'on', targets: ['10.0.0.9'] },
+      mqttProxy: 11,
+      syslogCodepage: 'KOI8-R',
+      externalGateway: true,
+      webServiceProxy: 12,
+    })
+    expect(node.ssh).toEqual({ port: 2222, proxy: 3, keyId: 4, login: 'ops', password: 'pw' })
+    // A caller without credential access gets no password; the draft must still be a string.
+    expect(node.vnc).toEqual({ port: 5901, proxy: 0, password: '' })
+    expect(node.modbus).toEqual({ tcpPort: 1502, unitId: 7, proxy: 5 })
+    expect(node.etherNetIp.address).toBeNull()
+    expect(node.netconf).toEqual({ port: 8300, proxy: 6 })
+    expect(node.icmp).toEqual({ proxy: 8, statCollectionMode: 'on', targets: ['10.0.0.9'] })
+    expect(node.mqttProxy).toBe(11)
+    expect(node.syslogCodepage).toBe('KOI8-R')
+    expect(node.externalGateway).toBe(true)
+    expect(node.webServiceProxy).toBe(12)
+  })
+
+  it('falls back to the flat SSH login and port that older servers send', () => {
+    const node = adaptObject({ id: 1, class: 'Node', name: 'n', sshLogin: 'admin', sshPort: 22 })
+    expect(node.ssh.login).toBe('admin')
+    expect(node.ssh.port).toBe(22)
+  })
+
+  it('gives a sensor its Modbus unit ID and a chassis its controller binding flag', () => {
+    expect(adaptObject({ id: 2, class: 'Sensor', modbus: { unitId: 3 } }).modbus).toEqual({
+      unitId: 3,
+    })
+    const chassis = adaptObject({
+      id: 3,
+      class: 'Chassis',
+      controllerId: 9,
+      bindUnderController: true,
+    })
+    expect(chassis.controllerId).toBe(9)
+    expect(chassis.bindUnderController).toBe(true)
+  })
+
+  it('adds webServiceProxy only when the server sends it', () => {
+    expect(adaptObject({ id: 4, class: 'Room', webServiceProxy: 0 }).webServiceProxy).toBe(0)
+    expect('webServiceProxy' in adaptObject({ id: 5, class: 'Container' })).toBe(false)
   })
 
   it('reports no SNMP port rather than inventing 161 when the server sends none', () => {

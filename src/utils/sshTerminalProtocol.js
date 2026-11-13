@@ -246,13 +246,13 @@ export function hasUsablePrimaryIp(object) {
 }
 
 /**
- * The server withholds `sshLogin` from a user without Modify or Read credentials.
+ * The server withholds the SSH login from a user without Modify or Read credentials.
  *
  * @param {object} object - adapted node document
  * @returns {'known'|'none'|'hidden'}
  */
 export function storedCredentialsState(object) {
-  if (object?.sshLogin) return 'known'
+  if (object?.ssh?.login) return 'known'
   const canRead = hasObjectRight(object, 'MODIFY') || hasObjectRight(object, 'READ_CREDENTIALS')
   return canRead ? 'none' : 'hidden'
 }
