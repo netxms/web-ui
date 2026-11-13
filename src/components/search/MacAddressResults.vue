@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import AppLink from '@/components/common/AppLink.vue'
 import MacTypeBadge from './MacTypeBadge.vue'
+import ObjectIcon from '@/components/objects/ObjectIcon.vue'
 import { describeMacHit } from '@/utils/macSearch'
 
 const props = defineProps({
@@ -58,7 +59,8 @@ const isForbidden = computed(() => props.error?.status === 403)
       :class="{ 'is-focused': focusedIndex === offset + idx, 'is-static': !row.target }"
       @activate="emit('activate', hits[idx])"
     >
-      <i class="pi pi-desktop mac-icon" />
+      <ObjectIcon v-if="row.ownerObject" :object="row.ownerObject" class="mac-icon" />
+      <i v-else class="pi pi-desktop mac-icon" />
 
       <div class="mac-body">
         <div class="mac-line-primary">

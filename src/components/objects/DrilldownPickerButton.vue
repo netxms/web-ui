@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import Button from 'primevue/button'
 import DrilldownPickerDialog from './DrilldownPickerDialog.vue'
+import ObjectIcon from './ObjectIcon.vue'
 import { useObject } from '@/queries/useObjectQueries'
 
 const props = defineProps({
@@ -28,7 +29,7 @@ function clear() {
 <template>
   <div class="drilldown-picker-btn">
     <div v-if="selectedObject" class="drilldown-picker-btn__preview">
-      <i class="pi pi-map drilldown-picker-btn__icon" />
+      <ObjectIcon :object="selectedObject" class="drilldown-picker-btn__icon" />
       <span class="drilldown-picker-btn__name">{{ selectedObject.name }}</span>
       <Button
         aria-label="Choose drilldown target"

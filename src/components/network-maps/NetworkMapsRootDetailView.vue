@@ -7,7 +7,8 @@ import NetworkMapsRootStatusView from './NetworkMapsRootStatusView.vue'
 import PropertiesView from '@/views/objects/subviews/PropertiesView.vue'
 import { useObject } from '@/queries/useObjectQueries'
 import { useViewStore } from '@/stores/viewStore'
-import { getClassIconComponent, getClassIconColor, getStatusInfo } from '@/utils/objectUtils'
+import ObjectIcon from '@/components/objects/ObjectIcon.vue'
+import { getClassIconColor, getStatusInfo } from '@/utils/objectUtils'
 
 const PERSPECTIVE_ID = 'network-map-root'
 const DEFAULT_VIEW_IDS = ['status', 'properties']
@@ -27,9 +28,7 @@ const emit = defineEmits(['create-map', 'create-group'])
 const rootIdRef = computed(() => props.rootId)
 const { data: rootObject, refetch: refetchRootObject } = useObject(rootIdRef)
 
-const iconComponent = computed(() =>
-  getClassIconComponent(rootObject.value?.class ?? 'NetworkMapRoot'),
-)
+const iconObject = computed(() => rootObject.value ?? { class: 'NetworkMapRoot' })
 const iconColor = computed(() => getClassIconColor(rootObject.value?.class ?? 'NetworkMapRoot'))
 const statusInfo = computed(() => getStatusInfo(rootObject.value?.status ?? 0))
 const showStatusDot = computed(() => {
@@ -72,11 +71,10 @@ const activeViewProps = computed(() =>
 <template>
   <div class="group-detail">
     <div class="group-detail-header">
-      <component
-        :is="iconComponent"
+      <ObjectIcon
+        :object="iconObject"
         class="group-icon"
         :size="18"
-        :stroke-width="1.75"
         :style="{ color: iconColor }"
       />
       <span class="group-name">{{ name }}</span>

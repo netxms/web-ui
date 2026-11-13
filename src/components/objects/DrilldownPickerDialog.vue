@@ -9,6 +9,7 @@ import Skeleton from 'primevue/skeleton'
 import Tabs from 'primevue/tabs'
 import Tab from 'primevue/tab'
 import TabList from 'primevue/tablist'
+import ObjectIcon from './ObjectIcon.vue'
 import { useObjects, useObjectTree } from '@/queries/useObjectQueries'
 
 const props = defineProps({
@@ -140,10 +141,7 @@ watch(
             :aria-pressed="selectedItem?.id === obj.id"
             @click="onItemClick(obj)"
           >
-            <i
-              :class="activeTab === 'maps' ? 'pi pi-map' : 'pi pi-th-large'"
-              class="list-item-icon"
-            />
+            <ObjectIcon :object="obj" class="list-item-icon" />
             <span class="list-item-name">{{ obj.name }}</span>
           </button>
         </template>

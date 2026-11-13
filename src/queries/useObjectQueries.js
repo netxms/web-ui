@@ -17,6 +17,7 @@ import {
   adaptChassisLayout,
 } from '@/api/objectAdapters'
 import { buildHistoryParams } from '@/utils/dciChartModel'
+import { alarmKeys } from './useAlarmQueries'
 import { dciValueKey } from '@/utils/dciValues'
 import { STATIC_TIER, MODERATE_TIER, VOLATILE_TIER } from './config'
 
@@ -577,15 +578,27 @@ export function useObjectQuery(params, options = {}) {
   })
 }
 
+const TREE_FIELDS = ['name', 'alias', 'category']
+
 export function useUpdateObjectProperties() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ id, payload }) => objectsApi.updateObjectProperties(id, payload),
     onSuccess: (_, { id, payload }) => {
       queryClient.invalidateQueries({ queryKey: objectKeys.detail(id) })
-      // `name` and `alias` show in the tree and in child lists such as Interfaces.
+      // `name`, `alias` and `category` (the icon) show in the trees and in child lists such as
+      // Interfaces.
       queryClient.invalidateQueries({ queryKey: ['objects', 'subTree'] })
       queryClient.invalidateQueries({ queryKey: ['objects', 'children'] })
+      if (payload && TREE_FIELDS.some((field) => field in payload)) {
+        // `dashboardKeys.tree()` and `networkMapKeys.tree()`
+        queryClient.invalidateQueries({ queryKey: ['dashboards', 'tree'] })
+        queryClient.invalidateQueries({ queryKey: ['network-maps', 'tree'] })
+      }
+      // The alarm table's source icons come from that snapshot, not from the object.
+      if (payload && 'category' in payload) {
+        queryClient.invalidateQueries({ queryKey: alarmKeys.sourceObjects() })
+      }
       // A rack's cabinet is its footprint on floor plans (`dataCenterKeys.all()`).
       if (payload && ('width' in payload || 'depth' in payload)) {
         queryClient.invalidateQueries({ queryKey: ['dataCenter'] })

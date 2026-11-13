@@ -9,7 +9,6 @@ import { errorMessage } from '@/api/client'
 import { deleteObject } from '@/api/objectsApi'
 import { dciChoiceFor } from '@/utils/objectDeletion'
 import { useTheme } from '@/composables/useTheme'
-import GlobalSearch from '@/components/search/GlobalSearch.vue'
 import RenameObjectDialog from '@/components/objects/RenameObjectDialog.vue'
 import EffectiveRightsDialog from '@/components/objects/EffectiveRightsDialog.vue'
 import ScreenshotDialog from '@/components/objects/ScreenshotDialog.vue'
@@ -315,7 +314,6 @@ onUnmounted(() => {
   <!-- New-alarm toasts: own outlet, so their position preference does not move other toasts. -->
   <AlarmToast />
   <ConfirmDialog />
-  <GlobalSearch v-if="authStore.isAuthenticated" />
   <ReconnectingToast />
   <!-- Small confirmations for actions with no visible result of their own (see notifyAction). -->
   <ActionFeedbackPill />

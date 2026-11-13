@@ -6,6 +6,7 @@ import InfoCard from '@/components/objects/InfoCard.vue'
 import AppLink from '@/components/common/AppLink.vue'
 import { openInNewTab, shouldOpenInNewTab } from '@/utils/navigation'
 import DashboardThumbnail from './DashboardThumbnail.vue'
+import ObjectIcon from '@/components/objects/ObjectIcon.vue'
 
 const props = defineProps({
   title: { type: String, required: true },
@@ -53,7 +54,7 @@ function handleRowClick(event) {
               :cols="dashboardsById.get(data.id)?.cols ?? 12"
               :loading="thumbnailsLoading && !dashboardsById.has(data.id)"
             />
-            <i v-else class="pi pi-folder folder-icon" />
+            <ObjectIcon v-else :object="data" class="folder-icon" />
           </div>
         </template>
       </Column>

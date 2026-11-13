@@ -301,6 +301,27 @@ function loadRecent() {
   return Array.isArray(stored) ? stored : []
 }
 
+const OBJECT_RECENT_TYPES = new Set(['object', 'dashboard', 'map'])
+
+// The stored icon is the class's; the trees have the object's current category.
+const recentObjects = computed(() => {
+  const wanted = new Set(
+    recentItems.value.filter((r) => OBJECT_RECENT_TYPES.has(r.type)).map((r) => r.id),
+  )
+  const found = new Map()
+  if (!wanted.size) return found
+  for (const tree of [infraTree.value, dashboardTree.value, mapTree.value]) {
+    for (const object of flattenTree(tree)) {
+      if (wanted.has(object.id)) found.set(object.id, object)
+    }
+  }
+  return found
+})
+
+function recentObjectOf(item) {
+  return OBJECT_RECENT_TYPES.has(item.type) ? (recentObjects.value.get(item.id) ?? null) : null
+}
+
 function saveToRecent(item) {
   const items = loadRecent().filter((r) => !(r.type === item.type && r.id === item.id))
   items.unshift(item)
@@ -584,7 +605,13 @@ onUnmounted(() => document.removeEventListener('keydown', handleGlobalKeydown))
             :class="{ 'is-focused': focusedIndex === idx }"
             @activate="onRecentActivate(item)"
           >
-            <i :class="item.icon" class="item-icon" />
+            <ObjectIcon
+              v-if="recentObjectOf(item)"
+              :object="recentObjectOf(item)"
+              size="1rem"
+              class="item-icon"
+            />
+            <i v-else :class="item.icon" class="item-icon" />
             <span class="item-label">{{ item.label }}</span>
             <span class="item-type-tag">{{ item.type }}</span>
           </AppLink>
@@ -720,7 +747,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleGlobalKeydown))
             :class="{ 'is-focused': focusedIndex === dashboardOffset + idx }"
             @activate="onResultActivate('dashboard', dash)"
           >
-            <i class="pi pi-th-large item-icon" />
+            <ObjectIcon :object="dash" size="1rem" class="item-icon" />
             <span class="item-label">{{ dash.name }}</span>
           </AppLink>
         </div>
@@ -736,7 +763,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleGlobalKeydown))
             :class="{ 'is-focused': focusedIndex === mapOffset + idx }"
             @activate="onResultActivate('map', map)"
           >
-            <i class="pi pi-map item-icon" />
+            <ObjectIcon :object="map" size="1rem" class="item-icon" />
             <span class="item-label">{{ map.name }}</span>
           </AppLink>
         </div>

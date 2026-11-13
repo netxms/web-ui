@@ -7,7 +7,8 @@ import DashboardGroupStatusView from './DashboardGroupStatusView.vue'
 import PropertiesView from '@/views/objects/subviews/PropertiesView.vue'
 import { useObject } from '@/queries/useObjectQueries'
 import { useViewStore } from '@/stores/viewStore'
-import { getClassIconComponent, getClassIconColor, getStatusInfo } from '@/utils/objectUtils'
+import ObjectIcon from '@/components/objects/ObjectIcon.vue'
+import { getClassIconColor, getStatusInfo } from '@/utils/objectUtils'
 
 const PERSPECTIVE_ID = 'dashboard-group'
 const DEFAULT_VIEW_IDS = ['status', 'properties']
@@ -26,7 +27,7 @@ const emit = defineEmits(['create-dashboard', 'create-group'])
 const groupId = computed(() => props.node.id)
 const { data: groupObject, refetch: refetchGroupObject } = useObject(groupId)
 
-const iconComponent = computed(() => getClassIconComponent('DashboardGroup'))
+const iconObject = computed(() => groupObject.value ?? props.node)
 const iconColor = computed(() => getClassIconColor('DashboardGroup'))
 const statusInfo = computed(() => getStatusInfo(props.node.status ?? 0))
 const showStatusDot = computed(() => {
@@ -68,11 +69,10 @@ const activeViewProps = computed(() =>
 <template>
   <div class="group-detail">
     <div class="group-detail-header">
-      <component
-        :is="iconComponent"
+      <ObjectIcon
+        :object="iconObject"
         class="group-icon"
         :size="18"
-        :stroke-width="1.75"
         :style="{ color: iconColor }"
       />
       <span class="group-name">{{ node.name }}</span>

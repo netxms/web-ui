@@ -5,7 +5,9 @@ import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
 import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
+import ObjectIcon from '@/components/objects/ObjectIcon.vue'
 import ObjectPickerDialog from '@/components/objects/ObjectPickerDialog.vue'
+import { useObject } from '@/queries/useObjectQueries'
 import ImagePickerButton from '@/components/image-library/ImagePickerButton.vue'
 import FormField from '@/components/common/FormField.vue'
 
@@ -103,6 +105,8 @@ const inputFractions = computed(() => (showInMm.value && props.unitSystem === 'h
 
 const objectPickerVisible = ref(false)
 const selectedObject = ref(null)
+// Layout elements carry no category.
+const { data: selectedObjectDetails } = useObject(() => selectedObject.value?.id ?? null)
 
 function onObjectSelected(node) {
   selectedObject.value = { id: node.id, name: node.name, class: node.class }
@@ -223,7 +227,10 @@ function onClose() {
       <FormField label="Object" group>
         <div class="object-selector">
           <div v-if="selectedObject" class="object-selector__selected">
-            <i class="pi pi-server object-selector__icon" />
+            <ObjectIcon
+              :object="selectedObjectDetails ?? selectedObject"
+              class="object-selector__icon"
+            />
             <span class="object-selector__name">{{ selectedObject.name }}</span>
             <span class="object-selector__class">{{ selectedObject.class }}</span>
             <Button

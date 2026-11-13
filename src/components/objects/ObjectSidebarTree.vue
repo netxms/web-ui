@@ -2,6 +2,7 @@
 import { computed, onUnmounted, ref, watch } from 'vue'
 import ProgressSpinner from 'primevue/progressspinner'
 import ObjectTreeNode from './ObjectTreeNode.vue'
+import ObjectIcon from './ObjectIcon.vue'
 import ActionOverflowButton from '@/components/actions/ActionOverflowButton.vue'
 import QueryErrorState from '@/components/common/QueryErrorState.vue'
 import RestrictedState from '@/components/common/RestrictedState.vue'
@@ -11,7 +12,7 @@ import { useTreeMultiSelect, rangeRowClass } from '@/composables/useTreeMultiSel
 import { handleTreeRowKeydown } from '@/utils/treeKeyboard'
 import { handleTreeRowDblClick } from '@/utils/treeExpand'
 import { anchorEventAt } from '@/utils/menuAnchor'
-import { getClassIconComponent, getClassIconColor, getStatusInfo } from '@/utils/objectUtils'
+import { getClassIconColor, getStatusInfo } from '@/utils/objectUtils'
 import LoadingState from '@/components/common/LoadingState.vue'
 
 const props = defineProps({
@@ -273,8 +274,8 @@ function onRootOverflowClick(event, root) {
   onContextMenu(anchorEventAt(event.currentTarget, event), root.object, rootPath(root))
 }
 
-function rootIcon(root) {
-  return getClassIconComponent(root.object?.class ?? root.fallbackClass)
+function rootIconObject(root) {
+  return root.object ?? { class: root.fallbackClass }
 }
 function rootColor(root) {
   return getClassIconColor(root.object?.class ?? root.fallbackClass)
@@ -358,11 +359,10 @@ defineExpose({
             aria-hidden="true"
             @click.stop="emit('toggle', rootPath(root))"
           />
-          <component
-            :is="rootIcon(root)"
+          <ObjectIcon
+            :object="rootIconObject(root)"
             class="tree-node-icon"
             :size="16"
-            :stroke-width="1.75"
             :style="{
               color: isRowSelected(rootPath(root))
                 ? 'var(--p-primary-contrast-color)'

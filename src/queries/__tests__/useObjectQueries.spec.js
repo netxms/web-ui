@@ -8,6 +8,7 @@ vi.mock('@/api/objectsApi', () => ({
   getObject: vi.fn(),
   getDciHistory: vi.fn(),
   getDciValues: vi.fn(),
+  updateObjectProperties: vi.fn(),
 }))
 
 const objectsApi = await import('@/api/objectsApi')
@@ -17,8 +18,12 @@ const {
   useDciHistory,
   usePrefetchDciHistory,
   useDciValues,
+  useUpdateObjectProperties,
   objectKeys,
 } = await import('../useObjectQueries')
+const { alarmKeys } = await import('../useAlarmQueries')
+const { dashboardKeys } = await import('../useDashboardQueries')
+const { networkMapKeys } = await import('../useNetworkMapQueries')
 
 /** One element 10 HP wide, 1 RU high, at HP/RU origin offsets - as the server sends it. */
 function rawChassisLayout() {
@@ -109,6 +114,58 @@ describe('useChassisLayout unit system', () => {
     expect(objectKeys.chassisLayout(500, 'mm')).not.toEqual(objectKeys.chassisLayout(500, 'hp-ru'))
     const prefix = objectKeys.chassisLayout(500)
     expect(objectKeys.chassisLayout(500, 'mm').slice(0, prefix.length)).toEqual(prefix)
+  })
+})
+
+describe('useUpdateObjectProperties', () => {
+  function invalidated(spy, key) {
+    return spy.mock.calls.some(([filters]) => JSON.stringify(filters?.queryKey) === JSON.stringify(key))
+  }
+
+  function sourceSnapshotInvalidated(spy) {
+    return invalidated(spy, alarmKeys.sourceObjects())
+  }
+
+  it('re-reads the Dashboards and Network Maps trees after a change they show', async () => {
+    objectsApi.updateObjectProperties.mockResolvedValue({})
+    const spy = vi.spyOn(queryClient, 'invalidateQueries')
+    const { api } = withComposable(() => useUpdateObjectProperties())
+
+    await api.mutateAsync({ id: 7001, payload: { category: 4 } })
+
+    expect(invalidated(spy, dashboardKeys.tree())).toBe(true)
+    expect(invalidated(spy, networkMapKeys.tree())).toBe(true)
+  })
+
+  it('leaves the Dashboards and Network Maps trees alone for a comments-only save', async () => {
+    objectsApi.updateObjectProperties.mockResolvedValue({})
+    const spy = vi.spyOn(queryClient, 'invalidateQueries')
+    const { api } = withComposable(() => useUpdateObjectProperties())
+
+    await api.mutateAsync({ id: 7001, payload: { comments: 'x' } })
+
+    expect(invalidated(spy, dashboardKeys.tree())).toBe(false)
+    expect(invalidated(spy, networkMapKeys.tree())).toBe(false)
+  })
+
+  it('re-reads the alarm source snapshot when the category may have changed', async () => {
+    objectsApi.updateObjectProperties.mockResolvedValue({})
+    const spy = vi.spyOn(queryClient, 'invalidateQueries')
+    const { api } = withComposable(() => useUpdateObjectProperties())
+
+    await api.mutateAsync({ id: 100, payload: { name: 'core-router', category: 4 } })
+
+    expect(sourceSnapshotInvalidated(spy)).toBe(true)
+  })
+
+  it('leaves the snapshot alone for a save without a category', async () => {
+    objectsApi.updateObjectProperties.mockResolvedValue({})
+    const spy = vi.spyOn(queryClient, 'invalidateQueries')
+    const { api } = withComposable(() => useUpdateObjectProperties())
+
+    await api.mutateAsync({ id: 100, payload: { width: 600 } })
+
+    expect(sourceSnapshotInvalidated(spy)).toBe(false)
   })
 })
 

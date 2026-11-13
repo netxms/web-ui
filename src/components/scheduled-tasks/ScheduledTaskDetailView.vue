@@ -10,6 +10,7 @@ import Tag from 'primevue/tag'
 import MutationErrorState from '@/components/common/MutationErrorState.vue'
 import EntityDetailHeader from '@/components/layout/EntityDetailHeader.vue'
 import DetailCard from '@/components/layout/DetailCard.vue'
+import ObjectIcon from '@/components/objects/ObjectIcon.vue'
 import ObjectPickerDialog from '@/components/objects/ObjectPickerDialog.vue'
 import { useObject } from '@/queries/useObjectQueries'
 import { useCreateScheduledTask, useUpdateScheduledTask } from '@/queries/useScheduledTaskQueries'
@@ -268,7 +269,12 @@ const allHandlerOptions = computed(() =>
           <FormField class="detail-field" label="Object" group>
             <div v-if="!isSystem" class="object-picker-row">
               <div class="object-display" :class="{ 'object-display--empty': !objectDisplayLabel }">
-                <i class="pi pi-server object-display-icon" />
+                <ObjectIcon
+                  v-if="resolvedObject"
+                  :object="resolvedObject"
+                  class="object-display-icon"
+                />
+                <i v-else class="pi pi-server object-display-icon" />
                 <span>{{ objectDisplayLabel ?? 'None' }}</span>
               </div>
               <Button

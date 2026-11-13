@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import Button from 'primevue/button'
 import DrilldownPickerDialog from '@/components/objects/DrilldownPickerDialog.vue'
+import ObjectIcon from '@/components/objects/ObjectIcon.vue'
 import { useObjectsByIds } from '@/queries/useObjectQueries'
 
 /* eslint-disable vue/no-mutating-props */
@@ -20,15 +21,9 @@ const { objectsById } = useObjectsByIds(ids)
 const items = computed(() =>
   ids.value.map((id) => {
     const obj = objectsById.value.get(id)
-    return { id, name: obj?.name ?? null, class: obj?.class ?? null }
+    return { id, name: obj?.name ?? null, object: obj ?? null }
   }),
 )
-
-function iconForClass(cls) {
-  if (cls === 'NetworkMap') return 'pi pi-map'
-  if (cls === 'Dashboard') return 'pi pi-th-large'
-  return 'pi pi-sitemap'
-}
 
 function onSelect(node) {
   if (ids.value.includes(node.id)) return
@@ -60,7 +55,8 @@ function remove(id) {
     <div class="dm-list">
       <div v-if="items.length === 0" class="dm-empty">No dashboards or maps associated.</div>
       <div v-for="item in items" :key="item.id" class="dm-row">
-        <i :class="iconForClass(item.class)" class="dm-row-icon" />
+        <ObjectIcon v-if="item.object" :object="item.object" class="dm-row-icon" />
+        <i v-else class="pi pi-sitemap dm-row-icon" />
         <span class="dm-row-name">{{ item.name ?? `Object #${item.id}` }}</span>
         <Button
           :aria-label="`Remove ${item.name}`"

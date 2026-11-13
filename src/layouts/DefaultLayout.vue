@@ -7,6 +7,7 @@ import AppSidebar from '@/components/layout/AppSidebar.vue'
 import ErrorBoundary from '@/components/common/ErrorBoundary.vue'
 import RegionFocusHint from '@/components/layout/RegionFocusHint.vue'
 import ObjectIconPreviewBar from '@/components/objects/ObjectIconPreviewBar.vue'
+import GlobalSearch from '@/components/search/GlobalSearch.vue'
 import { useLayout } from '@/composables/useLayout'
 import { useAlarmFeed } from '@/composables/useAlarmFeed'
 import { useRegionFocus } from '@/composables/useRegionFocus'
@@ -80,6 +81,8 @@ const isFullBleed = computed(() => !!route.meta.fullBleed)
     </main>
     <RegionFocusHint :region="activeRegion" />
     <ObjectIconPreviewBar class="layout-footer" />
+    <!-- Inside the layout for the custom-icon registry it provides. -->
+    <GlobalSearch />
   </div>
 </template>
 

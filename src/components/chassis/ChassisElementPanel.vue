@@ -4,7 +4,8 @@ import Button from 'primevue/button'
 import StatusTag from '@/components/common/StatusTag.vue'
 import { useNavTarget } from '@/composables/useNavTarget'
 import { getStatusHexColor } from '@/utils/objectUtils'
-import { getClassIconCodepoint } from '@/utils/topologyUtils'
+import ObjectIcon from '@/components/objects/ObjectIcon.vue'
+import { useObject } from '@/queries/useObjectQueries'
 
 const ORIENTATION_LABELS = {
   full: 'Full depth',
@@ -37,7 +38,11 @@ const statusStripColor = computed(() => getStatusHexColor(props.element.objectSt
 
 const displayName = computed(() => props.element.label || props.element.objectName || '—')
 
-const iconCodepoint = computed(() => getClassIconCodepoint(props.element.objectClass ?? 'Node'))
+// Layout elements carry no category.
+const { data: elementObject } = useObject(() => props.element.objectId ?? null)
+const iconObject = computed(
+  () => elementObject.value ?? { class: props.element.objectClass ?? 'Node' },
+)
 
 const frontImageUrl = computed(() =>
   props.element.frontImageGuid ? props.resolvedImages[props.element.frontImageGuid] : null,
@@ -53,7 +58,7 @@ const showImages = computed(() => frontImageUrl.value || backImageUrl.value)
 <template>
   <div class="chassis-element-panel">
     <div class="panel-header" :style="{ borderLeftColor: statusStripColor }">
-      <span class="panel-header__icon panel-header__icon--font">{{ iconCodepoint }}</span>
+      <ObjectIcon :object="iconObject" class="panel-header__icon" />
       <span class="panel-header__name">{{ displayName }}</span>
       <Button
         aria-label="Close element panel"
@@ -175,11 +180,6 @@ const showImages = computed(() => frontImageUrl.value || backImageUrl.value)
   font-size: 1rem;
   flex-shrink: 0;
   color: var(--p-text-muted-color);
-}
-
-.panel-header__icon--font {
-  font-family: 'primeicons', sans-serif;
-  font-style: normal;
 }
 
 .panel-header__name {
