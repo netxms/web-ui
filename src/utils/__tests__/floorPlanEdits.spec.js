@@ -119,7 +119,14 @@ describe('racks moving in', () => {
 
 describe('room grid', () => {
   it('reads the grid of a room without one as no grid', () => {
-    expect(editModelFromPlan(plan).room).toEqual({ gridTileSize: 0, gridLabels: 'NONE' })
+    expect(editModelFromPlan(plan).room).toEqual({
+      gridTileSize: 0,
+      gridLabels: 'NONE',
+      backgroundImage: null,
+      backgroundScale: 0,
+      backgroundX: 0,
+      backgroundY: 0,
+    })
   })
 
   it('sends a grid change in the same room call as the outline, and folds both', () => {
@@ -127,7 +134,7 @@ describe('room grid', () => {
     const working = {
       ...baseline,
       outline: baseline.outline.map((p) => ({ ...p, x: p.x ? 7200 : 0 })),
-      room: { gridTileSize: 600, gridLabels: 'LETTERS_NUMBERS' },
+      room: { ...baseline.room, gridTileSize: 600, gridLabels: 'LETTERS_NUMBERS' },
     }
     const ops = saveOperations(baseline, working)
     expect(ops).toEqual([
@@ -143,6 +150,40 @@ describe('room grid', () => {
     const [op] = saveOperations(baseline, gridOnly)
     expect(op).toEqual({ kind: 'room', payload: { gridTileSize: 500 } })
     expect(foldSaved(baseline, op).baseline.outline).toEqual(baseline.outline)
+  })
+})
+
+describe('room backdrop', () => {
+  const withImage = {
+    ...plan,
+    backgroundImage: 'b1d0e7f2-0000-4000-8000-000000000001',
+    backgroundScale: 0,
+    backgroundX: 0,
+    backgroundY: 0,
+  }
+
+  it('reads the all-zero GUID as no image', () => {
+    const none = { ...plan, backgroundImage: '00000000-0000-0000-0000-000000000000' }
+    expect(editModelFromPlan(none).room.backgroundImage).toBeNull()
+  })
+
+  it('sends a moved and scaled backdrop in the room call', () => {
+    const baseline = editModelFromPlan(withImage)
+    const working = {
+      ...baseline,
+      room: { ...baseline.room, backgroundScale: 5000, backgroundX: -300, backgroundY: 120 },
+    }
+    expect(saveOperations(baseline, working)).toEqual([
+      { kind: 'room', payload: { backgroundScale: 5000, backgroundX: -300, backgroundY: 120 } },
+    ])
+  })
+
+  it('sends null to clear the image', () => {
+    const baseline = editModelFromPlan(withImage)
+    const working = { ...baseline, room: { ...baseline.room, backgroundImage: null } }
+    expect(saveOperations(baseline, working)).toEqual([
+      { kind: 'room', payload: { backgroundImage: null } },
+    ])
   })
 })
 

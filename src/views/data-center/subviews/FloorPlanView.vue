@@ -6,6 +6,7 @@ import SelectButton from 'primevue/selectbutton'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import ActionContextMenu from '@/components/actions/ActionContextMenu.vue'
+import FloorPlanBackdropPanel from '@/components/data-center/FloorPlanBackdropPanel.vue'
 import FloorPlanCanvas from '@/components/data-center/FloorPlanCanvas.vue'
 import FloorPlanEditPanel from '@/components/data-center/FloorPlanEditPanel.vue'
 import ObjectPickerDialog from '@/components/objects/ObjectPickerDialog.vue'
@@ -45,18 +46,27 @@ import {
   roomsOfRacks,
   toKilowatts,
 } from '@/utils/dataCenter'
-import { facing, tileAt, footprint, bounds } from '@/utils/floorPlan'
+import {
+  backdropImageId,
+  backdropRect,
+  bounds,
+  calibrateBackdrop,
+  facing,
+  fitBackdrop,
+  footprint,
+  tileAt,
+} from '@/utils/floorPlan'
 import {
   OVERLAY_IDS,
   SCALE_OVERLAYS,
   feedBalanceLabels,
-  scaleColor,
+  scaleLook,
+  statusLook,
 } from '@/utils/floorPlanOverlays'
 import { ELEMENT_TYPES } from '@/utils/floorPlanEdits'
 import { floorPlanMenuItems, removeLabelFor } from '@/utils/floorPlanMenu'
 import { resolveHref } from '@/utils/navigation'
-import { notifyNotImplemented } from '@/utils/notImplemented'
-import { getStatusHexColor, getStatusInfo } from '@/utils/objectUtils'
+import { STATUS_PALETTE, getStatusInfo } from '@/utils/objectUtils'
 import { FLOOR_PLAN_EDIT_QUERY, objectTarget } from '@/utils/routeTargets'
 
 const props = defineProps({
@@ -210,19 +220,13 @@ const legendLabels = computed(() =>
     : (scaleOverlay.value?.labels ?? []),
 )
 
-function fillFor(rack) {
-  if (!scaleOverlay.value) return getStatusHexColor(rack.status)
-  return scaleColor(
-    scaleOverlay.value,
-    metrics.value.get(rack.id)?.[scaleOverlay.value.metric]?.value,
-    isDark.value,
-  )
-}
-
-function ringFor(rack) {
-  return scaleOverlay.value && rack.status >= 1 && rack.status <= 4
-    ? getStatusHexColor(rack.status)
-    : null
+/** On a scale overlay, a rack in a warning to critical state is outlined in its status color. */
+function lookFor(rack) {
+  const palette = STATUS_PALETTE[isDark.value ? 'dark' : 'light']
+  const overlay = scaleOverlay.value
+  if (!overlay) return statusLook(rack.status, palette)
+  const ring = rack.status >= 1 && rack.status <= 4 ? palette.fill[rack.status] : null
+  return scaleLook(overlay, metrics.value.get(rack.id)?.[overlay.metric]?.value, isDark.value, ring)
 }
 
 /** Demo racks exist only in the seed, so there is no rack view to open. */
@@ -242,6 +246,11 @@ const canvasSelection = computed(() => {
   if (editor.editMode) return new Set(editor.selection)
   return new Set(selectedId.value == null ? [] : [`r:${selectedId.value}`])
 })
+
+function clearSelection() {
+  if (editor.editMode) editor.select(null)
+  else selectedId.value = null
+}
 
 // The edit controls card over the plan's top right corner, with its margin.
 const EDIT_CONTROLS_INSET = 56
@@ -359,6 +368,10 @@ function onKeydown(event) {
   }
   const active = document.activeElement
   if (mod || !(active === document.body || rootRef.value?.contains(active))) return
+  if (editor.backdropMode) {
+    onBackdropKeydown(event)
+    return
+  }
   if (ARROWS[event.key]) {
     event.preventDefault()
     editor.nudge(...ARROWS[event.key], event.altKey)
@@ -370,6 +383,17 @@ function onKeydown(event) {
     editor.rotateSelection(event.shiftKey ? -90 : 90)
   } else if (event.key === 'Escape') {
     editor.select(null)
+  }
+}
+
+/** Arrows move the image; Escape drops a calibration, then leaves backdrop mode. */
+function onBackdropKeydown(event) {
+  if (ARROWS[event.key]) {
+    event.preventDefault()
+    editor.nudgeBackdrop(...ARROWS[event.key], event.altKey)
+  } else if (event.key === 'Escape') {
+    if (calibration.value) calibration.value = null
+    else editor.setBackdropMode(false)
   }
 }
 
@@ -586,29 +610,102 @@ function splitText(split) {
 const unitsText = (m) => (m?.free ? `${m.free.value} U` : '—')
 const alarmsText = (m) => (m?.alarms ? String(m.alarms.value) : '—')
 
-// Backdrop calibration: micrometres per image pixel, offset in room millimetres.
-const backdrop = ref(null)
+/** The backdrop image's data URL and natural size, loaded once per image. */
+const backdropImage = ref(null)
 watch(
-  () => [plan.value?.backgroundImage, plan.value?.backgroundScale],
-  async ([guid, scale]) => {
-    backdrop.value = null
-    if (!guid || !(scale > 0)) return
+  () => backdropImageId(shownPlan.value),
+  async (guid) => {
+    if (backdropImage.value?.guid === guid) return
+    backdropImage.value = null
+    if (!guid) return
     const url = await getImageDataUrl(guid)
-    if (!url) return
+    if (!url || backdropImageId(shownPlan.value) !== guid) return
     const image = new Image()
     image.onload = () => {
-      backdrop.value = {
-        url,
-        x: plan.value.backgroundX ?? 0,
-        y: plan.value.backgroundY ?? 0,
-        width: (image.naturalWidth * scale) / 1000,
-        height: (image.naturalHeight * scale) / 1000,
-      }
+      if (backdropImageId(shownPlan.value) !== guid) return
+      backdropImage.value = { guid, url, width: image.naturalWidth, height: image.naturalHeight }
     }
     image.src = url
   },
   { immediate: true },
 )
+
+const backdrop = computed(() => {
+  const image = backdropImage.value
+  const room = shownPlan.value
+  if (!image || !room || image.guid !== backdropImageId(room)) return null
+  const rect = backdropRect(room, image)
+  return rect && { url: image.url, ...rect }
+})
+
+// Backdrop opacity follows the account, one value for every room.
+const OPACITY_FIELD = 'dataCenter.backdropOpacity'
+const DEFAULT_OPACITY = 0.85
+const loadOpacity = () => {
+  const stored = Number(userPrefs.get(OPACITY_FIELD))
+  return stored >= 0.1 && stored <= 1 ? stored : DEFAULT_OPACITY
+}
+const backdropOpacity = ref(loadOpacity())
+watch(userPrefs.revision, () => {
+  backdropOpacity.value = loadOpacity()
+})
+
+function setBackdropOpacity(value) {
+  backdropOpacity.value = value
+  if (value === DEFAULT_OPACITY) userPrefs.remove(OPACITY_FIELD)
+  else userPrefs.set(OPACITY_FIELD, value)
+}
+
+/** `{ points, missed }` while two points of the image are picked; `missed` after a click off it. */
+const calibration = ref(null)
+watch(
+  () => editor.backdropMode,
+  (on) => {
+    if (!on) calibration.value = null
+  },
+)
+
+function onCalibratePoint(point) {
+  if (!calibration.value || calibration.value.points.length >= 2) return
+  calibration.value = { points: [...calibration.value.points, point], missed: false }
+}
+
+function onCalibrateMiss() {
+  if (calibration.value) calibration.value = { ...calibration.value, missed: true }
+}
+
+function applyCalibration(distance) {
+  const [a, b] = calibration.value?.points ?? []
+  const fields = a && b && backdrop.value && calibrateBackdrop(backdrop.value, a, b, distance)
+  if (fields) editor.updateRoom(fields)
+  calibration.value = null
+}
+
+function fitBackdropToRoom() {
+  const fields = fitBackdrop(editor.working?.outline, backdropImage.value)
+  if (fields) editor.updateRoom(fields)
+}
+
+/** A new image starts uncalibrated at the room's top left corner; the old placement was its own. */
+function changeBackdropImage(guid) {
+  if (!guid) {
+    editor.updateRoom({ backgroundImage: null })
+    return
+  }
+  const outline = editor.working?.outline ?? []
+  const corner = outline.length ? bounds(outline.map((p) => [p.x, p.y])) : { minX: 0, minY: 0 }
+  editor.updateRoom({
+    backgroundImage: guid,
+    backgroundScale: 0,
+    backgroundX: Math.round(corner.minX),
+    backgroundY: Math.round(corner.minY),
+  })
+}
+
+function onCanvasDragStart({ key, point, toggle }) {
+  if (key.startsWith('b:')) editor.beginBackdropDrag(key.slice(2), point, backdrop.value)
+  else editor.beginDrag(key, point, { toggle })
+}
 </script>
 
 <template>
@@ -681,7 +778,7 @@ watch(
             size="small"
             text
             severity="secondary"
-            :disabled="editor.saving"
+            :disabled="editor.saving || editor.backdropMode"
             @click="editor.addElement(type.type, viewCentre())"
           />
           <div class="fp-edit-bar__sep" />
@@ -715,35 +812,39 @@ watch(
             :disabled="!editor.selectedItems.length || editor.saving"
             @click="editor.removeSelection()"
           />
-          <template v-if="editor.grid || shownPlan.backgroundImage">
-            <div class="fp-edit-bar__sep" />
-            <Button
-              v-if="editor.grid"
-              v-tooltip.bottom="'Snap to the tile grid while dragging'"
-              label="Snap"
-              icon="pi pi-th-large"
-              size="small"
-              text
-              :severity="editor.snapEnabled ? undefined : 'secondary'"
-              :aria-pressed="editor.snapEnabled"
-              @click="editor.snapEnabled = !editor.snapEnabled"
-            />
-            <Button
-              v-if="shownPlan.backgroundImage"
-              label="Backdrop"
-              icon="pi pi-image"
-              size="small"
-              text
-              severity="secondary"
-              @click="notifyNotImplemented('Moving and calibrating the backdrop')"
-            />
-          </template>
+          <div class="fp-edit-bar__sep" />
+          <Button
+            v-if="editor.grid"
+            v-tooltip.bottom="'Snap to the tile grid while dragging'"
+            label="Snap"
+            icon="pi pi-th-large"
+            size="small"
+            text
+            :severity="editor.snapEnabled ? undefined : 'secondary'"
+            :aria-pressed="editor.snapEnabled"
+            :disabled="editor.backdropMode"
+            @click="editor.snapEnabled = !editor.snapEnabled"
+          />
+          <Button
+            v-tooltip.bottom="'Place the image drawn under the plan'"
+            label="Backdrop"
+            icon="pi pi-image"
+            size="small"
+            text
+            :severity="editor.backdropMode ? undefined : 'secondary'"
+            :aria-pressed="editor.backdropMode"
+            :disabled="editor.saving"
+            @click="editor.setBackdropMode(!editor.backdropMode)"
+          />
           <span v-if="editor.warnings.length" class="fp-edit-bar__warn">
             <i class="pi pi-exclamation-triangle" aria-hidden="true" />
             {{ editor.warnings.length }}
             {{ editor.warnings.length === 1 ? 'warning' : 'warnings' }}
           </span>
-          <span class="fp-edit-bar__hint">
+          <span v-if="editor.backdropMode" class="fp-edit-bar__hint">
+            Placing the backdrop: the rest of the plan stays put. Esc when done.
+          </span>
+          <span v-else class="fp-edit-bar__hint">
             Drag to move. Arrows nudge by
             {{ editor.grid ? 'a tile' : '100 mm' }}, Alt+arrows by 10 mm.
           </span>
@@ -754,26 +855,30 @@ watch(
         <FloorPlanCanvas
           ref="canvasRef"
           :plan="shownPlan"
-          :fill-for="fillFor"
-          :ring-for="ringFor"
+          :look-for="lookFor"
           :selected-keys="canvasSelection"
           :warned-keys="editor.warnedKeys"
           :edit-mode="editor.editMode"
           :ghost="ghost"
           :target-for="rackTarget"
           :backdrop="backdrop"
+          :backdrop-opacity="backdropOpacity"
+          :backdrop-mode="editor.backdropMode"
+          :calibration="calibration"
           :fit-inset-top="canEdit ? EDIT_CONTROLS_INSET : 0"
           @select="(rack) => (selectedId = rack.id)"
           @activate="(key) => editor.select(key)"
-          @drag-start="({ key, point, toggle }) => editor.beginDrag(key, point, { toggle })"
+          @drag-start="onCanvasDragStart"
           @drag-move="(point) => editor.dragTo(point)"
           @drag-end="editor.endDrag()"
           @marquee="(box) => editor.selectInBox(box)"
-          @clear-selection="editor.select(null)"
+          @clear-selection="clearSelection"
           @insert-vertex="({ edge, point }) => editor.insertVertex(edge, point)"
           @rack-over="onRackOver"
           @rack-drop="onRackDrop"
           @context-menu="onCanvasContextMenu"
+          @calibrate-point="onCalibratePoint"
+          @calibrate-miss="onCalibrateMiss"
         >
           <template v-if="canEdit" #controls>
             <EditModeControls
@@ -821,8 +926,23 @@ watch(
             message="Demo room: values are fixed, and floor plan edits stay in this tab until it reloads. Nothing is saved to the server."
           />
 
+          <FloorPlanBackdropPanel
+            v-if="editor.editMode && editor.backdropMode"
+            :editor="editor"
+            :backdrop="backdrop"
+            :calibration="calibration"
+            :opacity="backdropOpacity"
+            @done="editor.setBackdropMode(false)"
+            @change-image="changeBackdropImage"
+            @fit="fitBackdropToRoom"
+            @calibrate="calibration = { points: [] }"
+            @calibrate-cancel="calibration = null"
+            @calibrate-apply="applyCalibration"
+            @update:opacity="setBackdropOpacity"
+          />
+
           <FloorPlanEditPanel
-            v-if="editor.editMode"
+            v-else-if="editor.editMode"
             :editor="editor"
             :plan="shownPlan"
             :incoming="incomingRacks"

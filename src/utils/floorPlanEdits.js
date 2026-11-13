@@ -3,6 +3,8 @@
  * change needs. Millimetres and degrees as in `floorPlan.js`.
  */
 
+import { backdropImageId } from './floorPlan'
+
 /** DataTransfer type of a rack dragged from the side list onto the plan. */
 export const RACK_DRAG_TYPE = 'application/x-netxms-rack'
 
@@ -32,13 +34,24 @@ export function nextElementName(elements, type) {
 const ELEMENT_FIELDS = ['name', 'x', 'y', 'rotation', 'width', 'depth']
 const PLACEMENT_FIELDS = ['placed', 'x', 'y', 'rotation']
 /** Fields of the room group the editor changes besides the outline. */
-const ROOM_FIELDS = ['gridTileSize', 'gridLabels']
+const ROOM_FIELDS = [
+  'gridTileSize',
+  'gridLabels',
+  'backgroundImage',
+  'backgroundScale',
+  'backgroundX',
+  'backgroundY',
+]
+
+/** Room fields that place the backdrop image. */
+export const BACKDROP_FIELDS = ROOM_FIELDS.slice(2)
 
 /**
  * @typedef {{ placed: boolean, x: number, y: number, rotation: number }} Placement
  * @typedef {{ id: number, name: string, type: string, x: number, y: number, rotation: number,
  *   width: number, depth: number }} Element
- * @typedef {{ gridTileSize: number, gridLabels: string }} RoomFields
+ * @typedef {{ gridTileSize: number, gridLabels: string, backgroundImage: string|null,
+ *   backgroundScale: number, backgroundX: number, backgroundY: number }} RoomFields
  * @typedef {{ id: number, name: string, status: number, width: number, depth: number,
  *   height?: number, rooms: Array<{id: number, name: string}> }} Arrival - a rack from elsewhere,
  *   bound to the room on save and unbound from `rooms`
@@ -63,7 +76,14 @@ export function placementOf(rack) {
 export function editModelFromPlan(plan) {
   return {
     outline: (plan.outline ?? []).map(({ x, y }) => ({ x, y })),
-    room: { gridTileSize: plan.gridTileSize ?? 0, gridLabels: plan.gridLabels ?? 'NONE' },
+    room: {
+      gridTileSize: plan.gridTileSize ?? 0,
+      gridLabels: plan.gridLabels ?? 'NONE',
+      backgroundImage: backdropImageId(plan),
+      backgroundScale: plan.backgroundScale ?? 0,
+      backgroundX: plan.backgroundX ?? 0,
+      backgroundY: plan.backgroundY ?? 0,
+    },
     elements: (plan.passiveElements ?? []).map((e) => ({
       id: e.id,
       name: e.name ?? '',

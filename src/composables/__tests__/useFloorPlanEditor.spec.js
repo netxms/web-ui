@@ -222,3 +222,72 @@ describe('useFloorPlanEditor - resizing an element by a handle', () => {
     expect(editor.dirty.value).toBe(false)
   })
 })
+
+describe('useFloorPlanEditor - backdrop', () => {
+  // 1000 x 500 px at 6 mm a pixel: the outline's width, as legacy stretches an uncalibrated image.
+  const RECT = { x: 0, y: 0, width: 6000, height: 3000, mmPerPixel: 6 }
+
+  function withBackdrop() {
+    const plan = ref({ ...structuredClone(PLAN), backgroundImage: 'img-1', backgroundScale: 0 })
+    const editor = useFloorPlanEditor(plan)
+    editor.enter()
+    return editor
+  }
+
+  it('drops the selection in backdrop mode, and edit mode ends it', () => {
+    const editor = withBackdrop()
+    editor.select('r:101')
+    editor.setBackdropMode(true)
+    expect(editor.selection.value).toEqual([])
+    expect(editor.backdropMode.value).toBe(true)
+    editor.exit()
+    expect(editor.backdropMode.value).toBe(false)
+  })
+
+  it('moves the image as one undo step and keeps it uncalibrated', () => {
+    const editor = withBackdrop()
+    editor.setBackdropMode(true)
+    editor.beginBackdropDrag('move', { x: 100, y: 100 }, RECT)
+    editor.dragTo({ x: 300, y: 150 })
+    editor.dragTo({ x: 400, y: 250 })
+    editor.endDrag()
+
+    expect(editor.pendingOps.value).toEqual([
+      { kind: 'room', payload: { backgroundX: 300, backgroundY: 150 } },
+    ])
+    editor.undo()
+    expect(editor.dirty.value).toBe(false)
+  })
+
+  it('scales by a corner with the opposite one kept', () => {
+    const editor = withBackdrop()
+    editor.setBackdropMode(true)
+    // The south-east corner from (6000, 3000) to (3000, ...): half the size, 3 mm a pixel.
+    editor.beginBackdropDrag('se', { x: 6000, y: 3000 }, RECT)
+    editor.dragTo({ x: 3000, y: 1000 })
+    editor.endDrag()
+    expect(editor.editedPlan.value).toMatchObject({
+      backgroundScale: 3000,
+      backgroundX: 0,
+      backgroundY: 0,
+    })
+  })
+
+  it('nudges the image by 100 mm without a grid, 10 mm fine, merged into one step', () => {
+    const editor = withBackdrop()
+    editor.nudgeBackdrop(1, 0)
+    editor.nudgeBackdrop(0, 1, true)
+    expect(editor.editedPlan.value).toMatchObject({ backgroundX: 100, backgroundY: 10 })
+    editor.undo()
+    expect(editor.editedPlan.value).toMatchObject({ backgroundX: 0, backgroundY: 0 })
+  })
+
+  it('names the backdrop in a failed room call', async () => {
+    const editor = withBackdrop()
+    editor.updateRoom({ backgroundScale: 5000 })
+    await editor.save(async (ops) => ops.map((op) => ({ op, ok: false, error: { status: 403 } })))
+    expect(editor.failures.value).toEqual([
+      { label: 'Room backdrop', reason: 'no modify rights (403)' },
+    ])
+  })
+})

@@ -59,6 +59,161 @@ export function frontBand(corners, depth, size) {
 }
 
 /**
+ * Triangle in the middle of the front band, pointing out of the front edge.
+ *
+ * @param {Point[]} corners - from `footprint`
+ * @param {number} depth - the footprint's depth
+ * @param {number} size - the band's thickness, as given to `frontBand`
+ * @returns {Point[] | null}
+ */
+export function frontArrow(corners, depth, size) {
+  const [p0, p1, p2, p3] = corners
+  const width = Math.hypot(p1[0] - p0[0], p1[1] - p0[1])
+  if (depth <= 0 || width <= 0 || size <= 0) return null
+  const out = [(p3[0] - p0[0]) / depth, (p3[1] - p0[1]) / depth]
+  const along = [(p2[0] - p3[0]) / width, (p2[1] - p3[1]) / width]
+  const mid = [(p2[0] + p3[0]) / 2, (p2[1] + p3[1]) / 2]
+  const back = (share) => [mid[0] - out[0] * size * share, mid[1] - out[1] * size * share]
+  const tip = back(0.15)
+  const base = back(0.85)
+  const half = Math.min(size * 0.75, width * 0.25)
+  return [
+    tip,
+    [base[0] + along[0] * half, base[1] + along[1] * half],
+    [base[0] - along[0] * half, base[1] - along[1] * half],
+  ]
+}
+
+/**
+ * A footprint's corners moved `distance` out of it, or into it when negative.
+ *
+ * @param {Point[]} corners - from `footprint`
+ * @param {number} distance
+ * @returns {Point[]}
+ */
+export function offsetRectangle(corners, distance) {
+  const away = (p, q) => {
+    const length = Math.hypot(p[0] - q[0], p[1] - q[1]) || 1
+    return [(p[0] - q[0]) / length, (p[1] - q[1]) / length]
+  }
+  return corners.map((p, i) => {
+    const a = away(p, corners[(i + 3) % 4])
+    const b = away(p, corners[(i + 1) % 4])
+    return [p[0] + (a[0] + b[0]) * distance, p[1] + (a[1] + b[1]) * distance]
+  })
+}
+
+const NULL_GUID = '00000000-0000-0000-0000-000000000000'
+
+/** The room's backdrop image GUID, or null without one. */
+export function backdropImageId(room) {
+  const guid = room?.backgroundImage
+  return guid && guid !== NULL_GUID ? guid : null
+}
+
+/**
+ * Where the backdrop image lies in the room. `backgroundScale` is micrometres per image pixel; an
+ * uncalibrated image (0) spans the outline's width, as in the legacy client.
+ *
+ * @param {object} room - floor plan document or its working copy
+ * @param {{ width: number, height: number }} image - natural size in pixels
+ * @returns {{ x: number, y: number, width: number, height: number, mmPerPixel: number } | null}
+ */
+export function backdropRect(room, image) {
+  if (!(image?.width > 0) || !(image?.height > 0)) return null
+  let mmPerPixel = room.backgroundScale > 0 ? room.backgroundScale / 1000 : 0
+  if (!mmPerPixel) {
+    const b = room.outline?.length ? bounds(room.outline.map((p) => [p.x, p.y])) : null
+    const span = b ? b.maxX - b.minX : 0
+    mmPerPixel = span > 0 ? span / image.width : 10
+  }
+  return {
+    x: room.backgroundX ?? 0,
+    y: room.backgroundY ?? 0,
+    width: image.width * mmPerPixel,
+    height: image.height * mmPerPixel,
+    mmPerPixel,
+  }
+}
+
+export const BACKDROP_CORNERS = ['nw', 'ne', 'se', 'sw']
+
+/** A backdrop no narrower than this, in millimetres, when scaled by a corner. */
+const MIN_BACKDROP_WIDTH = 100
+
+/** Backdrop fields for a scale in millimetres per pixel: whole micrometres, at least one. */
+const scaleField = (mmPerPixel) => Math.max(1, Math.round(mmPerPixel * 1000))
+
+/**
+ * Backdrop fields with a corner of its rectangle at `point`, the opposite corner kept and the
+ * proportions too: the server stores one scale for both axes.
+ *
+ * @param {{ x: number, y: number, width: number, height: number, mmPerPixel: number }} rect -
+ *   from `backdropRect`
+ * @param {'nw'|'ne'|'se'|'sw'} corner
+ * @param {{ x: number, y: number }} point
+ */
+export function scaleBackdrop(rect, corner, point) {
+  const pixelsWide = rect.width / rect.mmPerPixel
+  const pixelsHigh = rect.height / rect.mmPerPixel
+  const east = corner.includes('e')
+  const south = corner.includes('s')
+  const anchorX = east ? rect.x : rect.x + rect.width
+  const anchorY = south ? rect.y : rect.y + rect.height
+  const byWidth = (east ? point.x - anchorX : anchorX - point.x) / pixelsWide
+  const byHeight = (south ? point.y - anchorY : anchorY - point.y) / pixelsHigh
+  const umPerPixel = scaleField(Math.max(byWidth, byHeight, MIN_BACKDROP_WIDTH / pixelsWide))
+  const width = (pixelsWide * umPerPixel) / 1000
+  const height = (pixelsHigh * umPerPixel) / 1000
+  return {
+    backgroundScale: umPerPixel,
+    backgroundX: Math.round(east ? anchorX : anchorX - width),
+    backgroundY: Math.round(south ? anchorY : anchorY - height),
+  }
+}
+
+/**
+ * Backdrop fields that put two points of the image `distance` millimetres apart, as legacy's
+ * calibration does; the image scales around the first point, which stays where it is.
+ *
+ * @param {{ x: number, y: number, mmPerPixel: number }} rect - from `backdropRect`
+ * @param {{ x: number, y: number }} a
+ * @param {{ x: number, y: number }} b
+ * @param {number} distance - millimetres
+ * @returns {object|null} null for two equal points or no distance
+ */
+export function calibrateBackdrop(rect, a, b, distance) {
+  const measured = Math.hypot(b.x - a.x, b.y - a.y)
+  if (!(measured > 0) || !(distance > 0)) return null
+  const umPerPixel = scaleField((distance * rect.mmPerPixel) / measured)
+  const ratio = umPerPixel / 1000 / rect.mmPerPixel
+  return {
+    backgroundScale: umPerPixel,
+    backgroundX: Math.round(a.x - (a.x - rect.x) * ratio),
+    backgroundY: Math.round(a.y - (a.y - rect.y) * ratio),
+  }
+}
+
+/**
+ * Backdrop fields that lay the image over the room: its width on the outline's, its top left
+ * corner on the outline's.
+ *
+ * @param {Array<{x: number, y: number}>} outline
+ * @param {{ width: number }} image - natural size in pixels
+ * @returns {object|null}
+ */
+export function fitBackdrop(outline, image) {
+  if (!outline?.length || !(image?.width > 0)) return null
+  const b = bounds(outline.map((p) => [p.x, p.y]))
+  if (!(b.maxX > b.minX)) return null
+  return {
+    backgroundScale: scaleField((b.maxX - b.minX) / image.width),
+    backgroundX: Math.round(b.minX),
+    backgroundY: Math.round(b.minY),
+  }
+}
+
+/**
  * Compass side the front faces, for right-angle rotations only.
  *
  * @returns {'S'|'W'|'N'|'E'|null}

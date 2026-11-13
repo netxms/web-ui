@@ -3,11 +3,14 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Button from 'primevue/button'
 import { useNavTarget } from '@/composables/useNavTarget'
 import {
+  BACKDROP_CORNERS,
   bounds,
   deriveAisles,
   footprint,
+  frontArrow,
   frontBand,
   nearestEdge,
+  offsetRectangle,
   RESIZE_HANDLES,
   resizeCursor,
   resizeHandlePoint,
@@ -21,10 +24,8 @@ import { RACK_DRAG_TYPE } from '@/utils/floorPlanEdits'
 const props = defineProps({
   /** GET /v1/objects/{id}/floor-plan document */
   plan: { type: Object, required: true },
-  /** `(rack) => string|null`; null draws the "no value" hatch */
-  fillFor: { type: Function, required: true },
-  /** `(rack) => string|null`: an outline in that color, for racks that need attention */
-  ringFor: { type: Function, default: () => null },
+  /** `(rack) => RackLook` (floorPlanOverlays) */
+  lookFor: { type: Function, required: true },
   /** Item keys (`r:<id>`, `e:<id>`, `v:<index>`) drawn as selected */
   selectedKeys: { type: Set, default: () => new Set() },
   /** Item keys drawn with a warning outline */
@@ -37,6 +38,11 @@ const props = defineProps({
   targetFor: { type: Function, default: () => null },
   /** `{ url, x, y, width, height }` in room millimetres */
   backdrop: { type: Object, default: null },
+  backdropOpacity: { type: Number, default: 0.85 },
+  /** In edit mode: the backdrop takes the pointer, the rest of the plan fades */
+  backdropMode: { type: Boolean, default: false },
+  /** `{ points: [{x, y}] }` while two points of the backdrop are being picked */
+  calibration: { type: Object, default: null },
   /** Screen pixels at the top that a fit leaves clear, for controls laid over the plan */
   fitInsetTop: { type: Number, default: 0 },
 })
@@ -53,6 +59,8 @@ const emit = defineEmits([
   'rack-over',
   'rack-drop',
   'context-menu',
+  'calibrate-point',
+  'calibrate-miss',
 ])
 
 const { navBindings } = useNavTarget()
@@ -73,12 +81,15 @@ const racks = computed(() =>
     .map((rack) => {
       const corners = footprint(rack.x, rack.y, rack.width, rack.depth, rack.rotation)
       const b = bounds(corners)
+      const bandSize = Math.min(rack.depth * 0.15, 200)
       return {
         rack,
         key: `r:${rack.id}`,
         corners,
         rotation: rack.rotation,
-        band: frontBand(corners, rack.depth, Math.min(rack.depth * 0.15, 200)),
+        band: frontBand(corners, rack.depth, bandSize),
+        bandSize,
+        arrow: frontArrow(corners, rack.depth, bandSize),
         cx: (b.minX + b.maxX) / 2,
         cy: (b.minY + b.maxY) / 2,
         boxWidth: b.maxX - b.minX,
@@ -171,6 +182,41 @@ const showGridLabels = computed(
   () => grid.value.columns.length > 0 && props.plan.gridTileSize * pxPerMm.value >= 14,
 )
 const showGrid = computed(() => props.plan.gridTileSize * pxPerMm.value >= 3)
+// A dot on every tile corner around the room, once tiles are far enough apart for dots to read.
+const showDots = computed(() => props.plan.gridTileSize * pxPerMm.value >= 10)
+
+const looks = computed(() => racks.value.map((entry) => props.lookFor(entry.rack)))
+const nodataFill = computed(() => `url(#fp-nodata-${props.plan.roomId})`)
+
+// Below this the arrow in the front band is a speck.
+const MIN_ARROW_BAND_PX = 4
+
+/** The rack under the pointer or the keyboard focus. */
+const hoveredKey = ref(null)
+
+// Screen pixels: the floor-colored gap between a rack and its ring, and the ring widths.
+const RING_GAP = 2
+const RING_WIDTH = { selected: 2, hover: 1.5 }
+
+/** Rings around selected and hovered racks, drawn above every rack so no neighbour covers them. */
+const rackRings = computed(() =>
+  racks.value.flatMap((entry) => {
+    const kind = props.selectedKeys.has(entry.key)
+      ? 'selected'
+      : hoveredKey.value === entry.key
+        ? 'hover'
+        : null
+    if (!kind) return []
+    return [
+      {
+        key: entry.key,
+        kind,
+        gap: offsetRectangle(entry.corners, px(RING_GAP / 2)),
+        ring: offsetRectangle(entry.corners, px(RING_GAP + RING_WIDTH[kind] / 2)),
+      },
+    ]
+  }),
+)
 
 // Average advance of a label character in em: the semibold UI font for racks, the monospace one
 // (with its letter spacing) for elements and aisles.
@@ -265,7 +311,7 @@ const resizing = ref(null)
  * screen they spread out from it, so all eight stay apart.
  */
 const resize = computed(() => {
-  if (!props.editMode || props.selectedKeys.size !== 1) return null
+  if (!props.editMode || props.backdropMode || props.selectedKeys.size !== 1) return null
   const entry = elements.value.find((e) => props.selectedKeys.has(e.key))
   if (!entry) return null
   const { element } = entry
@@ -278,6 +324,38 @@ const resize = computed(() => {
   })
   const readoutY = Math.max(...handles.map((h) => h.y)) + px(20)
   return { entry, element, handles, spread, readoutY }
+})
+
+const backdropEditing = computed(() => props.editMode && props.backdropMode)
+/** A click on the image picks a calibration point until there are two. */
+const calibrating = computed(
+  () => backdropEditing.value && !!props.calibration && props.calibration.points.length < 2,
+)
+
+function onBackdrop({ x, y }) {
+  const b = props.backdrop
+  return !!b && x >= b.x && x <= b.x + b.width && y >= b.y && y <= b.y + b.height
+}
+
+const CORNER_CURSORS = { nw: 'nwse-resize', se: 'nwse-resize', ne: 'nesw-resize', sw: 'nesw-resize' }
+
+/** Frame and corner handles of the backdrop while it is being placed, not while calibrating. */
+const backdropFrame = computed(() => {
+  const b = props.backdrop
+  if (!backdropEditing.value || !b || props.calibration) return null
+  const at = {
+    nw: [b.x, b.y],
+    ne: [b.x + b.width, b.y],
+    se: [b.x + b.width, b.y + b.height],
+    sw: [b.x, b.y + b.height],
+  }
+  const handles = BACKDROP_CORNERS.map((id) => ({
+    id,
+    x: at[id][0],
+    y: at[id][1],
+    cursor: CORNER_CURSORS[id],
+  }))
+  return { ...b, handles }
 })
 
 function zoomBy(factor, center) {
@@ -332,13 +410,20 @@ function onPointerDown(event) {
   // A rack keeps its own click (select, ctrl/middle click); capturing here would take it.
   if (event.button !== 0 || event.target.closest?.('.fp-rack, .fp-insert')) return
   pressedFloor = true
-  if (props.editMode && event.shiftKey) {
+  if (props.editMode && event.shiftKey && !props.backdropMode) {
     const start = toRoom(event)
     if (!start) return
     gesture = { type: 'marquee', start }
     marquee.value = { ...start, x2: start.x, y2: start.y }
   } else {
-    gesture = { type: 'pan', x: event.clientX, y: event.clientY, view: { ...view.value } }
+    // While calibrating, a press that does not move picks a point; one that moves still pans.
+    gesture = {
+      type: 'pan',
+      x: event.clientX,
+      y: event.clientY,
+      view: { ...view.value },
+      calibrate: calibrating.value,
+    }
   }
   capture(event)
 }
@@ -354,6 +439,11 @@ function onItemPointerDown(key, event) {
   gesture = { type: 'item', x: event.clientX, y: event.clientY, moved: false }
   emit('drag-start', { key, point, toggle: event.shiftKey })
   capture(event)
+}
+
+function onBackdropPointerDown(handle, cursor, event) {
+  onItemPointerDown(`b:${handle}`, event)
+  if (gesture?.type === 'item') resizing.value = { cursor, moved: false, spread: null }
 }
 
 /** The SVG holds the pointer during the drag, so it shows the handle's cursor meanwhile. */
@@ -410,8 +500,13 @@ function onPointerUp(event) {
         maxY: Math.max(m.y, m.y2),
       })
     }
-  } else if (done.type === 'pan' && !done.moved && props.editMode && event.type === 'pointerup') {
-    emit('clear-selection')
+  } else if (done.type === 'pan' && !done.moved && event.type === 'pointerup') {
+    if (done.calibrate) {
+      const point = toRoom(event)
+      if (point) emit(onBackdrop(point) ? 'calibrate-point' : 'calibrate-miss', point)
+    } else {
+      emit('clear-selection')
+    }
   }
 }
 
@@ -419,7 +514,7 @@ function onPointerUp(event) {
 const WALL_REACH = 8
 
 function onDoubleClick(event) {
-  if (!props.editMode || !pressedFloor) return
+  if (!props.editMode || props.backdropMode || !pressedFloor) return
   const point = toRoom(event)
   if (!point) return
   const edge = nearestEdge(
@@ -439,6 +534,7 @@ function onDoubleClick(event) {
 function onContextMenu(event) {
   event.preventDefault()
   hideTip()
+  if (backdropEditing.value) return
   const fromKeyboard = !event.clientX && !event.clientY
   const point = (!fromKeyboard && toRoom(event)) || viewCentre()
   const marked = event.target.closest?.('[data-key]')?.dataset.key ?? null
@@ -505,6 +601,16 @@ function hideTip() {
   hover.value = null
 }
 
+function onRackEnter(entry, event) {
+  hoveredKey.value = entry.key
+  showTip(entry, event)
+}
+
+function onRackLeave(entry) {
+  if (hoveredKey.value === entry.key) hoveredKey.value = null
+  hideTip()
+}
+
 /** In edit mode a plain click is the drag gesture's; Enter still activates. */
 function rackBindings(entry) {
   return navBindings(props.targetFor(entry.rack), (event) => {
@@ -541,7 +647,11 @@ defineExpose({ fit, viewCentre })
   <div
     ref="containerRef"
     class="fp-canvas"
-    :class="{ 'fp-canvas--edit': editMode }"
+    :class="{
+      'fp-canvas--edit': editMode,
+      'fp-canvas--backdrop': backdropEditing,
+      'fp-canvas--calibrate': calibrating,
+    }"
     @dragover="onDragOver"
     @dragleave="onDragLeave"
     @drop="onDrop"
@@ -578,8 +688,51 @@ defineExpose({ fit, viewCentre })
           <rect :width="px(6)" :height="px(6)" class="fp-nodata-bg" />
           <line x1="0" y1="0" x2="0" :y2="px(6)" class="fp-nodata-line" :stroke-width="px(1.5)" />
         </pattern>
+        <pattern
+          v-if="showDots"
+          :id="`fp-dots-${plan.roomId}`"
+          patternUnits="userSpaceOnUse"
+          :x="(plan.gridOriginX ?? 0) - plan.gridTileSize / 2"
+          :y="(plan.gridOriginY ?? 0) - plan.gridTileSize / 2"
+          :width="plan.gridTileSize"
+          :height="plan.gridTileSize"
+        >
+          <circle
+            :cx="plan.gridTileSize / 2"
+            :cy="plan.gridTileSize / 2"
+            :r="px(1.1)"
+            class="fp-dot"
+          />
+        </pattern>
+        <pattern
+          :id="`fp-outside-${plan.roomId}`"
+          patternUnits="userSpaceOnUse"
+          :width="px(7)"
+          :height="px(7)"
+          patternTransform="rotate(45)"
+        >
+          <line x1="0" y1="0" x2="0" :y2="px(7)" class="fp-outside-line" :stroke-width="px(1)" />
+        </pattern>
       </defs>
 
+      <rect
+        v-if="showDots"
+        :x="view.x"
+        :y="view.y"
+        :width="view.w"
+        :height="view.h"
+        :fill="`url(#fp-dots-${plan.roomId})`"
+      />
+      <!-- The part of the room's bounding box outside its walls. -->
+      <rect
+        v-if="roomBounds"
+        :x="roomBounds.minX"
+        :y="roomBounds.minY"
+        :width="roomBounds.maxX - roomBounds.minX"
+        :height="roomBounds.maxY - roomBounds.minY"
+        :fill="`url(#fp-outside-${plan.roomId})`"
+      />
+      <polygon :points="svgPoints(outline)" class="fp-floor" />
       <image
         v-if="backdrop"
         :href="backdrop.url"
@@ -589,8 +742,8 @@ defineExpose({ fit, viewCentre })
         :height="backdrop.height"
         preserveAspectRatio="none"
         class="fp-backdrop"
+        :style="{ opacity: backdropOpacity }"
       />
-      <polygon v-else :points="svgPoints(outline)" class="fp-floor" />
 
       <g v-if="showGrid && roomBounds" :clip-path="`url(#fp-clip-${plan.roomId})`" class="fp-grid">
         <line
@@ -640,7 +793,7 @@ defineExpose({ fit, viewCentre })
       </g>
 
       <!-- Under the racks and elements; only the cursor: a double-click near a wall adds a corner. -->
-      <g v-if="editMode" class="fp-wall-hits">
+      <g v-if="editMode && !backdropMode" class="fp-wall-hits">
         <line
           v-for="(wall, i) in walls"
           :key="`w${i}`"
@@ -744,24 +897,35 @@ defineExpose({ fit, viewCentre })
           :aria-label="entry.rack.name"
           v-bind="rackBindings(entry)"
           @pointerdown="onItemPointerDown(entry.key, $event)"
-          @pointerenter="showTip(entry, $event)"
+          @pointerenter="onRackEnter(entry, $event)"
           @pointermove="showTip(entry, $event)"
-          @pointerleave="hideTip"
-          @focus="showTip(entry, $event)"
-          @blur="hideTip"
+          @pointerleave="onRackLeave(entry)"
+          @focus="onRackEnter(entry, $event)"
+          @blur="onRackLeave(entry)"
         >
           <polygon
             :points="svgPoints(entry.corners)"
             class="fp-rack-body"
-            :fill="fillFor(entry.rack) ?? `url(#fp-nodata-${plan.roomId})`"
+            :fill="looks[i].fill ?? nodataFill"
+            :style="looks[i].edge ? { stroke: looks[i].edge } : undefined"
             vector-effect="non-scaling-stroke"
           />
-          <polygon :points="svgPoints(entry.band)" class="fp-rack-front" />
           <polygon
-            v-if="ringFor(entry.rack)"
-            :points="svgPoints(entry.corners)"
+            :points="svgPoints(entry.band)"
+            class="fp-rack-front"
+            :style="looks[i].band ? { fill: looks[i].band } : undefined"
+          />
+          <polygon
+            v-if="entry.arrow && entry.bandSize * pxPerMm >= MIN_ARROW_BAND_PX"
+            :points="svgPoints(entry.arrow)"
+            class="fp-rack-arrow"
+            :fill="looks[i].fill ?? nodataFill"
+          />
+          <polygon
+            v-if="looks[i].ring"
+            :points="svgPoints(offsetRectangle(entry.corners, -px(1.75)))"
             class="fp-rack-ring"
-            :stroke="ringFor(entry.rack)"
+            :stroke="looks[i].ring"
             vector-effect="non-scaling-stroke"
           />
           <polygon
@@ -778,10 +942,27 @@ defineExpose({ fit, viewCentre })
             dominant-baseline="central"
             class="fp-rack-label"
             :font-size="px(rackLabels[i].size)"
-            :stroke-width="px(Math.min(3, rackLabels[i].size / 4))"
+            :style="looks[i].label ? { fill: looks[i].label } : undefined"
           >
             {{ rackLabels[i].text }}
           </text>
+        </g>
+      </g>
+
+      <g class="fp-rack-rings">
+        <g v-for="mark in rackRings" :key="mark.key" :class="`fp-rack-ring--${mark.kind}`">
+          <polygon
+            :points="svgPoints(mark.gap)"
+            class="fp-ring-gap"
+            :stroke-width="RING_GAP"
+            vector-effect="non-scaling-stroke"
+          />
+          <polygon
+            :points="svgPoints(mark.ring)"
+            class="fp-ring"
+            :stroke-width="RING_WIDTH[mark.kind]"
+            vector-effect="non-scaling-stroke"
+          />
         </g>
       </g>
 
@@ -792,7 +973,7 @@ defineExpose({ fit, viewCentre })
         vector-effect="non-scaling-stroke"
       />
 
-      <g v-if="editMode" class="fp-outline-edit">
+      <g v-if="editMode && !backdropMode" class="fp-outline-edit">
         <rect
           v-for="vertex in vertices"
           :key="vertex.key"
@@ -859,6 +1040,57 @@ defineExpose({ fit, viewCentre })
         </text>
       </g>
 
+      <!-- For the pointer only: arrows and the side panel's fields are the keyboard path. -->
+      <g v-if="backdropFrame" class="fp-backdrop-edit" aria-hidden="true">
+        <rect
+          :x="backdropFrame.x"
+          :y="backdropFrame.y"
+          :width="backdropFrame.width"
+          :height="backdropFrame.height"
+          class="fp-backdrop-frame"
+          vector-effect="non-scaling-stroke"
+        />
+        <rect
+          :x="backdropFrame.x"
+          :y="backdropFrame.y"
+          :width="backdropFrame.width"
+          :height="backdropFrame.height"
+          class="fp-backdrop-surface"
+          @pointerdown="onBackdropPointerDown('move', 'move', $event)"
+        />
+        <rect
+          v-for="handle in backdropFrame.handles"
+          :key="handle.id"
+          :x="handle.x - px(HANDLE_PX / 2)"
+          :y="handle.y - px(HANDLE_PX / 2)"
+          :width="px(HANDLE_PX)"
+          :height="px(HANDLE_PX)"
+          class="fp-handle"
+          :style="{ cursor: handle.cursor }"
+          :data-handle="handle.id"
+          vector-effect="non-scaling-stroke"
+          @pointerdown="onBackdropPointerDown(handle.id, handle.cursor, $event)"
+        />
+      </g>
+
+      <g v-if="backdropEditing && calibration" class="fp-calibration">
+        <line
+          v-if="calibration.points.length === 2"
+          :x1="calibration.points[0].x"
+          :y1="calibration.points[0].y"
+          :x2="calibration.points[1].x"
+          :y2="calibration.points[1].y"
+          vector-effect="non-scaling-stroke"
+        />
+        <g v-for="(point, i) in calibration.points" :key="i">
+          <circle :cx="point.x" :cy="point.y" :r="px(6)" vector-effect="non-scaling-stroke" />
+          <path
+            :d="`M ${point.x - px(10)} ${point.y} H ${point.x + px(10)} M ${point.x} ${point.y - px(10)} V ${point.y + px(10)}`"
+            vector-effect="non-scaling-stroke"
+          />
+        </g>
+      </g>
+
       <rect
         v-if="marquee"
         :x="Math.min(marquee.x, marquee.x2)"
@@ -917,14 +1149,17 @@ defineExpose({ fit, viewCentre })
 <style scoped>
 .fp-canvas {
   --fp-ink: var(--p-text-color);
+  /* The floor, and what marks on it are mixed against. */
   --fp-bg: var(--p-content-background);
+  /* The table the room lies on. */
+  --fp-ground: var(--p-surface-ground);
   --fp-warn: var(--p-amber-500);
   position: relative;
   flex: 1;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  background: var(--fp-bg);
+  background: var(--fp-ground);
 }
 
 html.app-dark .fp-canvas {
@@ -945,12 +1180,17 @@ html.app-dark .fp-canvas {
 }
 
 .fp-floor {
-  fill: color-mix(in srgb, var(--fp-ink) 4%, var(--fp-bg));
+  fill: var(--fp-bg);
 }
 
-.fp-backdrop {
-  opacity: 0.85;
+.fp-dot {
+  fill: color-mix(in srgb, var(--fp-ink) 20%, var(--fp-ground));
 }
+
+.fp-outside-line {
+  stroke: color-mix(in srgb, var(--fp-ink) 16%, var(--fp-ground));
+}
+
 
 .fp-grid line {
   stroke: color-mix(in srgb, var(--fp-ink) 11%, var(--fp-bg));
@@ -1042,7 +1282,7 @@ html.app-dark .fp-canvas {
 }
 
 .fp-el.selected .fp-mark {
-  stroke: var(--p-primary-color);
+  stroke: var(--fp-ink);
   stroke-width: 3;
   stroke-dasharray: none;
   opacity: 1;
@@ -1070,40 +1310,56 @@ html.app-dark .fp-canvas {
   stroke-width: 1;
 }
 
+.fp-rack-front,
+.fp-rack-arrow {
+  pointer-events: none;
+}
+
 .fp-rack-front {
   fill: color-mix(in srgb, var(--fp-ink) 80%, var(--fp-bg));
-  pointer-events: none;
 }
 
 .fp-rack-ring {
   fill: none;
-  stroke-width: 3;
+  stroke-width: 2.5;
   pointer-events: none;
 }
 
-.fp-rack-label,
+.fp-rack-label {
+  fill: var(--fp-ink);
+  font-weight: 600;
+  pointer-events: none;
+}
+
 .fp-readout {
   fill: var(--fp-ink);
   stroke: var(--fp-bg);
   paint-order: stroke;
   stroke-linejoin: round;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
   pointer-events: none;
 }
 
-.fp-readout {
-  font-variant-numeric: tabular-nums;
+.fp-rack-rings {
+  pointer-events: none;
 }
 
-.fp-rack:hover .fp-rack-body,
-.fp-rack:focus-visible .fp-rack-body {
+.fp-rack-rings polygon {
+  fill: none;
+  stroke-linejoin: round;
+}
+
+.fp-ring-gap {
+  stroke: var(--fp-bg);
+}
+
+.fp-rack-ring--selected .fp-ring {
   stroke: var(--fp-ink);
-  stroke-width: 2.5;
 }
 
-.fp-rack.selected .fp-rack-body {
-  stroke: var(--p-primary-color);
-  stroke-width: 3;
+.fp-rack-ring--hover .fp-ring {
+  stroke: color-mix(in srgb, var(--fp-ink) 60%, var(--fp-bg));
 }
 
 .fp-ghost {
@@ -1169,6 +1425,54 @@ html.app-dark .fp-canvas {
   stroke-width: 1;
   stroke-dasharray: 4 3;
   pointer-events: none;
+}
+
+.fp-canvas--backdrop :is(.fp-aisles, .fp-elements, .fp-racks, .fp-rack-rings) {
+  opacity: 0.35;
+}
+
+.fp-canvas--backdrop .fp-racks,
+.fp-canvas--backdrop .fp-elements,
+.fp-canvas--edit.fp-canvas--backdrop .fp-el polygon:not(.fp-mark) {
+  pointer-events: none;
+}
+
+.fp-canvas--calibrate .fp-svg,
+.fp-canvas--calibrate .fp-svg:active {
+  cursor: crosshair;
+}
+
+.fp-backdrop-frame {
+  fill: none;
+  stroke: var(--p-primary-color);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+  pointer-events: none;
+}
+
+.fp-backdrop-surface {
+  fill: transparent;
+  cursor: move;
+}
+
+.fp-calibration {
+  pointer-events: none;
+}
+
+.fp-calibration circle {
+  fill: none;
+  stroke: var(--p-primary-color);
+  stroke-width: 2;
+}
+
+.fp-calibration line,
+.fp-calibration path {
+  stroke: var(--p-primary-color);
+  stroke-width: 1.5;
+}
+
+.fp-calibration line {
+  stroke-dasharray: 5 3;
 }
 
 .fp-controls {

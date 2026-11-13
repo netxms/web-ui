@@ -207,8 +207,8 @@ describe('FloorPlanView overlays from layouts, alarms and feeds', () => {
 
   it('shows A03 leaning on feed A and A07 on feed B', async () => {
     const { wrapper, fill } = await fillsWith('feeds')
-    expect(fill('A03')).toBe('#b94f87')
-    expect(fill('A07')).toBe('#008b96')
+    expect(fill('A03')).toBe('#c07c9f')
+    expect(fill('A07')).toBe('#4f9ea6')
     expect(fill('A01')).toBe('#e6e5e1')
     expect(wrapper.text()).toContain('A 65 % and above')
   })

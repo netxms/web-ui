@@ -1,16 +1,22 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
 import {
+  backdropImageId,
+  backdropRect,
   bounds,
+  calibrateBackdrop,
   columnLetters,
   containsPoint,
   deriveAisles,
   facing,
+  fitBackdrop,
   footprint,
+  frontArrow,
   frontBand,
   itemsCentre,
   nearestEdge,
   normalizeRotation,
+  offsetRectangle,
   placementWarnings,
   polygonArea,
   polygonWithin,
@@ -23,6 +29,7 @@ import {
   resizeRectangle,
   rotateItems,
   rowPlacements,
+  scaleBackdrop,
   selfIntersects,
   shortenMiddle,
   snap,
@@ -71,6 +78,114 @@ describe('footprint', () => {
 
   it('names the side a right-angle rotation faces', () => {
     expect([0, 90, 180, 270, -90, 45].map(facing)).toEqual(['S', 'W', 'N', 'E', 'E', null])
+  })
+
+  it('points the front arrow out of the front edge, inside the band', () => {
+    // Facing south: the tip is nearest the front edge at Y 1200, the base towards the back.
+    const [tip, left, right] = frontArrow(footprint(0, 0, 600, 1200, 0), 1200, 180)
+    expect(tip).toEqual([300, 1173])
+    expect(left).toEqual([435, 1047])
+    expect(right).toEqual([165, 1047])
+    // Facing north (rotation 180): the tip has the smallest Y.
+    const north = frontArrow(footprint(600, 1200, 600, 1200, 180), 1200, 180)
+    expect(north[0][1]).toBeLessThan(north[1][1])
+    expect(bounds(north).minY).toBeGreaterThanOrEqual(0)
+    expect(bounds(north).maxY).toBeLessThanOrEqual(180)
+  })
+
+  it('keeps a narrow rack arrow within a quarter of its width each side', () => {
+    const [, left, right] = frontArrow(footprint(0, 0, 200, 1200, 0), 1200, 180)
+    expect(left[0] - right[0]).toBe(100)
+  })
+
+  it('moves a footprint out of itself or into it, at any rotation', () => {
+    expect(offsetRectangle(footprint(0, 0, 600, 1200, 0), 10)).toEqual([
+      [-10, -10],
+      [610, -10],
+      [610, 1210],
+      [-10, 1210],
+    ])
+    expect(offsetRectangle(footprint(0, 0, 600, 1200, 0), -10)).toEqual([
+      [10, 10],
+      [590, 10],
+      [590, 1190],
+      [10, 1190],
+    ])
+    const turned = bounds(offsetRectangle(footprint(1000, 0, 600, 1200, 90), 10))
+    expect(turned).toEqual({ minX: -210, minY: -10, maxX: 1010, maxY: 610 })
+  })
+})
+
+describe('backdrop', () => {
+  const image = { width: 1000, height: 500 }
+
+  it('scales a calibrated image by its micrometres per pixel, at its offset', () => {
+    const rect = backdropRect(
+      { ...room, backgroundScale: 20000, backgroundX: -300, backgroundY: 150 },
+      image,
+    )
+    expect(rect).toEqual({ x: -300, y: 150, width: 20000, height: 10000, mmPerPixel: 20 })
+  })
+
+  it("stretches an uncalibrated image to the outline's width, as legacy", () => {
+    const rect = backdropRect({ ...room, backgroundScale: 0 }, image)
+    expect(rect).toEqual({ x: 0, y: 0, width: 3000, height: 1500, mmPerPixel: 3 })
+  })
+
+  it('takes 10 mm a pixel without an outline, and nothing before the image size is known', () => {
+    expect(backdropRect({ outline: [] }, image).mmPerPixel).toBe(10)
+    expect(backdropRect(room, { width: 0, height: 0 })).toBeNull()
+    expect(backdropRect(room, null)).toBeNull()
+  })
+
+  // 1000 x 500 px at 3 mm a pixel, at 600, 300.
+  const rect = { x: 600, y: 300, width: 3000, height: 1500, mmPerPixel: 3 }
+
+  it('scales by a corner, the opposite corner and the proportions kept', () => {
+    // South-east corner out to x 4600: 4000 mm wide, 4 mm a pixel.
+    expect(scaleBackdrop(rect, 'se', { x: 4600, y: 1000 })).toEqual({
+      backgroundScale: 4000,
+      backgroundX: 600,
+      backgroundY: 300,
+    })
+    // North-west corner in to 2100, 1050: the south-east corner stays at 3600, 1800.
+    expect(scaleBackdrop(rect, 'nw', { x: 2100, y: 1050 })).toEqual({
+      backgroundScale: 1500,
+      backgroundX: 2100,
+      backgroundY: 1050,
+    })
+  })
+
+  it('follows whichever side the pointer pulls further, and stops at 100 mm wide', () => {
+    expect(scaleBackdrop(rect, 'se', { x: 1000, y: 2300 }).backgroundScale).toBe(4000)
+    expect(scaleBackdrop(rect, 'ne', { x: 0, y: 9000 })).toEqual({
+      backgroundScale: 100,
+      backgroundX: 600,
+      backgroundY: 1750,
+    })
+  })
+
+  it('calibrates from two points, the first one staying put', () => {
+    // 300 mm apart on the plan is 100 px; really 600 mm, so 6 mm a pixel.
+    const fields = calibrateBackdrop(rect, { x: 900, y: 300 }, { x: 1200, y: 300 }, 600)
+    expect(fields).toEqual({ backgroundScale: 6000, backgroundX: 300, backgroundY: 300 })
+    expect(calibrateBackdrop(rect, { x: 1, y: 1 }, { x: 1, y: 1 }, 600)).toBeNull()
+    expect(calibrateBackdrop(rect, { x: 1, y: 1 }, { x: 2, y: 1 }, 0)).toBeNull()
+  })
+
+  it("fits the image to the outline's width at its top left corner", () => {
+    expect(fitBackdrop(room.outline, image)).toEqual({
+      backgroundScale: 3000,
+      backgroundX: 0,
+      backgroundY: 0,
+    })
+    expect(fitBackdrop([], image)).toBeNull()
+  })
+
+  it('reads the all-zero GUID as no image', () => {
+    expect(backdropImageId({ backgroundImage: '00000000-0000-0000-0000-000000000000' })).toBeNull()
+    expect(backdropImageId({ backgroundImage: null })).toBeNull()
+    expect(backdropImageId({ backgroundImage: 'abc' })).toBe('abc')
   })
 })
 

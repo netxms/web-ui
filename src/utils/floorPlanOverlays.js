@@ -14,8 +14,8 @@ const FREE_LIGHT = ['#aca1df', '#917fd7', '#795ec9', '#6040b0', '#482a89']
 const FREE_DARK = ['#5b4994', '#755fbb', '#8f7ad9', '#a99be7', '#c4bdee']
 const ALARMS_LIGHT = ['#e6e5e1', '#aeaca6', '#817f79', '#4f4d48']
 const ALARMS_DARK = ['#3a3f45', '#686d75', '#989da5', '#cdd1d6']
-const FEEDS_LIGHT = ['#008b96', '#74b8c0', '#e6e5e1', '#d793b3', '#b94f87']
-const FEEDS_DARK = ['#289da9', '#086a73', '#3a3f45', '#8a4066', '#c96598']
+const FEEDS_LIGHT = ['#4f9ea6', '#a3cdd1', '#e6e5e1', '#e3b9cc', '#c07c9f']
+const FEEDS_DARK = ['#3f8f96', '#2b5b60', '#3a3f45', '#6b3d55', '#a8678a']
 
 /**
  * Legend of the feed balance overlay for a room whose racks run on these two feeds.
@@ -45,6 +45,7 @@ export function feedBalanceLabels(first, second) {
  * @property {string[]} labels
  * @property {string[]} light
  * @property {string[]} dark
+ * @property {boolean} [shaded] - front band and edge in a darker shade of the fill, not grey
  */
 
 /** @type {ScaleOverlay[]} */
@@ -111,6 +112,7 @@ export const SCALE_OVERLAYS = [
     labels: feedBalanceLabels('A', 'B'),
     light: FEEDS_LIGHT,
     dark: FEEDS_DARK,
+    shaded: true,
   },
 ]
 
@@ -132,4 +134,92 @@ export function binIndex(value, edges) {
 export function scaleColor(overlay, value, dark) {
   if (value == null || !Number.isFinite(value)) return null
   return (dark ? overlay.dark : overlay.light)[binIndex(value, overlay.edges)]
+}
+
+const LABEL_DARK = '#1c1917'
+const LABEL_LIGHT = '#ffffff'
+
+function channels(hex) {
+  const n = parseInt(hex.slice(1), 16)
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+}
+
+/** `weight` (0-1) of color `a` mixed into color `b`, both `#rrggbb`. */
+export function mixColors(a, b, weight) {
+  const other = channels(b)
+  return `#${channels(a)
+    .map((v, i) => Math.round(v * weight + other[i] * (1 - weight)))
+    .map((v) => v.toString(16).padStart(2, '0'))
+    .join('')}`
+}
+
+function luminance(hex) {
+  const [r, g, b] = channels(hex).map((v) => {
+    const s = v / 255
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+/** Dark or white text, whichever contrasts more with `fill`. */
+export function labelColorOn(fill) {
+  const l = luminance(fill)
+  const againstWhite = 1.05 / (l + 0.05)
+  const againstDark = (l + 0.05) / (luminance(LABEL_DARK) + 0.05)
+  return againstDark >= againstWhite ? LABEL_DARK : LABEL_LIGHT
+}
+
+const shade = (fill, weight) => mixColors(fill, '#000000', weight)
+
+/**
+ * @typedef {object} RackLook
+ * @property {string|null} fill - null draws the "no value" hatch
+ * @property {string|null} edge - body outline; null keeps the neutral one
+ * @property {string|null} band - front band; null keeps the neutral one
+ * @property {string|null} label - null keeps the text color
+ * @property {string|null} ring - outline inside the edge, for a rack that needs attention
+ */
+
+/**
+ * Status overlay: a normal rack in the soft status green, a rack in any other state in its
+ * solid color, so the ones in trouble stand out.
+ *
+ * @param {number} status
+ * @param {object} palette - `STATUS_PALETTE.light` or `.dark` from objectUtils
+ * @returns {RackLook}
+ */
+export function statusLook(status, palette) {
+  const s = palette.fill[status] ? status : 5
+  if (s === 0) {
+    const green = palette.fill[0]
+    return { fill: palette.bg[0], edge: green, band: green, label: palette.text[0], ring: null }
+  }
+  const fill = palette.fill[s]
+  return {
+    fill,
+    edge: shade(fill, 0.7),
+    band: shade(fill, 0.62),
+    label: palette.onFill[s],
+    ring: null,
+  }
+}
+
+/**
+ * @param {ScaleOverlay} overlay
+ * @param {number|null|undefined} value
+ * @param {boolean} dark
+ * @param {string|null} ring - status color of a rack that needs attention
+ * @returns {RackLook}
+ */
+export function scaleLook(overlay, value, dark, ring = null) {
+  const fill = scaleColor(overlay, value, dark)
+  if (!fill) return { fill: null, edge: null, band: null, label: null, ring }
+  const shaded = overlay.shaded
+  return {
+    fill,
+    edge: shaded ? shade(fill, 0.72) : null,
+    band: shaded ? shade(fill, 0.62) : null,
+    label: labelColorOn(fill),
+    ring,
+  }
 }

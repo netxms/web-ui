@@ -14,11 +14,13 @@ import {
   resizeRectangle,
   rotateItems,
   rowPlacements,
+  scaleBackdrop,
   selfIntersects,
   snap,
   snapOffset,
 } from '@/utils/floorPlan'
 import {
+  BACKDROP_FIELDS,
   ELEMENT_TYPES,
   editModelFromPlan,
   elementTypeLabel,
@@ -39,8 +41,9 @@ const byName = (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true
  * Edit session over a floor plan: a working copy of the outline, the room's grid, passive
  * elements and rack placements, selection, undo history and the save. Item keys are `r:<rack id>`,
  * `e:<element id>` (negative for elements not saved yet) and `v:<outline index>`; a drag also
- * starts on `s:<element id>:<handle>`, a resize handle of an element. The working copy is
- * replaced, never mutated, so a history entry is the model itself.
+ * starts on `s:<element id>:<handle>`, a resize handle of an element. In backdrop mode only the
+ * backdrop image moves (`beginBackdropDrag`). The working copy is replaced, never mutated, so a
+ * history entry is the model itself.
  *
  * @param {import('vue').MaybeRefOrGetter<object|null>} planSource - GET .../floor-plan document
  */
@@ -52,6 +55,8 @@ export function useFloorPlanEditor(planSource) {
   const working = shallowRef(null)
   const selection = ref([])
   const snapEnabled = ref(true)
+  /** The backdrop image is what the pointer and arrows move; the rest of the plan stays put. */
+  const backdropMode = ref(false)
   const saving = ref(false)
   /** `{ label, reason }` per call of the last save that failed */
   const failures = ref([])
@@ -96,11 +101,13 @@ export function useFloorPlanEditor(planSource) {
     selection.value = []
     failures.value = []
     clearHistory()
+    backdropMode.value = false
     editMode.value = true
   }
 
   function exit() {
     editMode.value = false
+    backdropMode.value = false
     baseline.value = null
     working.value = null
     selection.value = []
@@ -272,6 +279,36 @@ export function useFloorPlanEditor(planSource) {
 
   let drag = null
 
+  function setBackdropMode(on) {
+    if (!editMode.value) return
+    backdropMode.value = !!on
+    if (on) selection.value = []
+  }
+
+  /**
+   * Pointer down on the backdrop: `move`, or a corner (`nw`, `ne`, `se`, `sw`) that scales it.
+   *
+   * @param {string} handle
+   * @param {{ x: number, y: number }} point
+   * @param {object} rect - the backdrop as drawn, from `backdropRect`
+   */
+  function beginBackdropDrag(handle, point, rect) {
+    if (!editMode.value || saving.value || !rect) return
+    drag = { backdrop: handle, start: point, rect, model: working.value, moved: false }
+  }
+
+  function backdropDragFields(dx, dy) {
+    const { backdrop: handle, rect } = drag
+    if (handle === 'move') {
+      return { backgroundX: Math.round(rect.x + dx), backgroundY: Math.round(rect.y + dy) }
+    }
+    const corner = {
+      x: handle.includes('e') ? rect.x + rect.width : rect.x,
+      y: handle.includes('s') ? rect.y + rect.height : rect.y,
+    }
+    return scaleBackdrop(rect, handle, { x: corner.x + dx, y: corner.y + dy })
+  }
+
   /** Pointer down on a resize handle: the element stays selected, its size follows `dragTo`. */
   function beginResize(elementKey, handle, point) {
     const element = itemOf(elementKey)
@@ -307,6 +344,14 @@ export function useFloorPlanEditor(planSource) {
     const dx = Math.round(point.x - drag.start.x)
     const dy = Math.round(point.y - drag.start.y)
     if (!drag.moved && dx === 0 && dy === 0) return
+    if (drag.backdrop) {
+      const room = drag.model.room
+      const fields = backdropDragFields(dx, dy)
+      if (!drag.moved && Object.entries(fields).every(([k, v]) => room[k] === v)) return
+      startDragStep()
+      working.value = { ...drag.model, room: { ...room, ...fields } }
+      return
+    }
     let updates
     if (drag.handle) {
       // The handle moves as the pointer does, wherever on it the press landed.
@@ -330,19 +375,23 @@ export function useFloorPlanEditor(planSource) {
       }))
     }
     const next = withItems(drag.model, updates)
-    if (!drag.moved) {
-      undoStack.value = [...undoStack.value, drag.model].slice(-UNDO_LIMIT)
-      redoStack.value = []
-      stepTag = null
-      drag.moved = true
-    }
+    startDragStep()
     working.value = next
+  }
+
+  /** The first move of a drag opens its one undo step. */
+  function startDragStep() {
+    if (drag.moved) return
+    undoStack.value = [...undoStack.value, drag.model].slice(-UNDO_LIMIT)
+    redoStack.value = []
+    stepTag = null
+    drag.moved = true
   }
 
   function endDrag() {
     const d = drag
     drag = null
-    if (!d || d.moved || d.handle) return
+    if (!d || d.moved || d.handle || d.backdrop) return
     if (!d.toggle) selection.value = [d.key]
     else if (d.wasSelected) selection.value = selection.value.filter((k) => k !== d.key)
   }
@@ -360,6 +409,18 @@ export function useFloorPlanEditor(planSource) {
       y: item.y + dirY * step,
     }))
     commit(withItems(working.value, updates), `nudge:${selection.value.join(',')}`)
+  }
+
+  /** The backdrop image moved by a tile (100 mm without a grid), or 10 mm when `fine`. */
+  function nudgeBackdrop(dirX, dirY, fine = false) {
+    if (!editMode.value || saving.value || !working.value.room.backgroundImage) return
+    const step = fine ? FINE_STEP : (grid.value?.tile ?? FREE_STEP)
+    const room = working.value.room
+    const fields = {
+      backgroundX: room.backgroundX + dirX * step,
+      backgroundY: room.backgroundY + dirY * step,
+    }
+    commit({ ...working.value, room: { ...room, ...fields } }, 'nudge:backdrop')
   }
 
   /** Placed items turned by `degrees`: one around its own centre, several around theirs. */
@@ -609,6 +670,7 @@ export function useFloorPlanEditor(planSource) {
         const parts = [
           op.payload.outline && 'outline',
           ('gridTileSize' in op.payload || 'gridLabels' in op.payload) && 'floor grid',
+          BACKDROP_FIELDS.some((field) => field in op.payload) && 'backdrop',
         ]
         return `Room ${parts.filter(Boolean).join(' and ')}`
       }
@@ -706,6 +768,7 @@ export function useFloorPlanEditor(planSource) {
     selectedItems,
     movableSelection,
     snapEnabled,
+    backdropMode,
     grid,
     saving,
     failures,
@@ -724,10 +787,13 @@ export function useFloorPlanEditor(planSource) {
     select,
     selectInBox,
     beginDrag,
+    beginBackdropDrag,
+    setBackdropMode,
     dragTo,
     endDrag,
     dragging,
     nudge,
+    nudgeBackdrop,
     rotateSelection,
     removeSelection,
     addElement,

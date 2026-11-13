@@ -37,6 +37,13 @@ vi.mock('@/queries/useObjectQueries', async (importOriginal) => ({
   useObject: () => ({ data: roomObject, isSuccess: ref(true), isError: ref(false) }),
 }))
 
+// A picked backdrop image has no bytes here; the plan still records it.
+vi.mock('@/api/imageLibraryApi', async (importOriginal) => ({
+  ...(await importOriginal()),
+  getImageDataUrl: () => Promise.resolve(null),
+  getImage: (id) => Promise.resolve({ id, name: 'Drawing', dataUrl: null }),
+}))
+
 const confirmRequire = vi.fn()
 vi.mock('primevue/useconfirm', () => ({ useConfirm: () => ({ require: confirmRequire }) }))
 
@@ -49,6 +56,8 @@ window.matchMedia ??= () => ({
 const { getDemoFacilityTrees } = await import('@/api/dataCenterApi')
 const FloorPlanView = (await import('../subviews/FloorPlanView.vue')).default
 const FloorPlanCanvas = (await import('@/components/data-center/FloorPlanCanvas.vue')).default
+const FloorPlanBackdropPanel = (await import('@/components/data-center/FloorPlanBackdropPanel.vue'))
+  .default
 
 const nodes = indexNodes(getDemoFacilityTrees().map(adaptBaseObject))
 const byName = (name) => [...nodes.values()].find((node) => node.name === name)
@@ -136,6 +145,14 @@ describe('floor plan editor', MOUNT_TIMEOUT, () => {
     await mountRoom('Hall A')
     expect(wrapper.find('.mode-switch').exists()).toBe(false)
     expect(wrapper.find('.fp-rack').exists()).toBe(true)
+  })
+
+  it('drops the selected rack on a click on the floor when viewing', async () => {
+    await mountRoom('Hall A')
+    await emitCanvas('select', rackIn(null, A01))
+    expect([...canvas().props('selectedKeys')]).toEqual([`r:${A01}`])
+    await emitCanvas('clear-selection')
+    expect(canvas().props('selectedKeys').size).toBe(0)
   })
 
   it('nudges by a tile, rotates, adds an element and saves only what changed', async () => {
@@ -322,6 +339,66 @@ describe('floor plan editor', MOUNT_TIMEOUT, () => {
     expect(wrapper.find('.fp-edit-bar').exists()).toBe(false)
     expect(rackIn(null, A01).rotation).toBe(180)
     expect(saveOp).not.toHaveBeenCalled()
+  })
+})
+
+describe('floor plan backdrop', MOUNT_TIMEOUT, () => {
+  const DRAWING = 'b1d0e7f2-0000-4000-8000-000000000001'
+
+  it('moves only the image in backdrop mode, leaves it on Escape and saves it with the room', async () => {
+    await mountRoom('Hall A')
+    await enterEdit()
+    await emitCanvas('activate', `r:${A01}`)
+    const rackX = rackIn(null, A01).x
+    await button('Backdrop').trigger('click')
+    expect(canvas().props('backdropMode')).toBe(true)
+    const panel = wrapper.findComponent(FloorPlanBackdropPanel)
+    expect(panel.exists()).toBe(true)
+
+    panel.vm.$emit('change-image', DRAWING)
+    await flushPromises()
+    const placed = canvas().props('plan')
+    expect(placed).toMatchObject({ backgroundImage: DRAWING, backgroundScale: 0 })
+
+    await key('ArrowRight')
+    expect(rackIn(null, A01).x).toBe(rackX)
+    expect(canvas().props('plan').backgroundX).toBe(placed.backgroundX + 600)
+
+    await key('Escape')
+    expect(canvas().props('backdropMode')).toBe(false)
+    expect(wrapper.findComponent(FloorPlanBackdropPanel).exists()).toBe(false)
+
+    await button('Save').trigger('click')
+    await flushPromises()
+    expect(calls()).toEqual([
+      {
+        roomId: HALL_A,
+        kind: 'room',
+        payload: expect.objectContaining({
+          backgroundImage: DRAWING,
+          backgroundX: placed.backgroundX + 600,
+        }),
+      },
+    ])
+  })
+
+  it('drops a calibration on Escape before leaving the mode', async () => {
+    await mountRoom('Hall A')
+    await enterEdit()
+    await button('Backdrop').trigger('click')
+    wrapper.findComponent(FloorPlanBackdropPanel).vm.$emit('calibrate')
+    await flushPromises()
+    expect(canvas().props('calibration')).toEqual({ points: [] })
+    await emitCanvas('calibrate-miss', { x: -5000, y: 0 })
+    expect(canvas().props('calibration')).toEqual({ points: [], missed: true })
+    await emitCanvas('calibrate-point', { x: 0, y: 0 })
+    expect(canvas().props('calibration')).toEqual({ points: [{ x: 0, y: 0 }], missed: false })
+
+    await key('Escape')
+    expect(canvas().props('calibration')).toBeNull()
+    expect(canvas().props('backdropMode')).toBe(true)
+    await key('Escape')
+    expect(canvas().props('backdropMode')).toBe(false)
   })
 })
 
