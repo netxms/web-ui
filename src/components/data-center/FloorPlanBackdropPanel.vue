@@ -83,24 +83,19 @@ const measured = computed(() => {
   return a && b ? Math.round(Math.hypot(b.x - a.x, b.y - a.y)) : null
 })
 
-// Starts at the length as drawn, so Apply without typing leaves the image as it is.
+// Starts empty: a length filled in for you reads as already answered.
 watch(
   () => points.value.length,
   (count) => {
     if (count !== 2) return
-    distance.value = measured.value
-    nextTick(() => {
-      const input = distanceRef.value?.querySelector('input')
-      input?.focus()
-      input?.select()
-    })
+    distance.value = null
+    nextTick(() => distanceRef.value?.querySelector('input')?.focus())
   },
 )
 
 function applyCalibration() {
   nextTick(() => {
-    if (distance.value === measured.value) emit('calibrate-cancel')
-    else if (distance.value > 0) emit('calibrate-apply', distance.value)
+    if (distance.value > 0) emit('calibrate-apply', distance.value)
   })
 }
 
@@ -221,14 +216,17 @@ function onDistanceEnter(event) {
                 label="Real length (mm)"
                 :hint="`Measures ${measured} mm at the current scale`"
               >
+                <!-- InputNumber writes its model on blur or Enter; @input lets Apply follow each key. -->
                 <InputNumber
                   v-model="distance"
                   :input-id="id"
                   :use-grouping="false"
                   :min="1"
                   :aria-describedby="describedBy"
+                  placeholder="Enter the real length"
                   size="small"
                   fluid
+                  @input="(event) => (distance = event.value)"
                   @keydown.enter="onDistanceEnter"
                 />
               </FormField>
@@ -240,6 +238,7 @@ function onDistanceEnter(event) {
               label="Apply"
               icon="pi pi-check"
               size="small"
+              :disabled="!(distance > 0)"
               @click="applyCalibration"
             />
             <Button

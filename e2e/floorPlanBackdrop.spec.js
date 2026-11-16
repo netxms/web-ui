@@ -81,8 +81,11 @@ test('an uncalibrated backdrop spans the room, and moves, scales and calibrates 
   await page.mouse.click(a.x + 1200 * pxPerMm, a.y)
   const distance = field(page, 'Real length (mm)')
   await expect(distance).toBeFocused()
-  await expect(distance).toHaveValue(/^(119\d|120\d)$/)
-  await distance.fill('2400')
+  await expect(distance).toHaveValue('')
+  await expect(page.getByText(/Measures 1(19\d|20\d) mm at the current scale/)).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Apply', exact: true })).toBeDisabled()
+  // Keystrokes, not fill(): InputNumber reports a value as it is typed only from key events.
+  await distance.pressSequentially('2400')
   await page.getByRole('button', { name: 'Apply', exact: true }).click()
   await expect.poll(scale(page)).toBeCloseTo(5, 1)
 

@@ -43,7 +43,7 @@ describe('FloorPlanBackdropPanel calibration', () => {
     expect(wrapper.find('.p-message').text()).toContain('off the image')
   })
 
-  it('starts the real length at the measured one, so Apply alone leaves the image as it is', async () => {
+  it('starts the real length empty, and Apply waits for one as it is typed', async () => {
     const wrapper = mountPanel({ points: [] })
     await wrapper.setProps({
       calibration: {
@@ -54,18 +54,18 @@ describe('FloorPlanBackdropPanel calibration', () => {
       },
     })
     const distance = wrapper.findAllComponents(InputNumber).at(-1)
-    expect(distance.props('modelValue')).toBe(5000)
+    expect(distance.props('modelValue')).toBeNull()
+    expect(distance.props('placeholder')).toBe('Enter the real length')
     expect(wrapper.text()).toContain('Real length (mm)')
     expect(wrapper.text()).toContain('Measures 5000 mm at the current scale')
+    expect(button(wrapper, 'Apply').attributes('disabled')).toBeDefined()
 
-    await button(wrapper, 'Apply').trigger('click')
+    distance.vm.$emit('input', { value: 2400 })
     await wrapper.vm.$nextTick()
-    expect(wrapper.emitted('calibrate-cancel')).toHaveLength(1)
-    expect(wrapper.emitted('calibrate-apply')).toBeUndefined()
-
-    distance.vm.$emit('update:modelValue', 2400)
+    expect(button(wrapper, 'Apply').attributes('disabled')).toBeUndefined()
     await button(wrapper, 'Apply').trigger('click')
     await wrapper.vm.$nextTick()
     expect(wrapper.emitted('calibrate-apply')).toEqual([[2400]])
+    expect(wrapper.emitted('calibrate-cancel')).toBeUndefined()
   })
 })
