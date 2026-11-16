@@ -48,6 +48,7 @@ const COPY_FIELDS = ['ip', 'mac', 'vendor', 'interfaceLabel', 'nodeName']
 <template>
   <NodeTableView
     storage-key="arp-cache"
+    :export-name="`arp-cache-${object.name}`"
     :columns="COLUMNS"
     :rows="rows"
     :loading="isLoading"

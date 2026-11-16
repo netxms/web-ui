@@ -158,6 +158,18 @@
                 "isMaintenanceApplicable": false
               }
             ]
+          },
+          {
+            "id": 395,
+            "guid": "4b7e2c1a-9d3f-4e8b-a6c5-0f1d2e3a4b95",
+            "class": "Node",
+            "name": "dhcp-01.office.example.com",
+            "alias": "dhcp-01",
+            "category": 0,
+            "timestamp": "2026-11-16T09:00:00Z",
+            "status": 0,
+            "isInMaintenanceMode": false,
+            "isMaintenanceApplicable": true
           }
         ]
       }

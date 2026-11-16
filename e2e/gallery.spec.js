@@ -53,8 +53,12 @@ const SCREENS = [
   ['chassis', objectView('chassis', 'chassis')],
   ['access-point-radios', objectView('accessPoint', 'radios')],
   ['access-point-stations', objectView('accessPoint', 'wirelessStations')],
+  ['dhcp-server', objectView('dhcpServer', 'dhcp')],
   ...registryIds('src/config/objectViews.js')
-    .filter((view) => !['statusMap', 'rack', 'chassis', 'radios', 'wirelessStations'].includes(view))
+    .filter(
+      (view) =>
+        !['statusMap', 'rack', 'chassis', 'radios', 'wirelessStations', 'dhcp'].includes(view),
+    )
     .map((view) => [`node-${view}`, objectView('node', view)]),
   ...registryIds('src/views/configuration/configSections.js').map((section) => [
     `config-${section}`,

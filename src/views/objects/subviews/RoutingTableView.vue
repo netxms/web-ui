@@ -65,6 +65,7 @@ const COPY_FIELDS = [
 <template>
   <NodeTableView
     storage-key="routing-table"
+    :export-name="`routing-table-${object.name}`"
     :columns="COLUMNS"
     :rows="rows"
     :loading="isLoading"

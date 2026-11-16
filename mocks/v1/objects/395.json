@@ -1,0 +1,135 @@
+{
+  "id": 395,
+  "guid": "4b7e2c1a-9d3f-4e8b-a6c5-0f1d2e3a4b95",
+  "class": "Node",
+  "webServiceProxy": 0,
+  "ssh": {
+    "port": 22,
+    "proxy": 0,
+    "keyId": 0,
+    "login": "netxms",
+    "password": ""
+  },
+  "vnc": {
+    "port": 5900,
+    "proxy": 0,
+    "password": ""
+  },
+  "modbus": {
+    "tcpPort": 502,
+    "unitId": 255,
+    "proxy": 0
+  },
+  "etherNetIp": {
+    "address": null,
+    "port": 44818,
+    "proxy": 0
+  },
+  "netconf": {
+    "port": 830,
+    "proxy": 0
+  },
+  "icmp": {
+    "proxy": 0,
+    "statCollectionMode": "default",
+    "targets": []
+  },
+  "mqttProxy": 0,
+  "externalGateway": false,
+  "timestamp": "2026-11-16T09:00:00Z",
+  "name": "dhcp-01.office.example.com",
+  "alias": "dhcp-01",
+  "commentsSource": "Office DHCP server (Kea 2.6) for the LAN, guest Wi-Fi, VoIP and lab subnets.",
+  "comments": "Office DHCP server (Kea 2.6) for the LAN, guest Wi-Fi, VoIP and lab subnets.",
+  "status": 0,
+  "statusText": "Normal",
+  "statusCalcAlg": 0,
+  "statusPropAlg": 0,
+  "fixedStatus": -1,
+  "statusShift": 0,
+  "statusTranslation": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "statusSingleThreshold": 75,
+  "statusThresholds": [
+    80,
+    60,
+    40,
+    20
+  ],
+  "maintenanceEventId": 0,
+  "maintenanceInitiator": 0,
+  "mapImage": "00000000-0000-0000-0000-000000000000",
+  "geoLocation": {
+    "type": 0,
+    "latitude": 0,
+    "longitude": 0,
+    "accuracy": 0,
+    "timestamp": 0
+  },
+  "postalAddress": {
+    "country": null,
+    "region": null,
+    "city": null,
+    "district": null,
+    "streetAddress": null,
+    "postcode": null
+  },
+  "drilldownObjectId": 0,
+  "dashboards": [],
+  "urls": [],
+  "accessList": [
+    {
+      "userId": 1073741825,
+      "access": 18874367
+    }
+  ],
+  "inheritAccessRights": true,
+  "trustedObjects": [],
+  "creationTime": "2026-03-02T08:00:00Z",
+  "categoryId": 0,
+  "aiHint": "",
+  "customAttributes": [
+    {
+      "name": "role",
+      "value": "dhcp",
+      "flags": 0,
+      "sourceObject": 0
+    }
+  ],
+  "ipAddress": "10.20.0.5",
+  "primaryName": "dhcp-01.office.example.com",
+  "capabilityFlags": 1099511627776,
+  "stateFlags": 0,
+  "type": "server",
+  "zoneUIN": 0,
+  "agentPort": 4700,
+  "agentCompressionMode": 0,
+  "snmpVersion": 1,
+  "snmpPort": 161,
+  "useIfXTable": 1,
+  "agentVersion": "4.5.0",
+  "platformName": "linux-x64",
+  "sysDescription": "Linux dhcp-01 6.8.0-45-generic #45-Ubuntu SMP x86_64",
+  "sysName": "dhcp-01",
+  "sysLocation": "Office / Network",
+  "sysContact": "netops@example.com",
+  "lldpNodeId": "",
+  "driverName": "generic",
+  "bootTime": "2026-10-28T05:12:00Z",
+  "pollerNodeId": 0,
+  "agentProxyNodeId": 0,
+  "snmpProxyNodeId": 0,
+  "lastEvents": [],
+  "children": [],
+  "parents": [
+    329
+  ],
+  "responsibleUsers": [],
+  "capabilities": {
+    "isDhcpServer": true
+  }
+}

@@ -164,6 +164,13 @@ export const OBJECT_VIEW_GROUPS = {
           ),
       },
       {
+        id: 'dhcp',
+        label: 'DHCP',
+        icon: 'pi pi-server',
+        objectClasses: ['Node'],
+        objectFilter: (obj) => !!obj?.capabilities?.isDhcpServer,
+      },
+      {
         id: 'routingTable',
         label: 'Routing Table',
         icon: 'pi pi-directions',

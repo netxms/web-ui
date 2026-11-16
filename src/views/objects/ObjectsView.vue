@@ -1362,6 +1362,7 @@ const viewComponents = {
   ports: () => import('./subviews/PortsView.vue'),
   topology: () => import('./subviews/TopologyView.vue'),
   arpCache: () => import('./subviews/ArpCacheView.vue'),
+  dhcp: () => import('./subviews/DhcpView.vue'),
   routingTable: () => import('./subviews/RoutingTableView.vue'),
   fdb: () => import('./subviews/SwitchForwardingDatabaseView.vue'),
   policies: () => import('./subviews/AgentPoliciesView.vue'),

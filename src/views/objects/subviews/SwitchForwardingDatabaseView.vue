@@ -53,6 +53,7 @@ const COPY_FIELDS = ['mac', 'vendor', 'port', 'interfaceLabel', 'vlan', 'nodeNam
 <template>
   <NodeTableView
     storage-key="switch-fdb"
+    :export-name="`switch-fdb-${object.name}`"
     :columns="COLUMNS"
     :rows="rows"
     :loading="isLoading"

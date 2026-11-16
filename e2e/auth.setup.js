@@ -3,7 +3,14 @@ import { test as setup, expect } from './fixtures.js'
 import { AUTH_FILE, TARGETS_FILE, credentials, useMocks } from './support.js'
 
 /** The ids of the fixtures in `mocks/`. */
-const MOCK_TARGETS = { node: 502, container: 500, map: 600, dashboard: 700, dciNode: 502 }
+const MOCK_TARGETS = {
+  node: 502,
+  container: 500,
+  map: 600,
+  dashboard: 700,
+  dciNode: 502,
+  dhcpServer: 395,
+}
 
 /**
  * Picks objects to look at from what the server has: the node with the most interfaces, and the
@@ -15,6 +22,14 @@ async function findTargets(page) {
     const getJson = async (path) => {
       const response = await fetch(`/api${path}`, { headers })
       return response.ok ? response.json() : null
+    }
+    const queryObjects = async (query) => {
+      const response = await fetch('/api/v1/objects/query', {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      })
+      return response.ok ? response.json() : []
     }
     const flatten = (entries) =>
       (entries ?? []).flatMap((entry) => [entry, ...flatten(entry.children)])
@@ -52,6 +67,7 @@ async function findTargets(page) {
       map: await first(6, 'NetworkMap'),
       dashboard: await first(7, 'Dashboard'),
       businessService: await first(9, 'BusinessService'),
+      dhcpServer: (await queryObjects('type == NODE and $node.isDHCPServer'))[0]?.object?.id,
     }
   })
 }

@@ -328,7 +328,7 @@ const {
   isSelectable: (row) => props.rowSelectable?.(row) ?? true,
 })
 
-defineExpose({ expandRow, expandRows, collapseAll, revealRow, allSelected })
+defineExpose({ expandRow, expandRows, collapseAll, revealRow, allSelected, sortedRows })
 
 function canSelectRow(row) {
   return props.rowSelectable?.(row) ?? true

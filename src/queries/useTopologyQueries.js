@@ -44,19 +44,27 @@ export const nodeTableKeys = {
   fdb: (objectId) => ['node-table', 'fdb', toValue(objectId)],
   wirelessRadios: (objectId) => ['node-table', 'wireless-radios', toValue(objectId)],
   wirelessStations: (objectId) => ['node-table', 'wireless-stations', toValue(objectId)],
+  dhcpScopes: (objectId) => ['node-table', 'dhcp-scopes', toValue(objectId)],
+  dhcpLeases: (objectId, scopeId) => [
+    'node-table',
+    'dhcp-leases',
+    toValue(objectId),
+    toValue(scopeId) ?? null,
+  ],
 }
 
 /**
  * Not polled and no refetch on focus: these tables can fall through to a live agent, SNMP or
  * controller read. The user refreshes through the view toolbar.
  */
-function nodeTableQuery(queryKey, queryFn, objectId) {
+function nodeTableQuery(queryKey, queryFn, objectId, options = {}) {
   return useQuery({
     queryKey,
     queryFn,
     enabled: computed(() => !!toValue(objectId)),
     ...MODERATE_TIER,
     refetchOnWindowFocus: false,
+    ...options,
   })
 }
 
@@ -112,5 +120,34 @@ export function useWirelessStations(objectId) {
     computed(() => nodeTableKeys.wirelessStations(objectId)),
     () => topologyApi.getWirelessStations(toValue(objectId)),
     objectId,
+  )
+}
+
+// Every DHCP failure is the agent's answer (unsupported, unreadable, unreachable), and each retry
+// would be another live agent read.
+const DHCP_QUERY_OPTIONS = { retry: false }
+
+/**
+ * @param {import('vue').MaybeRefOrGetter<number|null>} objectId
+ */
+export function useDhcpScopes(objectId) {
+  return nodeTableQuery(
+    computed(() => nodeTableKeys.dhcpScopes(objectId)),
+    () => topologyApi.getDhcpScopes(toValue(objectId)),
+    objectId,
+    DHCP_QUERY_OPTIONS,
+  )
+}
+
+/**
+ * @param {import('vue').MaybeRefOrGetter<number|null>} objectId
+ * @param {import('vue').MaybeRefOrGetter<string|null>} scopeId - all scopes when null
+ */
+export function useDhcpLeases(objectId, scopeId) {
+  return nodeTableQuery(
+    computed(() => nodeTableKeys.dhcpLeases(objectId, scopeId)),
+    () => topologyApi.getDhcpLeases(toValue(objectId), toValue(scopeId)),
+    objectId,
+    DHCP_QUERY_OPTIONS,
   )
 }

@@ -85,6 +85,7 @@ const COPY_FIELDS = [
 <template>
   <NodeTableView
     storage-key="wireless-stations"
+    :export-name="`wireless-stations-${object.name}`"
     :columns="COLUMNS"
     :rows="rows"
     :loading="isLoading"

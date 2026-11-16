@@ -60,6 +60,7 @@ const copyFields = computed(() => [...filterFields.value, ...POWER_FIELDS])
 <template>
   <NodeTableView
     storage-key="wireless-radios"
+    :export-name="`wireless-radios-${object.name}`"
     :columns="columns"
     :rows="rows"
     :loading="isLoading"

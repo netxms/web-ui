@@ -83,3 +83,25 @@ export function getWirelessRadios(objectId) {
 export function getWirelessStations(objectId) {
   return get(`/v1/objects/${objectId}/wireless/stations`)
 }
+
+/**
+ * Scopes of a DHCP server node, read live from its agent. The server answers 501/502/503 for
+ * agent-side failures, hence `suppressUnavailable`.
+ *
+ * @param {number} objectId
+ */
+export function getDhcpScopes(objectId) {
+  return get(`/v1/objects/${objectId}/dhcp/scopes`, { suppressUnavailable: true })
+}
+
+/**
+ * Leases and host reservations of a DHCP server node, read live from its agent. 501 when the
+ * server reports scopes but no leases (Kea without the lease_cmds hook); 404 for an unknown scope.
+ *
+ * @param {number} objectId
+ * @param {string|null} [scopeId] - all scopes when omitted
+ */
+export function getDhcpLeases(objectId, scopeId = null) {
+  const qs = scopeId ? `?scope=${encodeURIComponent(scopeId)}` : ''
+  return get(`/v1/objects/${objectId}/dhcp/leases${qs}`, { suppressUnavailable: true })
+}

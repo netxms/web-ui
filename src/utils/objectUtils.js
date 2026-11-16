@@ -489,6 +489,7 @@ const CAPABILITY_LABELS = {
   isPrinter: 'Printer',
   isOspf: 'OSPF',
   isSsh: 'SSH',
+  isNetconf: 'NETCONF',
   isCdp: 'CDP',
   isNdp: 'NDP',
   isLldp: 'LLDP',
@@ -516,6 +517,8 @@ const CAPABILITY_LABELS = {
   isLocalVnc: 'Local VNC',
   registeredForBackup: 'Backup',
   hasServiceManager: 'Service Manager',
+  isDhcpServer: 'DHCP Server',
+  snmpGetBulk: 'SNMP GETBULK',
 }
 
 export function getCapabilityEntries(capabilities) {

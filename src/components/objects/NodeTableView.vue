@@ -4,9 +4,11 @@
  * radio interfaces, wireless stations).
  *
  * @slot cell {col: TableColumn, row: Object} - Forwarded to AppTable.
+ * @slot toolbar - After the filter box.
  * @event retry - Retry button in the error state, or the toolbar refresh, was clicked.
  */
 import { computed, ref } from 'vue'
+import Button from 'primevue/button'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import InputText from 'primevue/inputtext'
@@ -15,6 +17,7 @@ import AppTable from '@/components/common/AppTable.vue'
 import EntityContextMenu from '@/components/common/EntityContextMenu.vue'
 import RefetchIndicator from '@/components/common/RefetchIndicator.vue'
 import { useWorkingState } from '@/composables/useWorkingState'
+import { downloadCsv, safeFilename, toCsv } from '@/utils/csvExport'
 
 const props = defineProps({
   /** @type {import('@/components/common/AppTable.vue').TableColumn[]} */
@@ -41,6 +44,8 @@ const props = defineProps({
   // A switch FDB runs to thousands of entries and AppTable renders every row it is given.
   pageSize: { type: Number, default: 50 },
   storageKey: { type: String, default: null },
+  /** CSV file name without extension; `storageKey` when omitted. */
+  exportName: { type: String, default: null },
 })
 
 const emit = defineEmits(['retry'])
@@ -89,8 +94,21 @@ const contextMenuItems = computed(() => {
       command: () => copy(row?.[props.macField], 'MAC address'),
     })
   }
+  items.push(
+    { separator: true },
+    { label: 'Export to CSV', icon: 'pi pi-file-export', command: exportCsv },
+  )
   return items
 })
+
+const tableRef = ref(null)
+
+/** Every filtered row in the table's sort order, as legacy's ExportToCsvAction. */
+function exportCsv() {
+  const rows = tableRef.value?.sortedRows ?? filteredRows.value
+  const columns = props.columns.filter((col) => col.field)
+  downloadCsv(safeFilename(props.exportName ?? props.storageKey), toCsv(rows, columns))
+}
 
 function onRowContextMenu({ event, row }) {
   contextMenu.value.show(event, row)
@@ -102,7 +120,7 @@ function onRowContextMenu({ event, row }) {
     <RefetchIndicator :is-fetching="isFetching && !loading" />
 
     <div class="node-table-toolbar">
-      <IconField>
+      <IconField class="node-table-filter">
         <InputIcon class="pi pi-search" />
         <InputText
           v-model="filterText"
@@ -111,12 +129,26 @@ function onRowContextMenu({ event, row }) {
           class="filter-input"
         />
       </IconField>
+      <slot name="toolbar" />
       <span v-if="!loading" class="node-table-count">
         {{ $plural(filteredRows.length, noun, nounPlural) }}
       </span>
+      <Button
+        v-tooltip.bottom="'Export to CSV'"
+        icon="pi pi-file-export"
+        size="small"
+        severity="secondary"
+        text
+        rounded
+        aria-label="Export to CSV"
+        class="node-table-export"
+        :disabled="loading || !filteredRows.length"
+        @click="exportCsv"
+      />
     </div>
 
     <AppTable
+      ref="tableRef"
       :columns="columns"
       :rows="filteredRows"
       :loading="loading"
@@ -163,13 +195,23 @@ function onRowContextMenu({ event, row }) {
   background: var(--p-surface-card);
 }
 
+.node-table-filter {
+  flex: 0 1 300px;
+  min-width: 8rem;
+}
+
 .filter-input {
-  width: 300px;
+  width: 100%;
 }
 
 .node-table-count {
   font-size: 0.8125rem;
   color: var(--p-text-muted-color);
+  white-space: nowrap;
+}
+
+.node-table-export {
+  margin-left: auto;
 }
 
 .node-table {
