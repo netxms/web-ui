@@ -88,7 +88,7 @@ const {
 } = useTaggedDcis(
   dciObjectIds,
   [...new Set([...POWER_LOAD_TAGS, ...FACILITY_TAGS, ...ZONE_TAGS, ...RACK_TAGS])],
-  [CARBON, RENEWABLES],
+  { namePrefixes: [CARBON, RENEWABLES], rootId: facilityId },
 )
 const { valueOf, isFetching, isLoading: loadingValues } = useDataCenterValues(items)
 /** Until the DCI lists and their values are in, an absent metric is not yet a missing one. */

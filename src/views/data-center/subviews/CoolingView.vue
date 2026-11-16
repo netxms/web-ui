@@ -50,7 +50,9 @@ const {
   items,
   isLoading: loadingDcis,
   isError: dciError,
-} = useTaggedDcis(dciObjectIds, [...COOLING_TAGS, ...OUTDOOR_TAGS])
+} = useTaggedDcis(dciObjectIds, [...COOLING_TAGS, ...OUTDOOR_TAGS], {
+  rootId: () => facilityId.value ?? props.object.id,
+})
 const { valueOf, isLoading: loadingValues } = useDataCenterValues(items)
 /** Until the DCI lists and their values are in, an absent metric is not yet a missing one. */
 const loading = computed(() => loadingConfigs.value || loadingDcis.value || loadingValues.value)

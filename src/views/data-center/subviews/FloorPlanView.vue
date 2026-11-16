@@ -128,7 +128,7 @@ const {
   items: taggedItems,
   isLoading: loadingDcis,
   isError: dciError,
-} = useTaggedDcis(rackIds, Object.values(METRIC_TAGS))
+} = useTaggedDcis(rackIds, Object.values(METRIC_TAGS), { rootId: roomId })
 const { valueOf, isFetching: fetchingValues } = useDataCenterValues(taggedItems)
 const { layouts, isLoading: loadingLayouts } = useRackLayouts(rackIds)
 const { data: alarms } = useDataCenterAlarms(roomId)

@@ -13,6 +13,7 @@ import {
   getDataCenterValues,
   getDemoFacilityTrees,
   saveFloorPlanOperation,
+  findTaggedDcis,
 } from '../dataCenterApi'
 import { DEMO_DATA_CENTER } from '../demoSeeds'
 
@@ -243,5 +244,23 @@ describe('dataCenterApi demo content', () => {
       y: 1200,
       rotation: 90,
     })
+  })
+
+  it('finds tagged DCIs under a root in one read, qualified tags included', async () => {
+    post.mockResolvedValueOnce({ metrics: [{ ownerId: 44, dciId: 7, tag: 'power.feed/A' }] })
+    const now = Math.floor(Date.now() / 1000)
+
+    const metrics = await findTaggedDcis(43, ['power.feed', 'env.temp.inlet'])
+
+    expect(metrics).toEqual([{ ownerId: 44, dciId: 7, tag: 'power.feed/A' }])
+    const [path, body, options] = post.mock.calls[0]
+    expect(path).toBe('/v1/data-export/metrics')
+    expect(body).toMatchObject({
+      rootObjectId: 43,
+      tagPatterns: ['power.feed', 'power.feed/*', 'env.temp.inlet', 'env.temp.inlet/*'],
+    })
+    expect(body.timeFrom).toBeLessThan(body.timeTo)
+    expect(body.timeTo).toBeGreaterThanOrEqual(now)
+    expect(options).toMatchObject({ suppressForbidden: true })
   })
 })

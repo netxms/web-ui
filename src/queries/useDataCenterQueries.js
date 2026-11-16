@@ -12,13 +12,15 @@ import { objectKeys } from './useObjectQueries'
 import { useAlarms } from './useAlarmQueries'
 import { dciValueKey } from '@/utils/dciValues'
 import { mapConcurrent } from '@/utils/concurrencyLimit'
-import { namedItems, taggedItems } from '@/utils/dataCenter'
+import { dciStatusCode } from '@/utils/dciCodes'
+import { metricItems, namedItems, taggedItems } from '@/utils/dataCenter'
 import { MODERATE_TIER, VOLATILE_TIER } from './config'
 
 export const dataCenterKeys = {
   all: () => ['dataCenter'],
   floorPlan: (roomId) => ['dataCenter', 'floorPlan', roomId],
   dcis: (objectId) => ['dataCenter', 'dcis', objectId],
+  tagged: (rootId, bases) => ['dataCenter', 'tagged', rootId, bases],
   values: (keys) => ['dataCenter', 'values', keys],
   powerDomain: (id) => ['dataCenter', 'powerDomain', id],
   coolingZone: (id) => ['dataCenter', 'coolingZone', id],
@@ -40,18 +42,44 @@ export function useFloorPlan(roomId) {
 
 /**
  * DCIs of several objects whose system tag has one of the given bases, or whose name starts with
- * one of the given prefixes. An object whose DCI list cannot be read contributes nothing.
+ * one of the given prefixes.
+ *
+ * With `rootId` (one of the objects or an ancestor of all) the tagged DCIs come from one read
+ * under it, and names only from the root's own DCI list. Without one, for a demo root, or when
+ * that read fails, every object's DCI list is read; a list that cannot be read contributes
+ * nothing.
  *
  * @param {import('vue').MaybeRefOrGetter<number[]>} objectIds
  * @param {string[]} bases - e.g. ['env.temp.inlet', 'power.feed']
- * @param {string[]} [namePrefixes] - e.g. ['ENTSOE.CarbonIntensity(']
+ * @param {object} [options]
+ * @param {string[]} [options.namePrefixes] - e.g. ['ENTSOE.CarbonIntensity(']
+ * @param {import('vue').MaybeRefOrGetter<number|null>} [options.rootId]
  * @returns {{ items: import('vue').ComputedRef<ReturnType<typeof taggedItems>>,
  *   isLoading: import('vue').ComputedRef<boolean>, isError: import('vue').ComputedRef<boolean> }}
  */
-export function useTaggedDcis(objectIds, bases, namePrefixes = []) {
+export function useTaggedDcis(objectIds, bases, { namePrefixes = [], rootId = null } = {}) {
+  const root = computed(() => {
+    const id = toValue(rootId)
+    return id && !dataCenterApi.isDemoDataCenterId(id) ? id : null
+  })
+  const sortedBases = [...bases].sort()
+  const rootQuery = useQuery({
+    queryKey: computed(() => dataCenterKeys.tagged(root.value, sortedBases)),
+    queryFn: ({ signal }) =>
+      dataCenterApi.findTaggedDcis(root.value, sortedBases, { signal, priority: 'background' }),
+    enabled: computed(() => root.value != null),
+    ...MODERATE_TIER,
+    retry: false,
+  })
+  const perObject = computed(() => root.value == null || rootQuery.isError.value)
+  const listIds = computed(() => {
+    const ids = toValue(objectIds) ?? []
+    if (perObject.value) return ids
+    return namePrefixes.length && ids.includes(root.value) ? [root.value] : []
+  })
   const results = useQueries({
     queries: computed(() =>
-      (toValue(objectIds) ?? []).map((id) => ({
+      listIds.value.map((id) => ({
         queryKey: dataCenterKeys.dcis(id),
         queryFn: () => dataCenterApi.listObjectDcis(id),
         ...MODERATE_TIER,
@@ -60,20 +88,28 @@ export function useTaggedDcis(objectIds, bases, namePrefixes = []) {
     ),
   })
   const items = computed(() => {
-    const ids = toValue(objectIds) ?? []
-    return results.value.flatMap((result, i) =>
+    const ids = listIds.value
+    const fromLists = results.value.flatMap((result, i) =>
       Array.isArray(result.data)
         ? [
-            ...taggedItems(ids[i], result.data, bases),
+            ...(perObject.value ? taggedItems(ids[i], result.data, bases) : []),
             ...namedItems(ids[i], result.data, namePrefixes),
           ]
         : [],
     )
+    if (perObject.value) return fromLists
+    return [...metricItems(rootQuery.data.value, toValue(objectIds) ?? [], bases), ...fromLists]
   })
-  const isLoading = computed(() => results.value.some((result) => result.isLoading))
+  const isLoading = computed(
+    () =>
+      (!perObject.value && rootQuery.isLoading.value) ||
+      results.value.some((result) => result.isLoading),
+  )
   const isError = computed(() => results.value.some((result) => result.isError))
   return { items, isLoading, isError }
 }
+
+const DCI_DISABLED = dciStatusCode('disabled')
 
 /**
  * Current values of tagged DCIs, demo and real alike.
@@ -90,8 +126,12 @@ export function useDataCenterValues(items) {
         signal,
         priority: 'background',
       })
+      // `findTaggedDcis` does not leave out disabled DCIs, whose last value is stale.
       const adapted = {}
-      for (const key in raw) adapted[key] = adaptDciValue(raw[key])
+      for (const key in raw) {
+        const row = adaptDciValue(raw[key])
+        if (row.status !== DCI_DISABLED) adapted[key] = row
+      }
       return adapted
     },
     enabled: computed(() => keys.value.length > 0),

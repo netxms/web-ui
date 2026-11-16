@@ -26,6 +26,7 @@ import { useDciConfigList, useUpdateDci, useDeleteDci } from '@/queries/useDciCo
 import { useDciValueMapping } from '@/queries/useMappingTableQueries'
 import { useEntityDetail } from '@/composables/useEntityDetail'
 import { useWorkingState } from '@/composables/useWorkingState'
+import { DCF_CALCULATE_NODE_STATUS } from '@/composables/useDciFlags'
 import { useDciLiveTableStore, useDciConfigTableStore } from '@/stores/dciTableStore'
 import { userPrefs } from '@/utils/appStorage'
 import { formatDateTimeWithSeconds } from '@/utils/timeFormat'
@@ -174,6 +175,20 @@ const CONFIG_COLUMNS = [
   { id: 'status', field: 'status', label: 'Status', sortable: true, width: 100 },
   { id: 'thresholds', field: null, label: 'Thresholds', width: 160 },
   { id: 'template', field: '_templateName', label: 'Template', sortable: true, width: 200 },
+  {
+    id: 'relatedObject',
+    field: '_relatedObjectName',
+    label: 'Related Object',
+    sortable: true,
+    width: 180,
+  },
+  {
+    id: 'statusCalc',
+    field: '_statusCalc',
+    label: 'Status Calculation',
+    sortable: true,
+    width: 110,
+  },
 ]
 
 const ACTIONS_COLUMN = { id: 'actions', field: null, label: '', width: 40, reorderable: false }
@@ -231,28 +246,36 @@ const filteredValues = computed(() => {
 const liveTable = ref()
 const configTable = ref()
 
-// Instance discovery points back at the owner itself, which needs no lookup.
-const sourceObjectIds = computed(() => {
+// Instance discovery points back at the owner itself, which needs no lookup. Related objects
+// cost a read each, so they are looked up only while their column is shown.
+const showRelatedObjects = computed(() =>
+  configColumnStore.visibleColumnIds.includes('relatedObject'),
+)
+const referencedObjectIds = computed(() => {
   const ids = new Set()
   for (const dci of dciConfigList.value ?? []) {
     const source = dciSource(dci, objectId.value)
     if (source?.kind === 'object') ids.add(source.objectId)
+    if (showRelatedObjects.value && dci.relatedObject) ids.add(dci.relatedObject)
   }
   return [...ids]
 })
-const { objectsById: sourceObjectsById } = useObjectsByIds(sourceObjectIds)
+const { objectsById: referencedObjectsById } = useObjectsByIds(referencedObjectIds)
 
 // Null for a source object the user cannot read, which is then shown by id only.
 function sourceObjectOf(source) {
   if (!source) return null
   if (source.kind === 'instanceDiscovery') return props.object
-  return sourceObjectsById.value.get(source.objectId) ?? null
+  return referencedObjectsById.value.get(source.objectId) ?? null
 }
 
 const configRows = computed(() =>
   (dciConfigList.value ?? []).map((dci) => {
     const source = dciSource(dci, objectId.value)
     const sourceObject = sourceObjectOf(source)
+    const relatedObject = dci.relatedObject
+      ? (referencedObjectsById.value.get(dci.relatedObject) ?? null)
+      : null
     return {
       ...dci,
       _source: source,
@@ -262,6 +285,11 @@ const configRows = computed(() =>
         : source.kind === 'instanceDiscovery'
           ? 'Instance discovery'
           : (sourceObject?.name ?? `[${source.objectId}]`),
+      _relatedObject: relatedObject,
+      _relatedObjectName: !dci.relatedObject
+        ? ''
+        : (relatedObject?.name ?? `[${dci.relatedObject}]`),
+      _statusCalc: dci.type !== 'table' && (dci.flags & DCF_CALCULATE_NODE_STATUS) !== 0,
     }
   }),
 )
@@ -1061,6 +1089,20 @@ function sourceDciTarget(row) {
               {{ row._templateName }}
             </span>
           </span>
+          <template v-else-if="col.id === 'relatedObject'">
+            <AppLink
+              v-if="row._relatedObject"
+              :to="objectTarget(row.relatedObject)"
+              class="cell-ellipsis"
+              @click.stop
+            >
+              {{ row._relatedObjectName }}
+            </AppLink>
+            <span v-else class="cell-ellipsis text-muted">{{ row._relatedObjectName }}</span>
+          </template>
+          <template v-else-if="col.id === 'statusCalc'">{{
+            row._statusCalc ? 'Yes' : 'No'
+          }}</template>
           <template v-else-if="col.id === 'actions'">
             <Button
               icon="pi pi-ellipsis-v"

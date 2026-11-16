@@ -16,7 +16,7 @@ import DciProcessingTab from './tabs/DciProcessingTab.vue'
 import DciInstanceDiscoveryTab from './tabs/DciInstanceDiscoveryTab.vue'
 import DciPerformanceViewTab from './tabs/DciPerformanceViewTab.vue'
 import DciOtherOptionsTab from './tabs/DciOtherOptionsTab.vue'
-import DciTagsTab from './tabs/DciTagsTab.vue'
+import DciClassificationTab from './tabs/DciClassificationTab.vue'
 import DciAccessControlTab from './tabs/DciAccessControlTab.vue'
 import { useDciConfig, useCreateDci, useUpdateDci } from '@/queries/useDciConfigQueries'
 
@@ -33,7 +33,7 @@ const VALID_TABS = new Set([
   'instanceDiscovery',
   'performance',
   'otherOptions',
-  'tags',
+  'classification',
   'access',
 ])
 
@@ -77,6 +77,7 @@ function emptyForm() {
     comments: '',
     transformationScript: '',
     sourceNode: 0,
+    relatedObject: 0,
     snmpPort: 0,
     snmpVersion: 0,
     snmpContext: '',
@@ -232,7 +233,7 @@ watch(dciType, (type) => {
         <Tab value="instanceDiscovery">Instance Discovery</Tab>
         <Tab v-if="dciType === 'item'" value="performance">Performance View</Tab>
         <Tab value="otherOptions">Other Options</Tab>
-        <Tab value="tags">Tags</Tab>
+        <Tab value="classification">Classification</Tab>
         <Tab value="access">Access Control</Tab>
       </TabList>
 
@@ -262,8 +263,8 @@ watch(dciType, (type) => {
         <TabPanel value="otherOptions">
           <DciOtherOptionsTab :form="form" :dci-type="dciType" />
         </TabPanel>
-        <TabPanel value="tags">
-          <DciTagsTab :form="form" />
+        <TabPanel value="classification">
+          <DciClassificationTab :form="form" :dci-type="dciType" />
         </TabPanel>
         <TabPanel value="access">
           <DciAccessControlTab :form="form" />

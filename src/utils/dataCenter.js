@@ -96,6 +96,28 @@ export function taggedItems(objectId, dcis, bases) {
 }
 
 /**
+ * `taggedItems` from rows of `findTaggedDcis`, limited to the given objects.
+ *
+ * @param {Array<{ownerId: number, dciId: number, tag: string, unit?: string}>} metrics
+ * @param {number[]} objectIds
+ * @param {string[]} bases
+ * @returns {ReturnType<typeof taggedItems>}
+ */
+export function metricItems(metrics, objectIds, bases) {
+  const owners = new Set(objectIds)
+  const wanted = new Set(bases)
+  return (metrics ?? [])
+    .filter((m) => owners.has(m.ownerId) && wanted.has(systemTagBase(m.tag)))
+    .map((m) => ({
+      objectId: m.ownerId,
+      dciId: m.dciId,
+      base: systemTagBase(m.tag),
+      qualifier: systemTagQualifier(m.tag),
+      unitName: m.unit ?? '',
+    }))
+}
+
+/**
  * One metric from its tagged DCIs. Power across qualifiers (feed A + B) adds up; several
  * temperature sensors on one rack report their highest.
  *

@@ -1,21 +1,9 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
-import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import Checkbox from 'primevue/checkbox'
 import DetailCard from '@/components/layout/DetailCard.vue'
-import ObjectPickerField from '@/components/objects/ObjectPickerField.vue'
-import UnderConstructionOverlay from '@/components/common/UnderConstructionOverlay.vue'
 import { useDciFlags } from '@/composables/useDciFlags'
 import FormField from '@/components/common/FormField.vue'
-import {
-  DCI_SYSTEM_TAGS,
-  FEED_QUALIFIER_MAX_LENGTH,
-  isKnownSystemTag,
-  joinSystemTag,
-  systemTagBase,
-  systemTagQualifier,
-} from '@/utils/dciSystemTags'
 
 /* eslint-disable vue/no-mutating-props */
 const props = defineProps({
@@ -45,42 +33,6 @@ const MULTIPLIER_DEGREE_OPTIONS = [
   { value: -4, label: 'Fixed to p' },
   { value: -5, label: 'Fixed to f' },
 ]
-
-// The base tag; a base outside the vocabulary is offered as itself so it survives a save, and
-// "Other" clears the tag, qualifier included (legacy OtherOptions).
-const baseTag = computed(() => systemTagBase(props.form.systemTag))
-const interpretationOptions = computed(() => [
-  { value: '', label: 'Other' },
-  ...DCI_SYSTEM_TAGS.map(({ tag, label }) => ({ value: tag, label })),
-  ...(baseTag.value && !isKnownSystemTag(baseTag.value)
-    ? [{ value: baseTag.value, label: baseTag.value }]
-    : []),
-])
-
-const interpretation = computed({
-  get: () => baseTag.value,
-  set: (tag) => {
-    props.form.systemTag = joinSystemTag(tag ?? '', qualifierText.value)
-  },
-})
-
-// Typed text is kept as typed; the stored tag gets it trimmed.
-const qualifierText = ref(systemTagQualifier(props.form.systemTag))
-watch(
-  () => props.form.systemTag,
-  (tag) => {
-    const stored = systemTagQualifier(tag)
-    if (stored !== qualifierText.value.trim()) qualifierText.value = stored
-  },
-)
-
-function onQualifierInput(value) {
-  qualifierText.value = value ?? ''
-  props.form.systemTag = joinSystemTag(baseTag.value, qualifierText.value)
-}
-
-// The WebAPI does not expose the related object (absent from DCObject::toJson/updateFromJSON).
-const relatedObjectPlaceholder = ref(0)
 </script>
 
 <template>
@@ -132,36 +84,6 @@ const relatedObjectPlaceholder = ref(0)
             class="form-input"
           />
         </FormField>
-        <FormField v-if="dciType === 'item'" label="Interpretation" v-slot="{ id }">
-          <Select
-            :input-id="id"
-            v-model="interpretation"
-            :options="interpretationOptions"
-            option-label="label"
-            option-value="value"
-            class="form-input"
-          />
-        </FormField>
-        <FormField v-if="dciType === 'item'" label="Feed qualifier" v-slot="{ id }">
-          <InputText
-            :id="id"
-            :model-value="qualifierText"
-            :maxlength="FEED_QUALIFIER_MAX_LENGTH"
-            :disabled="!interpretation"
-            placeholder="e.g. A"
-            class="form-input"
-            @update:model-value="onQualifierInput"
-          />
-        </FormField>
-        <UnderConstructionOverlay message="Not exposed by the WebAPI yet">
-          <FormField label="Related Object" group>
-            <ObjectPickerField
-              v-model="relatedObjectPlaceholder"
-              empty-label="(none)"
-              class="form-input"
-            />
-          </FormField>
-        </UnderConstructionOverlay>
       </DetailCard>
     </div>
   </div>

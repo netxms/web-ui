@@ -49,7 +49,9 @@ const scopeRows = computed(() =>
 const ids = computed(() => scopeRows.value.map((row) => row.node.id))
 
 const { configs, isLoading: loadingConfigs } = usePowerDomainConfigs(ids)
-const { items, isLoading: loadingDcis } = useTaggedDcis(ids, POWER_LOAD_TAGS)
+const { items, isLoading: loadingDcis } = useTaggedDcis(ids, POWER_LOAD_TAGS, {
+  rootId: () => props.facility?.id ?? props.object.id,
+})
 const { valueOf } = useDataCenterValues(items)
 
 const loads = computed(() => firstTagLoads(ids.value, items.value, valueOf))

@@ -37,7 +37,7 @@ function mountEditor(type, initialTab) {
         DciInstanceDiscoveryTab: true,
         DciPerformanceViewTab: true,
         DciOtherOptionsTab: true,
-        DciTagsTab: true,
+        DciClassificationTab: true,
         DciAccessControlTab: true,
       },
     },
@@ -58,7 +58,7 @@ describe('DciEditorView tabs', () => {
       'Instance Discovery',
       'Performance View',
       'Other Options',
-      'Tags',
+      'Classification',
       'Access Control',
     ])
   })

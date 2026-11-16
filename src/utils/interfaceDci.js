@@ -143,7 +143,8 @@ export function snmpInstanceOf(iface) {
  */
 
 /**
- * The WebAPI does not read `relatedObject` yet; it is sent for when it does.
+ * `relatedObject` links the DCI to its interface: map link traffic and data export rows find it
+ * by that. Servers before netxms 9fbb9d16d6 drop it.
  *
  * @param {object} args
  * @param {{ id: number, name: string, index?: number, ifTableSuffix?: number[] }} args.iface

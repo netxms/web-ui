@@ -14,6 +14,7 @@ import {
   findFacilities,
   firstTagLoads,
   freeUnits,
+  metricItems,
   namedItems,
   nodesOfClass,
   objectMetric,
@@ -148,6 +149,17 @@ describe('system tags', () => {
     ]
     expect(taggedItems(9, dcis, ['power.feed']).map((i) => [i.dciId, i.qualifier])).toEqual([
       [1, 'A'],
+    ])
+  })
+
+  it('reads rows found under a root, for the given objects and tag bases only', () => {
+    const metrics = [
+      { ownerId: 9, dciId: 1, tag: 'power.feed/A', unit: 'kW' },
+      { ownerId: 9, dciId: 2, tag: 'power.in' },
+      { ownerId: 8, dciId: 3, tag: 'power.feed' },
+    ]
+    expect(metricItems(metrics, [9], ['power.feed'])).toEqual([
+      { objectId: 9, dciId: 1, base: 'power.feed', qualifier: 'A', unitName: 'kW' },
     ])
   })
 

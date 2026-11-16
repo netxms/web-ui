@@ -6,6 +6,7 @@
  */
 import { get, patch, post, put, del } from './client'
 import { listDciConfig } from './dciConfigApi'
+import { previewDataExport } from './dataExportApi'
 import { getDciValues, getObject, getRackLayout } from './objectsApi'
 import { DEMO_CONTENT_ENABLED } from '@/config/buildFlags'
 import { dciValueKey } from '@/utils/dciValues'
@@ -232,6 +233,32 @@ export function listObjectDcis(objectId) {
     return demoRead(objectId, () => DEMO_DATA_CENTER.dcis[Number(objectId)] ?? [])
   }
   return listDciConfig(objectId)
+}
+
+/**
+ * DCIs anywhere under `rootId` (itself included) whose system tag has one of the given bases,
+ * with or without a feed qualifier: one read for a whole facility. Borrowed from the data
+ * export's selection preview, so rows carry no status and leave out string and table DCIs, and
+ * an object the user cannot read hides its sub-tree.
+ *
+ * @param {number} rootId
+ * @param {string[]} bases
+ * @param {object} [options] - forwarded to the request
+ * @returns {Promise<Array<{ownerId: number, dciId: number, tag: string, unit?: string}>>}
+ */
+export async function findTaggedDcis(rootId, bases, options) {
+  const now = Math.floor(Date.now() / 1000)
+  const { metrics } = await previewDataExport(
+    {
+      rootObjectId: rootId,
+      tagPatterns: bases.flatMap((base) => [base, `${base}/*`]),
+      // Required by the route; it only picks the history tier the preview reports.
+      timeFrom: now - 3600,
+      timeTo: now,
+    },
+    options,
+  )
+  return metrics
 }
 
 /**
