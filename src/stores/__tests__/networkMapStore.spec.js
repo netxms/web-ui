@@ -106,3 +106,36 @@ describe('networkMapStore overflow tables', () => {
     expect(store.overflowTableOffsets(7, 'geo')).toEqual({})
   })
 })
+
+describe('networkMapStore hidden layers', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+  })
+
+  it('shows every layer by default', () => {
+    expect(useNetworkMapStore().hiddenLayers(12)).toEqual([])
+  })
+
+  it('keeps hidden layers per map in the account preferences', () => {
+    const store = useNetworkMapStore()
+    store.setHiddenLayers(12, ['Power', 'Cooling', 'Power', ''])
+    expect(store.hiddenLayers(12)).toEqual(['Cooling', 'Power'])
+    expect(store.hiddenLayers(13)).toEqual([])
+    expect(userPrefs.get('networkMap.hiddenLayers')).toEqual({ 12: ['Cooling', 'Power'] })
+  })
+
+  it('drops the entry once every layer is shown again', () => {
+    const store = useNetworkMapStore()
+    store.setHiddenLayers(12, ['Power'])
+    store.setHiddenLayers(12, [])
+    expect(userPrefs.get('networkMap.hiddenLayers')).toBeUndefined()
+  })
+
+  it("follows the account's hidden layers when sign-in brings them", async () => {
+    const store = useNetworkMapStore()
+    userPrefs.replace({ 'networkMap.hiddenLayers': { 7: ['Labels'] } }, '7')
+    await nextTick()
+    expect(store.hiddenLayers(7)).toEqual(['Labels'])
+  })
+})

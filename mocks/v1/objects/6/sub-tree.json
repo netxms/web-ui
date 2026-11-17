@@ -46,6 +46,18 @@
         "status": 0,
         "isInMaintenanceMode": false,
         "isMaintenanceApplicable": false
+      },
+      {
+        "id": 604,
+        "guid": "a5b6c7d8-e9f0-1234-abcd-567890123ef0",
+        "class": "NetworkMap",
+        "name": "DC-Alpha Layered Map",
+        "alias": "",
+        "category": 0,
+        "timestamp": "2026-11-17T09:00:00Z",
+        "status": 0,
+        "isInMaintenanceMode": false,
+        "isMaintenanceApplicable": false
       }
     ]
   }

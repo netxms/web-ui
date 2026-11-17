@@ -30,6 +30,8 @@ import NetworkMapElementPropertiesDialog from '@/components/network-maps/Network
 import NetworkMapLinkPropertiesDialog from '@/components/network-maps/NetworkMapLinkPropertiesDialog.vue'
 import NetworkMapDciContainerPropertiesDialog from '@/components/network-maps/NetworkMapDciContainerPropertiesDialog.vue'
 import NetworkMapDciImagePropertiesDialog from '@/components/network-maps/NetworkMapDciImagePropertiesDialog.vue'
+import NetworkMapNewLayerDialog from '@/components/network-maps/NetworkMapNewLayerDialog.vue'
+import NetworkMapLayersPanel from '@/components/network-maps/NetworkMapLayersPanel.vue'
 import NetworkMapPropertiesView from '@/components/network-maps/NetworkMapPropertiesView.vue'
 import NetworkMapGroupDetailView from '@/components/network-maps/NetworkMapGroupDetailView.vue'
 import NetworkMapsRootDetailView from '@/components/network-maps/NetworkMapsRootDetailView.vue'
@@ -68,6 +70,14 @@ import {
   countUnplacedObjects,
 } from '@/utils/networkMapUtils'
 import { safeBgrIntToHex } from '@/utils/networkMapAdapters'
+import {
+  elementLayer,
+  layerCounts,
+  mapLayers,
+  mapSupportsLayers,
+  sharedLayer,
+  withoutHiddenLayers,
+} from '@/utils/networkMapLayers'
 import { activeMergeThreshold, configuredMergeThreshold } from '@/utils/networkMapParallelLinks'
 import { buildCreateMenuItems } from '@/utils/createMenuItems'
 import { useObjectDeletionNavigation } from '@/composables/useObjectDeletionNavigation'
@@ -371,6 +381,193 @@ const canvasMapData = computed(() => {
   }
 })
 
+// From the draft while editing, so a new layer is listed at once.
+const mapLayerNames = computed(() => mapLayers(activeMapData.value))
+const hiddenLayerSet = computed(() => new Set(networkMapStore.hiddenLayers(selectedMapId.value)))
+const hiddenLayerCount = computed(
+  () => mapLayerNames.value.filter((name) => hiddenLayerSet.value.has(name)).length,
+)
+
+// Display only: the draft keeps hidden elements, so a save keeps them and their positions.
+const displayMapData = computed(() =>
+  withoutHiddenLayers(canvasMapData.value, hiddenLayerSet.value),
+)
+
+/** Names that are no longer layers of this map are dropped, as in legacy. */
+function setHiddenLayers(names) {
+  networkMapStore.setHiddenLayers(
+    selectedMapId.value,
+    names.filter((name) => mapLayerNames.value.includes(name)),
+  )
+  // The canvas rebuilds without the hidden elements.
+  selectedNodeList.value = []
+  selectedEdgeList.value = []
+  selectedElement.value = null
+}
+
+function toggleLayer(name) {
+  const hidden = hiddenLayerSet.value
+  setHiddenLayers(hidden.has(name) ? [...hidden].filter((n) => n !== name) : [...hidden, name])
+}
+
+const layerMenuItems = computed(() => {
+  const names = mapLayerNames.value
+  const hidden = hiddenLayerSet.value
+  return [
+    {
+      label: 'Show All',
+      icon: 'pi pi-eye',
+      disabled: hiddenLayerCount.value === 0,
+      command: () => setHiddenLayers([]),
+    },
+    {
+      label: 'Hide All',
+      icon: 'pi pi-eye-slash',
+      disabled: hiddenLayerCount.value === names.length,
+      command: () => setHiddenLayers(names),
+    },
+    { separator: true },
+    ...names.map((name) => ({
+      label: name,
+      icon: hidden.has(name) ? 'pi pi-fw' : 'pi pi-check',
+      command: () => toggleLayer(name),
+    })),
+  ]
+})
+
+// Through edit mode, which the geographical canvas has none of.
+const canSetLayer = computed(() => layoutEditable.value && mapSupportsLayers(mapData.value))
+
+/** Offered once the server stores layers, so the first one can be made from the panel. */
+const layersAvailable = computed(
+  () => mapSupportsLayers(mapData.value) || mapLayerNames.value.length > 0,
+)
+const layersPanelOpen = computed(
+  () => networkMapStore.viewState.layersPanelOpen && layersAvailable.value,
+)
+
+function toggleLayersPanel() {
+  networkMapStore.viewState.layersPanelOpen = !networkMapStore.viewState.layersPanelOpen
+}
+
+const layerPanelRows = computed(() => {
+  const { counts, unlayered } = layerCounts(activeMapData.value)
+  return {
+    rows: mapLayerNames.value.map((name) => ({
+      name,
+      count: counts.get(name) ?? 0,
+      hidden: hiddenLayerSet.value.has(name),
+    })),
+    unlayered,
+  }
+})
+
+// Session-local: the layer brought forward, and the one under the pointer in the panel.
+const focusedLayer = ref(null)
+const hoveredLayer = ref(null)
+
+/** Only the graph canvas can dim; a hidden layer has nothing to bring forward. */
+const emphasizedIds = computed(() => {
+  const layer = hoveredLayer.value ?? focusedLayer.value
+  if (!layer || isGeoCanvas.value || hiddenLayerSet.value.has(layer)) return null
+  return new Set(layerElementIds(layer))
+})
+
+watch(selectedMapId, () => {
+  focusedLayer.value = null
+  hoveredLayer.value = null
+})
+
+watch([mapLayerNames, hiddenLayerSet], ([names, hidden]) => {
+  const focused = focusedLayer.value
+  if (focused && (!names.includes(focused) || hidden.has(focused))) focusedLayer.value = null
+})
+
+/** @param {string} name - '' for elements on no layer */
+function layerElementIds(name) {
+  return (activeMapData.value?.elements ?? [])
+    .filter((el) => elementLayer(el) === name)
+    .map((el) => el.id)
+}
+
+const layerSelectionIds = computed(() => [
+  ...selectedNodeList.value.map((n) => n.id),
+  ...(selectedElement.value ? [selectedElement.value.id] : []),
+])
+
+/** One dialog for New and Rename; `apply` gets the confirmed name. */
+const layerDialog = ref(null)
+
+function openNewLayerDialog(elementIds) {
+  layerDialog.value = {
+    title: 'New Layer',
+    confirmLabel: 'Create',
+    initialName: '',
+    apply: (name) => applyLayer(elementIds, name),
+  }
+}
+
+function openRenameLayerDialog(oldName) {
+  layerDialog.value = {
+    title: 'Rename Layer',
+    confirmLabel: 'Rename',
+    initialName: oldName,
+    apply: (newName) => renameLayer(oldName, newName),
+  }
+}
+
+/** Renaming onto an existing layer merges the two. */
+function renameLayer(oldName, newName) {
+  const carryHidden = hiddenLayerSet.value.has(oldName) && !mapLayerNames.value.includes(newName)
+  applyLayer(layerElementIds(oldName), newName)
+  setHiddenLayers(carryHidden ? [...hiddenLayerSet.value, newName] : [...hiddenLayerSet.value])
+  if (focusedLayer.value === oldName) focusedLayer.value = newName
+}
+
+/** The elements stay, on no layer. */
+function deleteLayer(name) {
+  applyLayer(layerElementIds(name), '')
+  setHiddenLayers([...hiddenLayerSet.value])
+}
+
+function applyLayer(elementIds, name) {
+  ensureEditMode()
+  editor.setElementsLayer(elementIds, name)
+  refreshSelectedElement()
+}
+
+/** Legacy "Set layer": existing layers (checked when every element is on it), new, none. */
+function setLayerMenuItem(elementIds) {
+  const elements = elementIds
+    .map((id) => activeMapData.value?.elements.find((el) => el.id === id))
+    .filter(Boolean)
+  const shared = sharedLayer(elements)
+  const names = mapLayerNames.value
+  return {
+    label: 'Set Layer',
+    icon: 'pi pi-clone',
+    items: [
+      ...names.map((name) => ({
+        label: name,
+        icon: shared === name ? 'pi pi-check' : 'pi pi-fw',
+        command: () => applyLayer(elementIds, name),
+      })),
+      ...(names.length ? [{ separator: true }] : []),
+      {
+        label: 'New Layer...',
+        icon: 'pi pi-plus',
+        command: () => openNewLayerDialog(elementIds),
+      },
+      {
+        label: 'No Layer',
+        icon: 'pi pi-fw',
+        disabled: elements.every((el) => !elementLayer(el)),
+        command: () => applyLayer(elementIds, ''),
+      },
+    ],
+  }
+}
+
 /** Resolved against canvasMapData so a "Canvas type" change previews before it is saved. */
 const isGeoCanvas = computed(
   () => canvasTypeOverride.value ?? isGeographicalCanvas(canvasMapData.value),
@@ -474,7 +671,9 @@ function alignToGrid() {
     ...(selectedElement.value ? [selectedElement.value.id] : []),
   ])
   const positions = {}
-  for (const elem of activeMapData.value?.elements ?? []) {
+  // Legacy moves the figures on the canvas, so elements on hidden layers stay put.
+  const shown = withoutHiddenLayers(activeMapData.value, hiddenLayerSet.value)
+  for (const elem of shown?.elements ?? []) {
     if (typeof elem.x !== 'number' || typeof elem.y !== 'number') continue
     if (selectedIds.size && !selectedIds.has(elem.id)) continue
     positions[elem.id] = snapPoint({ x: elem.x, y: elem.y }, GRID_SIZE)
@@ -1358,6 +1557,12 @@ const mapContextMenuItems = computed(() => {
         command: () => router.push({ name: 'infrastructure', params: { objectId } }),
       })
     }
+    if (canSetLayer.value) {
+      // A right click inside a box selection acts on the whole selection.
+      const selectedIds = selectedNodeList.value.map((n) => n.id)
+      items.push({ separator: true })
+      items.push(setLayerMenuItem(selectedIds.includes(id) ? selectedIds : [id]))
+    }
     if (isEditable || layoutEditMode.value) {
       items.push({ separator: true })
       items.push({
@@ -1421,6 +1626,7 @@ const mapContextMenuItems = computed(() => {
       { label: typeLabel, class: 'context-menu-header', disabled: true },
       { separator: true },
       { label: 'Properties...', icon: 'pi pi-cog', command: () => openElementProperties(el) },
+      ...(canSetLayer.value ? [setLayerMenuItem([el.id])] : []),
       {
         label: 'Remove',
         icon: 'pi pi-trash',
@@ -1457,6 +1663,9 @@ const mapContextMenuItems = computed(() => {
 
   // Create and Properties are always offered; Create enters edit mode on demand.
   return [
+    ...(mapLayerNames.value.length
+      ? [{ label: 'Layers', icon: 'pi pi-clone', items: layerMenuItems.value }, { separator: true }]
+      : []),
     {
       label: 'Create',
       icon: 'pi pi-plus',
@@ -1604,6 +1813,10 @@ function handleEdgeContextMenu(event, edgeData) {
         :editable="!isDemoMap"
         :layout-tools="!isGeoCanvas"
         :edit-mode="layoutEditMode"
+        :layers-available="layersAvailable"
+        :layers-open="layersPanelOpen"
+        :hidden-layer-count="hiddenLayerCount"
+        @toggle-layers="toggleLayersPanel"
         @open-map-settings="openMapProperties"
         @update:search-term="searchTerm = $event"
         @refresh="refetchMap"
@@ -1838,21 +2051,44 @@ function handleEdgeContextMenu(event, edgeData) {
             @redo="redoEdit"
           />
 
-          <NetworkMapSideToolbar
-            :edit-mode="layoutEditMode"
-            v-model:hide-links="mapViewState.hideLinks"
-            v-model:hide-link-labels="mapViewState.hideLinkLabels"
-            :merge-parallel-links="mergeParallelLinks"
-            @update:merge-parallel-links="mergeLinksOverride = $event"
-            :overflow-tables="overflowTablesOn"
-            @update:overflow-tables="setOverflowTables"
-            v-model:show-grid="mapViewState.showGrid"
-            v-model:snap-to-grid="mapViewState.snapToGrid"
-            :has-selection="hasAlignSelection"
-            :geo-canvas="isGeoCanvas"
-            @update:geo-canvas="canvasTypeOverride = $event"
-            @align-to-grid="alignToGrid"
-          />
+          <div class="side-tools-row">
+            <NetworkMapLayersPanel
+              v-if="layersPanelOpen"
+              :layers="layerPanelRows.rows"
+              :unlayered-count="layerPanelRows.unlayered"
+              :focused-layer="focusedLayer"
+              :can-focus="!isGeoCanvas"
+              :can-edit="canSetLayer"
+              :selection-count="layerSelectionIds.length"
+              @toggle="toggleLayer"
+              @show-all="setHiddenLayers([])"
+              @hide-all="setHiddenLayers(mapLayerNames)"
+              @focus="focusedLayer = $event"
+              @hover="hoveredLayer = $event"
+              @new-from-selection="openNewLayerDialog(layerSelectionIds)"
+              @rename="openRenameLayerDialog"
+              @delete="deleteLayer"
+              @close="toggleLayersPanel"
+            />
+            <NetworkMapSideToolbar
+              :edit-mode="layoutEditMode"
+              v-model:hide-links="mapViewState.hideLinks"
+              v-model:hide-link-labels="mapViewState.hideLinkLabels"
+              :merge-parallel-links="mergeParallelLinks"
+              @update:merge-parallel-links="mergeLinksOverride = $event"
+              :overflow-tables="overflowTablesOn"
+              @update:overflow-tables="setOverflowTables"
+              v-model:show-grid="mapViewState.showGrid"
+              v-model:snap-to-grid="mapViewState.snapToGrid"
+              :has-selection="hasAlignSelection"
+              :geo-canvas="isGeoCanvas"
+              :layers-available="layersAvailable"
+              :layers-open="layersPanelOpen"
+              @update:geo-canvas="canvasTypeOverride = $event"
+              @align-to-grid="alignToGrid"
+              @toggle-layers="toggleLayersPanel"
+            />
+          </div>
         </div>
 
         <div class="zoom-controls">
@@ -2178,7 +2414,7 @@ function handleEdgeContextMenu(event, edgeData) {
           v-if="isGeoCanvas"
           :key="`geo-${selectedMapId}`"
           ref="canvasRef"
-          :map-data="canvasMapData"
+          :map-data="displayMapData"
           :dci-values="mapDciValues"
           :hide-links="mapViewState.hideLinks"
           :hide-link-labels="mapViewState.hideLinkLabels"
@@ -2196,7 +2432,8 @@ function handleEdgeContextMenu(event, edgeData) {
           v-else
           :key="selectedMapId"
           ref="canvasRef"
-          :map-data="canvasMapData"
+          :map-data="displayMapData"
+          :emphasized-ids="emphasizedIds"
           :draggable="demo.draggable || layoutEditMode"
           :snap-to-grid="mapViewState.snapToGrid || demo.snapToGrid"
           :show-grid="mapViewState.showGrid || demo.showGrid"
@@ -2321,6 +2558,15 @@ function handleEdgeContextMenu(event, edgeData) {
     :element="propertiesElement"
     @update:visible="propertiesVisible = $event"
     @apply="applyElementProperties"
+  />
+
+  <NetworkMapNewLayerDialog
+    :visible="layerDialog !== null"
+    :title="layerDialog?.title"
+    :confirm-label="layerDialog?.confirmLabel"
+    :initial-name="layerDialog?.initialName ?? ''"
+    @update:visible="(open) => !open && (layerDialog = null)"
+    @create="(name) => layerDialog?.apply(name)"
   />
 
   <NetworkMapLinkPropertiesDialog
@@ -2540,6 +2786,13 @@ function handleEdgeContextMenu(event, edgeData) {
 
 .canvas-controls-stack > * {
   pointer-events: auto;
+}
+
+/* The layers panel opens to the left of the side toolbar, tops aligned. */
+.side-tools-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
 }
 
 .zoom-controls {

@@ -195,3 +195,40 @@ describe('useNetworkMapEditor object element geometry', () => {
     expect(next.raw).toMatchObject({ posX: 60, posY: 40, width: 120, height: 80 })
   })
 })
+
+describe('useNetworkMapEditor setElementsLayer', () => {
+  function mapWithElements() {
+    return {
+      ...baseMap(),
+      elements: [
+        { id: 'e-1', type: 'object', raw: { id: 1, layer: '' } },
+        { id: 'e-2', type: 'decoration', raw: { id: 2, layer: 'Power' } },
+        { id: 'e-3', type: 'text-box', raw: { id: 3 } },
+      ],
+    }
+  }
+
+  it('puts every given element on the layer in one undoable step', () => {
+    const ed = useNetworkMapEditor()
+    ed.enter(mapWithElements())
+    ed.setElementsLayer(['e-1', 'e-3'], 'Cooling')
+    expect(ed.working.value.elements.map((e) => e.raw.layer)).toEqual([
+      'Cooling',
+      'Power',
+      'Cooling',
+    ])
+    expect(ed.working.value.elements[2].raw.id).toBe(3)
+
+    ed.undo()
+    expect(ed.working.value.elements.map((e) => e.raw.layer)).toEqual(['', 'Power', undefined])
+    expect(ed.canUndo.value).toBe(false)
+  })
+
+  it('takes elements off their layer with an empty name', () => {
+    const ed = useNetworkMapEditor()
+    ed.enter(mapWithElements())
+    ed.setElementsLayer(['e-2'], '')
+    expect(ed.getElement('e-2').raw.layer).toBe('')
+    expect(ed.dirty.value).toBe(true)
+  })
+})

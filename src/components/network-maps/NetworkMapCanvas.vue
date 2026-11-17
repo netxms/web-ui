@@ -63,6 +63,12 @@ const props = defineProps({
   heatmapEnabled: { type: Boolean, default: false },
   /** Highlight nodes whose name matches this string; '' = no filter */
   searchTerm: { type: String, default: '' },
+  /**
+   * Element ids drawn at full strength while a layer is in focus; every other element, and every
+   * link not between two of them, is dimmed. Null = nothing in focus.
+   * @type {import('vue').PropType<Set<string> | null>}
+   */
+  emphasizedIds: { type: Object, default: null },
   /** Layout/element edit mode — makes base decorations, text boxes and images editable. */
   editMode: { type: Boolean, default: false },
   /** image-library GUID -> resolved data URL, for rendering image decorations. */
@@ -238,6 +244,18 @@ function measureText(text, fontSize = LABEL_FONT_SIZE, fontWeight = 400) {
   return textCtx.measureText(text).width
 }
 
+const DEEMPHASIZED_OPACITY = 0.2
+
+/** @param {string} id - element id */
+function isDeemphasized(id) {
+  return !!props.emphasizedIds && !props.emphasizedIds.has(id)
+}
+
+/** @param {{ sourceId: string, targetId: string }} link - label box or cy edge endpoints */
+function isLinkDeemphasized(link) {
+  return isDeemphasized(link.sourceId) || isDeemphasized(link.targetId)
+}
+
 function rebuildOverlayNodes() {
   if (!cy) return
   const term = props.searchTerm?.toLowerCase()
@@ -257,7 +275,8 @@ function rebuildOverlayNodes() {
       name: n.data('name'),
       displayName,
       ...paintMapNode({ element, displayName, status, options, measureText, dark: isDark.value }),
-      dimmed: term ? !n.data('name')?.toLowerCase().includes(term) : false,
+      dimmed:
+        (term ? !n.data('name')?.toLowerCase().includes(term) : false) || isDeemphasized(n.id()),
     }
   })
 }
@@ -1621,6 +1640,10 @@ function buildCyStyle() {
         'arrow-scale': 1.1,
         label: '',
         'z-index': 0,
+        opacity: (ele) =>
+          isLinkDeemphasized({ sourceId: ele.source().id(), targetId: ele.target().id() })
+            ? DEEMPHASIZED_OPACITY
+            : 1,
       },
     },
     {
@@ -2018,6 +2041,16 @@ watch(
   () => {
     if (!cy) return
     rebuildOverlayNodes()
+  },
+)
+
+// The edge style's opacity mapper reads the prop, so a style update re-runs it.
+watch(
+  () => props.emphasizedIds,
+  () => {
+    if (!cy) return
+    rebuildOverlayNodes()
+    cy.style().update()
   },
 )
 
@@ -2517,6 +2550,7 @@ defineExpose({
         <g
           v-for="img in baseImageDecorations"
           :key="img.id"
+          :opacity="isDeemphasized(img.id) ? DEEMPHASIZED_OPACITY : undefined"
           :style="{
             cursor: editMode ? (baseDragState?.id === img.id ? 'grabbing' : 'grab') : 'default',
             pointerEvents: editMode ? 'auto' : 'none',
@@ -2609,7 +2643,12 @@ defineExpose({
         </g>
 
         <!-- Zone group-boxes — fill is pointer-events:none so nodes inside remain clickable -->
-        <g v-for="zone in allZones" :key="zone.id" style="pointer-events: none">
+        <g
+          v-for="zone in allZones"
+          :key="zone.id"
+          :opacity="isDeemphasized(zone.id) ? DEEMPHASIZED_OPACITY : undefined"
+          style="pointer-events: none"
+        >
           <!-- Visual fill (pass-through to Cytoscape nodes underneath) -->
           <rect
             :x="zone.x"
@@ -2725,6 +2764,7 @@ defineExpose({
         <NetworkMapLinkLabel
           v-for="box in baseEdgeLabels"
           :key="box.id"
+          :opacity="isLinkDeemphasized(box) ? DEEMPHASIZED_OPACITY : undefined"
           :box="box"
           :font-size="LABEL_FONT_SIZE"
           :translucent="renderOptions.translucentLabelBackground"
@@ -2786,6 +2826,7 @@ defineExpose({
         <g
           v-for="tb in baseTextBoxes"
           :key="tb.id"
+          :opacity="isDeemphasized(tb.id) ? DEEMPHASIZED_OPACITY : undefined"
           :style="{
             cursor: editMode ? (baseDragState?.id === tb.id ? 'grabbing' : 'grab') : 'default',
             pointerEvents: editMode ? 'auto' : 'none',
@@ -2835,6 +2876,7 @@ defineExpose({
         <g
           v-for="dc in baseDciContainers"
           :key="dc.id"
+          :opacity="isDeemphasized(dc.id) ? DEEMPHASIZED_OPACITY : undefined"
           :style="{
             cursor: editMode ? (baseDragState?.id === dc.id ? 'grabbing' : 'grab') : 'default',
             pointerEvents: editMode ? 'auto' : 'none',
@@ -2920,6 +2962,7 @@ defineExpose({
         <g
           v-for="di in baseDciImages"
           :key="di.id"
+          :opacity="isDeemphasized(di.id) ? DEEMPHASIZED_OPACITY : undefined"
           :style="{
             cursor: editMode ? (baseDragState?.id === di.id ? 'grabbing' : 'grab') : 'default',
             pointerEvents: editMode ? 'auto' : 'none',
@@ -3121,6 +3164,7 @@ defineExpose({
         <NetworkMapLinkLabel
           v-for="box in promotedEdgeLabels"
           :key="box.id"
+          :opacity="isLinkDeemphasized(box) ? DEEMPHASIZED_OPACITY : undefined"
           :box="box"
           :font-size="LABEL_FONT_SIZE"
           :translucent="renderOptions.translucentLabelBackground"

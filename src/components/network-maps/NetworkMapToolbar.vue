@@ -16,6 +16,10 @@ const props = defineProps({
   /** False on the geographical canvas, where objects sit at their geolocation. */
   layoutTools: { type: Boolean, default: true },
   editMode: { type: Boolean, default: false },
+  /** The server stores layers, or the map has some: the Layers panel can open. */
+  layersAvailable: { type: Boolean, default: false },
+  layersOpen: { type: Boolean, default: false },
+  hiddenLayerCount: { type: Number, default: 0 },
 })
 
 const emit = defineEmits([
@@ -24,6 +28,7 @@ const emit = defineEmits([
   'open-tools-panel',
   'update:searchTerm',
   'open-map-settings',
+  'toggle-layers',
 ])
 
 const LAYOUT_OPTIONS = [
@@ -115,6 +120,18 @@ function toggleToolsMenu(event) {
       </div>
       <div class="toolbar-tool-divider" />
       <Button
+        v-if="layersAvailable"
+        :label="hiddenLayerCount ? `Layers (${hiddenLayerCount} hidden)` : 'Layers'"
+        icon="pi pi-clone"
+        size="small"
+        severity="secondary"
+        text
+        class="layers-button"
+        :class="{ 'layers-button--open': layersOpen }"
+        :aria-pressed="layersOpen"
+        @click="emit('toggle-layers')"
+      />
+      <Button
         label="Tools"
         icon="pi pi-wrench"
         size="small"
@@ -192,6 +209,19 @@ function toggleToolsMenu(event) {
 
 .layout-select {
   width: 140px;
+}
+
+.layers-button {
+  flex-shrink: 0;
+}
+
+.layers-button :deep(.p-button-label) {
+  white-space: nowrap;
+}
+
+.layers-button--open {
+  background: var(--p-highlight-background);
+  color: var(--p-highlight-color);
 }
 
 .map-type-badge {

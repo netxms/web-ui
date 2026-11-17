@@ -11,6 +11,7 @@ const DEFAULT_VIEW_STATE = {
   snapToGrid: false,
   // Map Properties drawer width (px).
   propertiesWidth: 480,
+  layersPanelOpen: false,
   /**
    * Per map id: `off: true` while overflow tables are switched off, and dragged table offsets
    * per canvas, `graph` (graph units) and `geo` (container pixels), each `{ [elementId]: { x, y } }`.
@@ -31,6 +32,15 @@ function loadToggles() {
     toggles[key] = typeof stored === 'boolean' ? stored : DEFAULT_VIEW_STATE[key]
   }
   return toggles
+}
+
+/** Per map id, the names of the layers this account hides. Never written to the map. */
+const HIDDEN_LAYERS_FIELD = 'networkMap.hiddenLayers'
+const NO_LAYERS = Object.freeze([])
+
+function loadHiddenLayers() {
+  const stored = userPrefs.get(HIDDEN_LAYERS_FIELD)
+  return stored && typeof stored === 'object' && !Array.isArray(stored) ? stored : {}
 }
 
 /** Kept apart: different units. */
@@ -87,9 +97,32 @@ export const useNetworkMapStore = defineStore('networkMap', () => {
     { deep: true },
   )
 
+  const hiddenLayersByMap = ref(loadHiddenLayers())
+
   watch(userPrefs.revision, () => {
     Object.assign(viewState.value, loadToggles())
+    hiddenLayersByMap.value = loadHiddenLayers()
   })
+
+  /**
+   * @param {number | string} mapId
+   * @returns {string[]}
+   */
+  function hiddenLayers(mapId) {
+    return hiddenLayersByMap.value[mapId] ?? NO_LAYERS
+  }
+
+  /** A map with every layer shown has no entry. */
+  function setHiddenLayers(mapId, names) {
+    if (mapId == null) return
+    const all = { ...hiddenLayersByMap.value }
+    const list = [...new Set(names)].filter((n) => typeof n === 'string' && n !== '').sort()
+    if (list.length) all[mapId] = list
+    else delete all[mapId]
+    hiddenLayersByMap.value = all
+    if (Object.keys(all).length) userPrefs.set(HIDDEN_LAYERS_FIELD, all)
+    else userPrefs.remove(HIDDEN_LAYERS_FIELD)
+  }
 
   /** An entry left empty is dropped. */
   function changeTableEntry(mapId, change) {
@@ -148,5 +181,7 @@ export const useNetworkMapStore = defineStore('networkMap', () => {
     setOverflowTablesEnabled,
     overflowTableOffsets,
     setOverflowTableOffsets,
+    hiddenLayers,
+    setHiddenLayers,
   }
 })

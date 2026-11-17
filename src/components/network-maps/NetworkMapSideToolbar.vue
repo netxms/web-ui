@@ -9,6 +9,7 @@ import {
   Magnet,
   LayoutGrid,
   Globe,
+  Layers,
 } from 'lucide-vue-next'
 
 defineProps({
@@ -24,6 +25,8 @@ defineProps({
   hasSelection: { type: Boolean, default: false },
   /** Grid tools are hidden on the geographical canvas. */
   geoCanvas: { type: Boolean, default: false },
+  layersAvailable: { type: Boolean, default: false },
+  layersOpen: { type: Boolean, default: false },
 })
 
 const emit = defineEmits([
@@ -35,6 +38,7 @@ const emit = defineEmits([
   'update:snapToGrid',
   'update:geoCanvas',
   'align-to-grid',
+  'toggle-layers',
 ])
 </script>
 
@@ -95,6 +99,21 @@ const emit = defineEmits([
     >
       <template #icon>
         <TableProperties :size="16" />
+      </template>
+    </Button>
+    <Button
+      v-if="layersAvailable"
+      severity="secondary"
+      text
+      rounded
+      :class="{ 'tool-active': layersOpen }"
+      :aria-pressed="layersOpen"
+      aria-label="Layers"
+      v-tooltip.left="layersOpen ? 'Close layers' : 'Layers'"
+      @click="emit('toggle-layers')"
+    >
+      <template #icon>
+        <Layers :size="16" />
       </template>
     </Button>
     <Button

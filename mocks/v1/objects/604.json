@@ -1,0 +1,188 @@
+{
+  "id": 604,
+  "guid": "a5b6c7d8-e9f0-1234-abcd-567890123ef0",
+  "class": "NetworkMap",
+  "timestamp": "2026-11-17T09:00:00Z",
+  "name": "DC-Alpha Layered Map",
+  "alias": "",
+  "commentsSource": "{}",
+  "comments": "{}",
+  "status": 0,
+  "statusText": "Normal",
+  "statusCalcAlg": 0,
+  "statusPropAlg": 0,
+  "fixedStatus": -1,
+  "statusShift": 0,
+  "statusTranslation": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "statusSingleThreshold": 75,
+  "statusThresholds": [
+    80,
+    60,
+    40,
+    20
+  ],
+  "maintenanceEventId": 0,
+  "maintenanceInitiator": 0,
+  "mapImage": "00000000-0000-0000-0000-000000000000",
+  "geoLocation": {
+    "type": 0,
+    "latitude": 0,
+    "longitude": 0,
+    "accuracy": 0,
+    "timestamp": 0
+  },
+  "postalAddress": {
+    "country": null,
+    "region": null,
+    "city": null,
+    "district": null,
+    "streetAddress": null,
+    "postcode": null
+  },
+  "drilldownObjectId": 0,
+  "dashboards": [],
+  "urls": [],
+  "accessList": [
+    {
+      "userId": 1073741825,
+      "access": 18874367
+    }
+  ],
+  "inheritAccessRights": true,
+  "trustedObjects": [],
+  "creationTime": "2026-11-17T09:00:00Z",
+  "categoryId": 0,
+  "aiHint": "",
+  "customAttributes": [],
+  "children": [],
+  "parents": [
+    599
+  ],
+  "responsibleUsers": [],
+  "mapType": 0,
+  "layout": 32767,
+  "flags": 0,
+  "backgroundColor": 16777215,
+  "filter": null,
+  "linkScript": null,
+  "elements": [
+    {
+      "id": 1,
+      "type": 1,
+      "posX": 120,
+      "posY": 120,
+      "flags": 0,
+      "layer": "Servers",
+      "objectId": 502,
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": 2,
+      "type": 1,
+      "posX": 320,
+      "posY": 120,
+      "flags": 0,
+      "layer": "Servers",
+      "objectId": 505,
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": 3,
+      "type": 1,
+      "posX": 220,
+      "posY": 320,
+      "flags": 0,
+      "layer": "",
+      "objectId": 509,
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": 4,
+      "type": 1,
+      "posX": 470,
+      "posY": 320,
+      "flags": 0,
+      "layer": "Security",
+      "objectId": 522,
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": 5,
+      "type": 2,
+      "posX": 60,
+      "posY": 50,
+      "flags": 0,
+      "layer": "Servers",
+      "decorationType": 0,
+      "color": 12632256,
+      "title": "Web tier",
+      "width": 360,
+      "height": 160
+    },
+    {
+      "id": 6,
+      "type": 5,
+      "posX": 470,
+      "posY": 470,
+      "flags": 0,
+      "layer": "Notes",
+      "config": "{\"text\": \"Maintenance window: Sun 02:00\", \"backgroundColor\": 2147483647, \"textColor\": 0, \"borderColor\": 0, \"fontSize\": 10, \"drillDownObjectId\": 0, \"borderRequired\": true}"
+    }
+  ],
+  "links": [
+    {
+      "element1": 1,
+      "element2": 3,
+      "interface1": 0,
+      "interface2": 0,
+      "type": 0,
+      "name": "",
+      "connectorName1": "",
+      "connectorName2": "",
+      "flags": 0,
+      "colorSource": 0,
+      "color": 0,
+      "colorProvider": "",
+      "config": ""
+    },
+    {
+      "element1": 2,
+      "element2": 3,
+      "interface1": 0,
+      "interface2": 0,
+      "type": 0,
+      "name": "",
+      "connectorName1": "",
+      "connectorName2": "",
+      "flags": 0,
+      "colorSource": 0,
+      "color": 0,
+      "colorProvider": "",
+      "config": ""
+    },
+    {
+      "element1": 3,
+      "element2": 4,
+      "interface1": 0,
+      "interface2": 0,
+      "type": 0,
+      "name": "",
+      "connectorName1": "",
+      "connectorName2": "",
+      "flags": 0,
+      "colorSource": 0,
+      "color": 0,
+      "colorProvider": "",
+      "config": ""
+    }
+  ]
+}

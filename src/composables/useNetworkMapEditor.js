@@ -220,6 +220,17 @@ export function useNetworkMapEditor() {
     bump()
   }
 
+  /** One undoable step for the whole selection; '' takes the elements off their layer. */
+  function setElementsLayer(ids, layer) {
+    if (!working.value || !ids?.length) return
+    const idSet = new Set(ids)
+    const elements = working.value.elements.map((el) =>
+      idSet.has(el.id) ? { ...el, raw: { ...el.raw, layer } } : el,
+    )
+    working.value = { ...working.value, elements }
+    bump()
+  }
+
   /**
    * Patches `rawContent`, which serializeNetworkMapContent spreads into the PUT payload.
    * `backgroundColor` is taken as hex and stored as a BGR int; the derived `background` and
@@ -323,6 +334,7 @@ export function useNetworkMapEditor() {
     addDciContainer,
     addDciImage,
     updateElement,
+    setElementsLayer,
     updateMapSettings,
     removeElements,
     removeLinks,
