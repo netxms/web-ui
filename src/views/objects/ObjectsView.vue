@@ -658,6 +658,16 @@ const chartView = computed(() =>
     : null,
 )
 
+const agentLogView = computed(() =>
+  viewIdFromRoute.value === 'agentLog'
+    ? { id: 'agentLog', label: 'Agent Log', icon: 'pi pi-file', lockable: false }
+    : null,
+)
+
+/** Tabs open only while on their own route: never stored, and closing one always leaves. */
+const ROUTE_ONLY_VIEW_IDS = ['chart', 'agentLog']
+const routeOnlyViews = computed(() => [chartView.value, agentLogView.value].filter(Boolean))
+
 // Associated dashboards and maps flagged "show as object view" appear as tabs rendered for this
 // object (legacy updateContextDashboardsAndMaps). Derived, never stored.
 const associatedIds = computed(() => resolvedObjectDetails.value?.dashboards ?? [])
@@ -695,7 +705,7 @@ const shownContextViews = computed(() => {
 const allViews = computed(() => [
   ...ALL_OBJECT_VIEWS,
   ...shownContextViews.value,
-  ...(chartView.value ? [chartView.value] : []),
+  ...routeOnlyViews.value,
 ])
 
 // User additions and removals are stored against these defaults, so a view added here reaches
@@ -847,15 +857,15 @@ const compatibleVisibleViewIds = computed(() => {
   const base = cls
     ? visibleViewIds.value.filter((id) => isViewConfirmedFor(id, cls) || id === activeView.value)
     : visibleViewIds.value
-  // Context views and the chart tab are not in the stored preference, so they are appended.
+  // Context views and route-only tabs are not in the stored preference, so they are appended.
   const contextIds = shownContextViews.value.map((v) => v.id)
-  const stored = base.filter((id) => id !== 'chart' && !contextIds.includes(id))
+  const stored = base.filter((id) => !ROUTE_ONLY_VIEW_IDS.includes(id) && !contextIds.includes(id))
   const leading = LEADING_VIEW_IDS.filter((id) => stored.includes(id))
   return [
     ...leading,
     ...stored.filter((id) => !leading.includes(id)),
     ...contextIds,
-    ...(chartView.value ? ['chart'] : []),
+    ...routeOnlyViews.value.map((v) => v.id),
   ]
 })
 
@@ -1275,14 +1285,13 @@ function tabAfterClosing(closingId) {
 }
 
 function handleViewClose(viewId) {
-  // The chart tab has no stored preference. A locked tab only gets here through Save & Close,
-  // and stays on the bar.
-  if (viewId !== 'chart' && !lockedViewIds.value.includes(viewId)) {
+  // A locked tab only gets here through Save & Close, and stays on the bar.
+  const routeOnly = ROUTE_ONLY_VIEW_IDS.includes(viewId)
+  if (!routeOnly && !lockedViewIds.value.includes(viewId)) {
     viewStore.removeView(PERSPECTIVE_ID, viewId, DEFAULT_VISIBLE_VIEW_IDS)
   }
   if (activeView.value !== viewId) return
-  // The chart tab exists only on its own route, so closing it always leaves.
-  const next = tabAfterClosing(viewId) ?? (viewId === 'chart' ? 'status' : null)
+  const next = tabAfterClosing(viewId) ?? (routeOnly ? 'status' : null)
   if (next) router.push(viewTabTarget(next))
 }
 
@@ -1367,6 +1376,7 @@ const viewComponents = {
   fdb: () => import('./subviews/SwitchForwardingDatabaseView.vue'),
   policies: () => import('./subviews/AgentPoliciesView.vue'),
   configBackup: () => import('./subviews/DeviceConfigBackupView.vue'),
+  agentLog: () => import('./subviews/AgentLogView.vue'),
   templates: () => import('./subviews/TemplatesView.vue'),
   script: () => import('./subviews/ScriptView.vue'),
   polls: () => import('./subviews/PollsView.vue'),

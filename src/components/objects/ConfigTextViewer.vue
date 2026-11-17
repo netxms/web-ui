@@ -2,7 +2,7 @@
 // Plain mode renders thousands of lines as two <pre> nodes (text and line numbers) aligned by
 // line-height; diff mode renders a row per line, affordable only over collapsed hunks.
 // Not CodeMirror: its virtualised viewport breaks the browser's own Ctrl+F.
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { collapseUnchanged } from '@/utils/textDiff'
 
 const props = defineProps({
@@ -16,7 +16,20 @@ const props = defineProps({
   diffContext: { type: Number, default: 3 },
   emptyMessage: { type: String, default: 'No content.' },
   label: { type: String, required: true },
+  /** Plain mode: show the last line whenever the text changes (a log tail). */
+  scrollToEnd: { type: Boolean, default: false },
 })
+
+const plainScrollRef = ref(null)
+
+watch(
+  [() => props.text, plainScrollRef],
+  () => {
+    const el = plainScrollRef.value
+    if (props.scrollToEnd && el) el.scrollTop = el.scrollHeight
+  },
+  { flush: 'post' },
+)
 
 const isDiff = computed(() => Array.isArray(props.diff))
 
@@ -68,7 +81,14 @@ const SIGNS = { added: '+', removed: '-', context: ' ' }
       </div>
     </div>
 
-    <div v-else class="config-viewer__scroll" tabindex="0" role="group" :aria-label="label">
+    <div
+      v-else
+      ref="plainScrollRef"
+      class="config-viewer__scroll"
+      tabindex="0"
+      role="group"
+      :aria-label="label"
+    >
       <div class="config-viewer__plain">
         <pre class="plain-gutter" aria-hidden="true">{{ plainGutter }}</pre>
         <pre class="plain-text">{{ plainText }}</pre>

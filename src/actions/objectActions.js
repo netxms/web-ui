@@ -25,6 +25,7 @@ import { hasUsablePrimaryIp } from '@/utils/sshTerminalProtocol'
 import { resolveHref } from '@/utils/navigation'
 import { setObjectMaintenance, wakeUpObject } from '@/api/objectsApi'
 import { setInterfaceExpectedStateFor, setObjectManagedStateFor } from './objectStateCommands'
+import { downloadAgentLog } from './agentLogCommands'
 import { EXPECTED_STATE, EXPECTED_STATE_OPTIONS } from '@/utils/interfaceDisplay'
 import { notify } from '@/utils/notify'
 import { dispatchMaintenanceResult } from '@/utils/maintenanceResult'
@@ -519,6 +520,27 @@ const objectActions = [
           String(ctx.object?.platformName ?? '').startsWith('windows-'),
         command: ({ actionContext }) =>
           dispatchObjectEvent('object:screenshot', { object: actionContext.object }),
+      },
+      {
+        id: 'object.tools.showAgentLog',
+        label: 'Show agent log',
+        icon: 'pi pi-file',
+        priority: 3,
+        objectClasses: ['Node'],
+        requiredObjectRight: 'DOWNLOAD',
+        isApplicable: (ctx) => !!ctx.object?.capabilities?.isNativeAgent,
+        url: resolveHref(objectViewTarget(ctx.object, 'agentLog')),
+        command: ({ actionContext }) => openObjectView(actionContext.object, 'agentLog'),
+      },
+      {
+        id: 'object.tools.downloadAgentLog',
+        label: 'Download agent log',
+        icon: 'pi pi-download',
+        priority: 3,
+        objectClasses: ['Node'],
+        requiredObjectRight: 'DOWNLOAD',
+        isApplicable: (ctx) => !!ctx.object?.capabilities?.isNativeAgent,
+        command: ({ actionContext }) => downloadAgentLog(actionContext.object),
       },
       {
         id: 'object.tools.exportData',

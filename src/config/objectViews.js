@@ -262,7 +262,7 @@ export const ALL_OBJECT_VIEWS = Object.values(OBJECT_VIEW_GROUPS).flatMap((g) =>
  * visible-views preference, or the stored per-class active view.
  */
 const AD_HOC_VIEW_PREFIXES = ['tool:', 'dashboard:', 'map:', 'ssh:']
-const AD_HOC_VIEW_IDS = ['chart']
+const AD_HOC_VIEW_IDS = ['chart', 'agentLog']
 
 /**
  * @param {string} viewId

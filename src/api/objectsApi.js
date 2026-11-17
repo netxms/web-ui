@@ -127,6 +127,20 @@ export function takeScreenshot(objectId, { sessionName } = {}) {
 }
 
 /**
+ * The agent's own log file, read live from the agent. A failure is the agent's answer or the
+ * server's link to it (500 with `agentErrorCode`), hence `suppressUnavailable` for a gateway
+ * timeout on a large file.
+ *
+ * @param {number} objectId - node id.
+ * @param {{ sizeLimit?: number }} [options] - bytes from the end of the file; 0 = whole file.
+ * @returns {Promise<Blob>}
+ */
+export function getAgentLog(objectId, { sizeLimit = 0 } = {}) {
+  const qs = sizeLimit > 0 ? `?sizeLimit=${sizeLimit}` : ''
+  return getBlob(`/v1/objects/${objectId}/agent-log${qs}`, { suppressUnavailable: true })
+}
+
+/**
  * Expand text macros server-side: several resolve against state a client cannot see, so this
  * is the only correct expansion.
  *

@@ -261,6 +261,41 @@ describe('Take screenshot', () => {
   })
 })
 
+describe('Agent log', () => {
+  const AGENT_NODE = { ...NODE, capabilities: { isNativeAgent: true } }
+  const AGENT_LOG_IDS = ['object.tools.showAgentLog', 'object.tools.downloadAgentLog']
+
+  function toolIds(object) {
+    const tools = menuFor(object).find((i) => i.id === 'object.tools')
+    return (tools?.items ?? []).filter((i) => !i.separator).map((i) => i.id)
+  }
+
+  it('offers show and download on a node running the agent', () => {
+    expect(toolIds(AGENT_NODE)).toEqual(expect.arrayContaining(AGENT_LOG_IDS))
+  })
+
+  it('is hidden when the node has no native agent', () => {
+    const ids = toolIds({ ...AGENT_NODE, capabilities: { isNativeAgent: false, isSnmp: true } })
+    for (const id of AGENT_LOG_IDS) expect(ids).not.toContain(id)
+  })
+
+  it('needs the download right', () => {
+    const rights = (...keys) =>
+      Object.fromEntries(OBJECT_ACCESS_RIGHTS.map((r) => [r.api, keys.includes(r.key)]))
+    const without = toolIds({ ...AGENT_NODE, effectiveRights: rights('READ', 'CONTROL') })
+    for (const id of AGENT_LOG_IDS) expect(without).not.toContain(id)
+    expect(toolIds({ ...AGENT_NODE, effectiveRights: rights('READ', 'DOWNLOAD') })).toEqual(
+      expect.arrayContaining(AGENT_LOG_IDS),
+    )
+  })
+
+  it('links "Show agent log" to the agent log tab', () => {
+    const tools = menuFor(AGENT_NODE).find((i) => i.id === 'object.tools')
+    const show = tools.items.find((i) => i.id === 'object.tools.showAgentLog')
+    expect(show.url).toContain('/agentLog')
+  })
+})
+
 describe('Organize submenu', () => {
   it('offers bind/unbind for a bindable object', () => {
     const organize = menuFor(NODE).find((i) => i.id === 'object.organize')
