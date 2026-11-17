@@ -88,7 +88,7 @@ const DATA_UNITS = [
   'rpm',
   's',
   'T',
-  'Uptime',
+  'TimeSpan',
   'W',
   'V',
   'Ω',

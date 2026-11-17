@@ -103,12 +103,23 @@ describe('formatDataValue: NetXMS extensions', () => {
     expect(fmt('%{m,u}s', '1500', DT.INT32, 'A', { useMultipliers: MUL.NO })).toBe(`1500${T}A`)
   })
 
-  it('formats uptime and epoch units instead of the conversion', () => {
-    expect(format('93784', DT.INT32, 'Uptime')).toBe('1 day, 02:03:04')
-    expect(format('59', DT.INT32, 'Uptime')).toBe('00:00:59')
+  it('formats time span and epoch units instead of the conversion', () => {
+    expect(format('93784', DT.INT32, 'TimeSpan')).toBe('1 day, 02:03:04')
+    expect(format('59', DT.INT32, 'TimeSpan')).toBe('00:00:59')
     expect(format('1700000000', DT.INT64, 'Epoch time')).toBe(
       formatDateTime(1700000000, { unixSeconds: true }),
     )
+  })
+
+  it('formats a negative time span as the absolute value with a leading minus', () => {
+    expect(format('-43', DT.INT32, 'TimeSpan')).toBe('-00:00:43')
+    expect(format('-90061', DT.INT32, 'TimeSpan')).toBe('-1 day, 01:01:01')
+    expect(format('-172800', DT.INT64, 'TimeSpan')).toBe('-2 days, 00:00:00')
+  })
+
+  it('reads the pre-7.1 unit name Uptime as a time span', () => {
+    expect(format('93784', DT.INT32, 'Uptime')).toBe('1 day, 02:03:04')
+    expect(format('-43', DT.INT32, 'Uptime')).toBe('-00:00:43')
   })
 
   it('keeps literal text and %%', () => {

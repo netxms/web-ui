@@ -177,11 +177,15 @@ function invalidFormat(spec) {
   return `<INVALID FORMAT> (${spec.trim()})`
 }
 
+// Servers before 7.1 call the time span unit "Uptime".
+const TIME_SPAN_UNITS = new Set(['TimeSpan', 'Uptime'])
+
 function formatConversion(ctx, spec, conversion, multipliers, units) {
-  if (units && (ctx.unit.name === 'Uptime' || ctx.unit.name === 'Epoch time')) {
+  const isTimeSpan = units && TIME_SPAN_UNITS.has(ctx.unit.name)
+  if (isTimeSpan || (units && ctx.unit.name === 'Epoch time')) {
     const seconds = Math.trunc(parseJavaDouble(ctx.text) ?? Number.NaN)
     if (!Number.isFinite(seconds)) return invalidFormat(spec)
-    if (ctx.unit.name === 'Uptime') return formatUptime(seconds)
+    if (isTimeSpan) return formatTimeSpan(seconds)
     return formatDateTime(seconds, { unixSeconds: true }) ?? ''
   }
   const v = conversion ? valueForFormat(ctx, multipliers, conversion) : null
@@ -352,8 +356,9 @@ function doubleToLong(d) {
   return BigInt(Math.trunc(d))
 }
 
-/** DateFormatFactory.formatTimeDifference(seconds, true): "3 days, 04:05:06". */
-function formatUptime(seconds) {
+/** DateFormatFactory.formatTimeDifference(seconds, true): "3 days, 04:05:06", "-00:00:43". */
+function formatTimeSpan(seconds) {
+  if (seconds < 0) return `-${formatTimeSpan(-seconds)}`
   const days = Math.trunc(seconds / 86400)
   let rest = seconds
   let out = ''
