@@ -166,6 +166,25 @@ test.describe('Event Processing', () => {
     await expect(button(page, 'Add Rule')).toHaveCount(0)
   })
 
+  test('an account granted only some chains opens the first of them', async ({ page }) => {
+    await signInWithRights(page, 0)
+    // As the server does: chain access lists never grant the main chain.
+    await page.route('**/api/v1/event-processing-policy/chains', async (route) => {
+      const response = await route.fetch()
+      const chains = await response.json()
+      await route.fulfill({ response, json: chains.filter((chain) => chain.id !== 0) })
+    })
+    const mainChainReads = []
+    await page.route('**/api/v1/event-processing-policy/chains/0', (route) => {
+      mainChainReads.push(route.request().url())
+      return route.fulfill({ status: 403, json: { reason: 'Access denied' } })
+    })
+
+    await page.goto('/configuration/epp')
+    await expect(page.getByText('Third failure in a row')).toBeVisible()
+    expect(mainChainReads).toEqual([])
+  })
+
   test('with the right a rule can be added', async ({ page }) => {
     await page.goto('/configuration/epp')
     await expect(button(page, 'Add Rule')).toBeVisible()

@@ -102,6 +102,19 @@ describe('resolveChainId', () => {
     expect(resolveChainId('2', [])).toBe(2)
     expect(resolveChainId('2', undefined)).toBe(2)
   })
+
+  it('falls back to the first chain in tab order when the main chain is not listed', () => {
+    expect(resolveChainId(undefined, [escalation, backup])).toBe(backup.id)
+    expect(resolveChainId('0', [escalation, backup])).toBe(backup.id)
+    expect(resolveChainId('99', [escalation])).toBe(escalation.id)
+  })
+
+  it('answers the pending fallback for a missing id until the registry has loaded', () => {
+    expect(resolveChainId(undefined, undefined)).toBe(MAIN_CHAIN_ID)
+    expect(resolveChainId(undefined, undefined, null)).toBeNull()
+    expect(resolveChainId('abc', [], null)).toBeNull()
+    expect(resolveChainId('2', undefined, null)).toBe(2)
+  })
 })
 
 describe('buildCallGraph', () => {

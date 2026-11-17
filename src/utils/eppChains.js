@@ -46,12 +46,22 @@ export function sortChains(chains) {
   })
 }
 
-/** An id that no longer exists (deleted chain, stale bookmark) falls back to the main chain. */
-export function resolveChainId(raw, chains) {
+/**
+ * A missing id, or one not listed (deleted chain, stale bookmark, a chain the user cannot read),
+ * falls back to the first tab: the main chain when listed. Until the list arrives a well-formed
+ * id is trusted and anything else gets `pending`.
+ *
+ * @param {unknown} raw
+ * @param {Array<{ id: number }>|undefined} chains
+ * @param {number|null} [pending]
+ * @returns {number|null}
+ */
+export function resolveChainId(raw, chains, pending = MAIN_CHAIN_ID) {
   const id = Number(raw)
-  if (!Number.isInteger(id) || id < 0) return MAIN_CHAIN_ID
-  if (!chains?.length) return id
-  return chains.some((chain) => chain.id === id) ? id : MAIN_CHAIN_ID
+  const wellFormed = Number.isInteger(id) && id >= 0
+  if (!chains?.length) return wellFormed ? id : pending
+  if (wellFormed && chains.some((chain) => chain.id === id)) return id
+  return sortChains(chains)[0].id
 }
 
 /**

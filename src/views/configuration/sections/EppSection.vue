@@ -109,10 +109,14 @@ const editingRule = computed(() => {
 const route = useRoute()
 const router = useRouter()
 
-const { data: chainsData, isLoading: isLoadingChains } = useEppChains()
+const { data: chainsData, isLoading: isLoadingChains, error: chainsError } = useEppChains()
 const chains = computed(() => sortChains(chainsData.value ?? []))
 
-const activeChainId = computed(() => resolveChainId(route.query.chain, chainsData.value))
+// Only the global EPP right makes the main chain readable; anyone else waits for the list
+// rather than request a chain the server refuses.
+const activeChainId = computed(() =>
+  resolveChainId(route.query.chain, chainsData.value, can.value.manageEpp ? MAIN_CHAIN_ID : null),
+)
 const activeChain = computed(
   () => chains.value.find((chain) => chain.id === activeChainId.value) ?? null,
 )
@@ -170,6 +174,12 @@ const {
 } = useEppChain(activeChainId)
 
 const isLoading = computed(() => isLoadingChains.value || isLoadingRules.value)
+
+// With no chain to open, the list's own refusal is the only answer to show.
+const tableError = computed(() => {
+  if (isError.value) return error.value
+  return activeChainId.value === null ? (chainsError.value ?? null) : null
+})
 
 const { data: eventTemplatesData } = useEventTemplates()
 const { data: serverActionsData } = useServerActions()
@@ -1200,7 +1210,7 @@ function onMenuClick({ event, rule }) {
       <EppTable
         :rules="filteredRules"
         :loading="isLoading"
-        :error="isError ? error : null"
+        :error="tableError"
         :selected-ids="selectedRuleIds"
         :expanded-ids="expandedRowIds"
         :cut-ids="cutGuids"

@@ -24,6 +24,10 @@ const chains = [
   { id: 2, name: 'test-chain', ruleCount: 0, callerCount: 1 },
 ]
 
+const chainsData = ref(chains)
+const chainsError = ref(null)
+const permissions = ref({ manageEpp: true })
+
 const chainRules = {
   0: [
     { guid: 'r1', chainId: 0, ruleNumber: 1, comments: 'first', flags: 0 },
@@ -33,7 +37,11 @@ const chainRules = {
 }
 
 vi.mock('@/queries/useEppQueries', () => ({
-  useEppChains: () => ({ data: ref(chains), isLoading: ref(false) }),
+  useEppChains: () => ({
+    data: chainsData,
+    isLoading: computed(() => chainsData.value === undefined && !chainsError.value),
+    error: chainsError,
+  }),
   useEppChain: (chainId) => ({
     data: computed(() => ({ id: chainId.value, version: 1, rules: chainRules[chainId.value] })),
     isLoading: ref(false),
@@ -78,7 +86,7 @@ vi.mock('@/queries/useEventTemplateQueries', () => ({
 }))
 vi.mock('@/queries/useServerActionQueries', () => ({ useServerActions: () => ({ data: ref([]) }) }))
 vi.mock('@/composables/usePermissions', () => ({
-  usePermissions: () => ({ can: computed(() => ({ manageEpp: true })) }),
+  usePermissions: () => ({ can: permissions }),
 }))
 vi.mock('@/composables/useUnsavedChangesGuard', () => ({ useUnsavedChangesGuard: () => {} }))
 
@@ -93,6 +101,7 @@ window.matchMedia =
     removeListener: () => {},
   }))
 import EppSection from '@/views/configuration/sections/EppSection.vue'
+import EppTable from '@/components/epp/EppTable.vue'
 
 let pinia
 
@@ -308,5 +317,52 @@ describe('EppSection rule context menu', () => {
       'first (copy)',
     ])
     expect(wrapper.vm.isDirty).toBe(true)
+  })
+})
+
+/** Without the global right the server never lists the main chain, nor lets it be read. */
+describe('EppSection chain selection', () => {
+  beforeEach(() => {
+    pinia = createPinia()
+    setActivePinia(pinia)
+    route.query = {}
+    push.mockClear()
+  })
+
+  afterEach(() => {
+    pinia._e.stop()
+    chainsData.value = chains
+    chainsError.value = null
+    permissions.value = { manageEpp: true }
+  })
+
+  it('opens the first chain granted by its access list for an account without the global right', async () => {
+    permissions.value = { manageEpp: false }
+    chainsData.value = undefined
+    const wrapper = mountSection()
+    await nextTick()
+    // Null idles the rules query: no request for a chain the server would refuse.
+    expect(wrapper.vm.activeChainId).toBeNull()
+
+    chainsData.value = [chains[1]]
+    await nextTick()
+    expect(wrapper.vm.activeChainId).toBe(2)
+    expect(wrapper.vm.activeChainName).toBe('test-chain')
+  })
+
+  it('opens the main chain before the list arrives for an account with the global right', async () => {
+    chainsData.value = undefined
+    const wrapper = mountSection()
+    await nextTick()
+    expect(wrapper.vm.activeChainId).toBe(0)
+  })
+
+  it('shows the refused chain list when there is no chain to open', async () => {
+    permissions.value = { manageEpp: false }
+    chainsData.value = undefined
+    chainsError.value = { status: 403, message: 'Access denied' }
+    const wrapper = mountSection()
+    await nextTick()
+    expect(wrapper.findComponent(EppTable).props('error')).toEqual(chainsError.value)
   })
 })
