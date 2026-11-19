@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
@@ -8,8 +8,8 @@ import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
 import Button from 'primevue/button'
 import { usePollExecutionStore } from '@/stores/pollExecutionStore'
-import { usePollExecution } from '@/composables/usePollExecution'
-import UnderConstructionOverlay from '@/components/common/UnderConstructionOverlay.vue'
+import PollOutput from '@/components/objects/PollOutput.vue'
+import { pollTypesForObject } from '@/utils/pollTypes'
 import { formatTimeShort } from '@/utils/timeFormat'
 
 const props = defineProps({
@@ -19,25 +19,11 @@ const props = defineProps({
   },
 })
 
-const POLL_TYPES = {
-  Node: [
-    { id: 'status', label: 'Status', icon: 'pi pi-info-circle' },
-    { id: 'configuration', label: 'Configuration', icon: 'pi pi-cog' },
-    { id: 'topology', label: 'Topology', icon: 'pi pi-share-alt' },
-    { id: 'instanceDiscovery', label: 'Instance Discovery', icon: 'pi pi-search' },
-  ],
-  Container: [{ id: 'automaticBinding', label: 'Automatic Binding', icon: 'pi pi-link' }],
-  Collector: [{ id: 'automaticBinding', label: 'Automatic Binding', icon: 'pi pi-link' }],
-  TemplateGroup: [{ id: 'automaticBinding', label: 'Automatic Binding', icon: 'pi pi-link' }],
-  TemplateRoot: [{ id: 'automaticBinding', label: 'Automatic Binding', icon: 'pi pi-link' }],
-}
-
 const route = useRoute()
 const router = useRouter()
 const pollStore = usePollExecutionStore()
-const { runPoll } = usePollExecution()
 
-const availablePolls = computed(() => POLL_TYPES[props.object?.class] || [])
+const availablePolls = computed(() => pollTypesForObject(props.object))
 
 // Driven by the route entityId param, falling back to the first available.
 const activeTab = computed(() => {
@@ -46,10 +32,8 @@ const activeTab = computed(() => {
   return availablePolls.value[0]?.id || null
 })
 
-const outputRefs = ref({})
-
 function execution(pollId) {
-  return pollStore.getExecution(`${props.object.id}-${pollId}`)
+  return pollStore.getExecution(props.object.id, pollId)
 }
 
 function isRunning(pollId) {
@@ -74,7 +58,7 @@ function statusClass(pollId) {
 
 function lastRunLabel(pollId) {
   const exec = execution(pollId)
-  if (!exec) return null
+  if (!exec?.startedAt) return null
   const time = formatTimeShort(exec.completedAt || exec.startedAt)
   if (exec.status === 'running') return `Started ${formatTimeShort(exec.startedAt)}`
   if (exec.status === 'completed') return `Completed ${time}`
@@ -82,35 +66,19 @@ function lastRunLabel(pollId) {
   return null
 }
 
+// The view also serves the Templates perspective, so the route keeps its own name.
+function pollRoute(pollId) {
+  return { name: route.name, params: { ...route.params, entityId: pollId } }
+}
+
 function handleTabChange(pollId) {
-  router.push({
-    name: 'infrastructure',
-    params: { objectId: props.object.id, viewId: 'polls', entityId: pollId },
-  })
+  router.push(pollRoute(pollId))
 }
 
-async function handleRun(pollId) {
-  const poll = availablePolls.value.find((p) => p.id === pollId)
-  if (!poll) return
-  await runPoll(props.object, poll.id, poll.label)
+function handleRun(pollId) {
+  if (!availablePolls.value.some((p) => p.id === pollId)) return
+  pollStore.start(props.object.id, pollId)
 }
-
-watch(
-  () =>
-    availablePolls.value.map((p) => ({
-      id: p.id,
-      output: execution(p.id)?.streamOutput,
-    })),
-  async (vals) => {
-    await nextTick()
-    for (const { id, output } of vals) {
-      if (output && outputRefs.value[id]) {
-        outputRefs.value[id].scrollTop = outputRefs.value[id].scrollHeight
-      }
-    }
-  },
-  { deep: true },
-)
 
 // autorun=1 comes from the context menu.
 watch(
@@ -118,10 +86,7 @@ watch(
   ([pollType, autorun]) => {
     if (autorun !== '1' || !pollType) return
     // Cleared first so a refresh doesn't re-trigger.
-    router.replace({
-      name: 'infrastructure',
-      params: { objectId: props.object.id, viewId: 'polls', entityId: pollType },
-    })
+    router.replace(pollRoute(pollType))
     handleRun(pollType)
   },
   { immediate: true },
@@ -129,84 +94,67 @@ watch(
 </script>
 
 <template>
-  <UnderConstructionOverlay message="Coming soon">
-    <div class="polls-view">
-      <Tabs
-        v-if="availablePolls.length"
-        :value="activeTab"
-        class="polls-tabs"
-        @update:value="handleTabChange"
-      >
-        <TabList>
-          <Tab v-for="poll in availablePolls" :key="poll.id" :value="poll.id" class="poll-tab">
-            <i :class="poll.icon" class="poll-tab-icon" />
-            <span>{{ poll.label }}</span>
-            <i
-              v-if="statusIcon(poll.id)"
-              :class="[statusIcon(poll.id), statusClass(poll.id), 'poll-tab-status']"
-            />
-          </Tab>
-        </TabList>
+  <div class="polls-view">
+    <Tabs
+      v-if="availablePolls.length"
+      :value="activeTab"
+      scrollable
+      class="polls-tabs"
+      @update:value="handleTabChange"
+    >
+      <TabList>
+        <Tab v-for="poll in availablePolls" :key="poll.id" :value="poll.id" class="poll-tab">
+          <i :class="poll.icon" class="poll-tab-icon" />
+          <span>{{ poll.label }}</span>
+          <i
+            v-if="statusIcon(poll.id)"
+            :class="[statusIcon(poll.id), statusClass(poll.id), 'poll-tab-status']"
+          />
+        </Tab>
+      </TabList>
 
-        <TabPanels class="polls-tab-panels">
-          <TabPanel
-            v-for="poll in availablePolls"
-            :key="poll.id"
-            :value="poll.id"
-            class="poll-panel"
-          >
-            <div class="poll-toolbar">
-              <div class="poll-toolbar-left">
-                <Button
-                  :label="`Run ${poll.label} Poll`"
-                  icon="pi pi-play"
-                  size="small"
-                  :disabled="isRunning(poll.id)"
-                  :loading="isRunning(poll.id)"
-                  @click="handleRun(poll.id)"
-                />
-                <span v-if="lastRunLabel(poll.id)" class="poll-last-run">
-                  {{ lastRunLabel(poll.id) }}
-                </span>
-              </div>
+      <TabPanels class="polls-tab-panels">
+        <TabPanel
+          v-for="poll in availablePolls"
+          :key="poll.id"
+          :value="poll.id"
+          class="poll-panel"
+        >
+          <div class="poll-toolbar">
+            <div class="poll-toolbar-left">
+              <Button
+                label="Run Poll"
+                icon="pi pi-play"
+                size="small"
+                :disabled="isRunning(poll.id)"
+                :loading="isRunning(poll.id)"
+                @click="handleRun(poll.id)"
+              />
+              <Button
+                v-tooltip.bottom="'Clear output'"
+                icon="pi pi-eraser"
+                label="Clear Output"
+                size="small"
+                severity="secondary"
+                :disabled="!execution(poll.id)?.lines.length"
+                @click="pollStore.clearOutput(object.id, poll.id)"
+              />
+              <span v-if="lastRunLabel(poll.id)" class="poll-last-run">
+                {{ lastRunLabel(poll.id) }}
+              </span>
             </div>
+          </div>
 
-            <div
-              :ref="(el) => (outputRefs[poll.id] = el)"
-              class="poll-output"
-              :class="{ 'poll-output--empty': !execution(poll.id) }"
-            >
-              <template v-if="!execution(poll.id)">
-                <span class="poll-empty-hint">Click "Run {{ poll.label }} Poll" to start.</span>
-              </template>
+          <PollOutput :execution="execution(poll.id)" empty-hint='Click "Run Poll" to start.' />
+        </TabPanel>
+      </TabPanels>
+    </Tabs>
 
-              <template v-else>
-                <pre class="poll-output-text">{{ execution(poll.id).streamOutput }}</pre>
-
-                <div v-if="execution(poll.id).status === 'pending'" class="poll-status-line">
-                  <i class="pi pi-spin pi-spinner" />
-                  <span>Sending poll request...</span>
-                </div>
-
-                <div
-                  v-if="execution(poll.id).status === 'error'"
-                  class="poll-status-line poll-status-line--error"
-                >
-                  <i class="pi pi-times-circle" />
-                  <span>{{ execution(poll.id).error }}</span>
-                </div>
-              </template>
-            </div>
-          </TabPanel>
-        </TabPanels>
-      </Tabs>
-
-      <div v-else class="polls-unsupported">
-        <i class="pi pi-info-circle" />
-        <span>No polls available for this object type.</span>
-      </div>
+    <div v-else class="polls-unsupported">
+      <i class="pi pi-info-circle" />
+      <span>No polls available for this object type.</span>
     </div>
-  </UnderConstructionOverlay>
+  </div>
 </template>
 
 <style scoped>
@@ -291,49 +239,6 @@ watch(
 .poll-last-run {
   font-size: 0.75rem;
   color: var(--p-text-muted-color);
-}
-
-.poll-output {
-  flex: 1;
-  overflow: auto;
-  padding: 0.75rem;
-  background: var(--p-surface-card);
-  min-height: 0;
-}
-
-.poll-output--empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.poll-empty-hint {
-  font-size: 0.8125rem;
-  color: var(--p-text-muted-color);
-}
-
-.poll-output-text {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-  line-height: 1.55;
-  white-space: pre-wrap;
-  word-break: break-all;
-  color: var(--p-text-color);
-}
-
-.poll-status-line {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-top: 0.5rem;
-  font-size: 0.8125rem;
-  font-family: var(--font-mono);
-  color: var(--p-text-muted-color);
-}
-
-.poll-status-line--error {
-  color: var(--p-red-500);
 }
 
 .polls-unsupported {

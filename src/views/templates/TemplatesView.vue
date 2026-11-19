@@ -316,7 +316,7 @@ const views = [
     id: 'polls',
     label: 'Polls',
     icon: 'pi pi-sync',
-    objectClasses: ['TemplateGroup', 'TemplateRoot'],
+    objectClasses: ['Template'],
   },
 ]
 

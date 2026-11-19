@@ -23,6 +23,7 @@ import { usePermissions } from '@/composables/usePermissions'
 import { useSshTerminalStore } from '@/stores/sshTerminalStore'
 import { hasUsablePrimaryIp } from '@/utils/sshTerminalProtocol'
 import { resolveHref } from '@/utils/navigation'
+import { INFRASTRUCTURE_POLLABLE_CLASSES, pollTypesForClass } from '@/utils/pollTypes'
 import { setObjectMaintenance, wakeUpObject } from '@/api/objectsApi'
 import { setInterfaceExpectedStateFor, setObjectManagedStateFor } from './objectStateCommands'
 import { downloadAgentLog } from './agentLogCommands'
@@ -90,7 +91,7 @@ const INFRASTRUCTURE_CONTEXTS = ['objectTree', 'templateTargets', 'interfaceTabl
 // Views with a top-level menu slot or submenu of their own.
 const OPEN_EXCLUDED_VIEWS = ['properties', 'polls', 'script', 'topology']
 
-const POLLABLE_CLASSES = ['Node', 'Container', 'Collector']
+const SCRIPT_CLASSES = ['Node', 'Container', 'Collector']
 
 // Legacy offers "Export data..." on the spatial classes only; Container is added because this
 // console cannot create those classes yet.
@@ -107,7 +108,7 @@ const DATA_EXPORT_ROOT_CLASSES = [
 // their own children (interface DCIs, Wake-on-LAN) and for server object tools, which can
 // target an interface (`TOOL_APPLICABLE_INTERFACE`).
 const TOOLS_SLOT_CLASSES = [
-  ...new Set([...POLLABLE_CLASSES, ...DATA_EXPORT_ROOT_CLASSES, 'Interface']),
+  ...new Set([...SCRIPT_CLASSES, ...DATA_EXPORT_ROOT_CLASSES, 'Interface']),
 ]
 
 /** @param {{ id: number }} object */
@@ -371,32 +372,11 @@ function buildOpenItems(ctx) {
   return [...items, ...openInspectionItems]
 }
 
-// Forced polling needs only READ (which the object would not be visible without), except
-// the full configuration poll - POLL_CONFIGURATION_WITH_RESET - which needs MODIFY. See
-// ClientSession::forcedObjectPoll.
-const POLL_TYPES = [
-  { id: 'status', label: 'Status', objectClasses: ['Node'] },
-  {
-    id: 'configuration',
-    label: 'Configuration (full)',
-    objectClasses: ['Node'],
-    requiredObjectRight: 'MODIFY',
-  },
-  { id: 'topology', label: 'Topology', objectClasses: ['Node'] },
-  { id: 'instanceDiscovery', label: 'Instance Discovery', objectClasses: ['Node'] },
-  {
-    id: 'automaticBinding',
-    label: 'Automatic Binding',
-    objectClasses: ['Container', 'Collector'],
-  },
-]
-
 function buildPollItems(ctx) {
-  return POLL_TYPES.map(({ id, label, objectClasses, requiredObjectRight }, index) => ({
+  return pollTypesForClass(ctx.object.class).map(({ id, label, requiredObjectRight }, index) => ({
     id: `object.poll.${id}`,
     label,
     priority: index,
-    objectClasses,
     ...(requiredObjectRight ? { requiredObjectRight } : {}),
     url: resolveHref(
       objectViewTarget(ctx.object, 'polls', { entityId: id, query: { autorun: '1' } }),
@@ -436,7 +416,7 @@ const objectActions = [
     group: 'operations',
     priority: 10,
     primary: true,
-    objectClasses: POLLABLE_CLASSES,
+    objectClasses: INFRASTRUCTURE_POLLABLE_CLASSES,
     items: buildPollItems,
   },
   {
@@ -458,7 +438,7 @@ const objectActions = [
         label: 'Execute script',
         icon: 'pi pi-code',
         priority: 0,
-        objectClasses: POLLABLE_CLASSES,
+        objectClasses: SCRIPT_CLASSES,
         // Ad-hoc script execution has its own right, not MODIFY.
         requiredObjectRight: 'EXECUTE_SCRIPT',
         command: ({ actionContext }) => openObjectView(actionContext.object, 'script'),

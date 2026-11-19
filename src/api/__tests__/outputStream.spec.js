@@ -136,4 +136,52 @@ describe('openOutputStream', () => {
       expect(order).toEqual(['a', 'b', 'closed'])
     })
   })
+
+  // Poll output: one line per frame with no terminator, some with a level.
+  describe('in line mode', () => {
+    const line = (data, level) => ({
+      data: JSON.stringify({ type: 'output', data, ...(level ? { level } : {}) }),
+    })
+
+    function openLines() {
+      const onFrame = vi.fn()
+      const ws = openOutputStream('/v1/polls/output/abc', { onFrame, lines: true })
+      return { ws, onFrame }
+    }
+
+    beforeEach(() => vi.useFakeTimers())
+    afterEach(() => vi.useRealTimers())
+
+    it('keeps lines apart with their level instead of joining them', () => {
+      const { ws, onFrame } = openLines()
+      ws.emit('message', line('Starting status poll'))
+      ws.emit('message', line('   Interface status retrieved', 'info'))
+      ws.emit('message', line('Node is unreachable', 'error'))
+      vi.advanceTimersByTime(100)
+      expect(onFrame.mock.calls).toEqual([
+        [{ type: 'output', lines: [{ text: 'Starting status poll', level: null }] }],
+        [
+          {
+            type: 'output',
+            lines: [
+              { text: '   Interface status retrieved', level: 'info' },
+              { text: 'Node is unreachable', level: 'error' },
+            ],
+          },
+        ],
+      ])
+    })
+
+    it('hands over the waiting lines ahead of the final frame', () => {
+      const { ws, onFrame } = openLines()
+      ws.emit('message', line('a'))
+      ws.emit('message', line('b'))
+      ws.emit('message', { data: '{"type":"completed"}' })
+      expect(onFrame.mock.calls.map(([frame]) => frame)).toEqual([
+        { type: 'output', lines: [{ text: 'a', level: null }] },
+        { type: 'output', lines: [{ text: 'b', level: null }] },
+        { type: 'completed' },
+      ])
+    })
+  })
 })

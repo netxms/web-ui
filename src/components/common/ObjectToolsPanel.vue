@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, nextTick, defineAsyncComponent } from 'vue'
+import { ref, computed, watch, defineAsyncComponent } from 'vue'
 import Button from 'primevue/button'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
@@ -7,9 +7,8 @@ import Tab from 'primevue/tab'
 import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
 import Select from 'primevue/select'
-import UnderConstructionOverlay from '@/components/common/UnderConstructionOverlay.vue'
 import { usePollExecutionStore } from '@/stores/pollExecutionStore'
-import { usePollExecution } from '@/composables/usePollExecution'
+import PollOutput from '@/components/objects/PollOutput.vue'
 import { useResizeHandle } from '@/composables/useResizeHandle'
 import { formatTimeShort } from '@/utils/timeFormat'
 
@@ -57,12 +56,9 @@ watch(
 )
 
 const pollStore = usePollExecutionStore()
-const { runPoll } = usePollExecution()
-const pollOutputRef = ref(null)
 
 const multiPoll = computed(() => props.polls.length > 1)
 const selectedPollId = ref(props.polls[0]?.id ?? null)
-const selectedPoll = computed(() => props.polls.find((p) => p.id === selectedPollId.value))
 
 const pollEmptyHint = computed(() =>
   multiPoll.value
@@ -71,7 +67,7 @@ const pollEmptyHint = computed(() =>
 )
 
 function pollExec(pollId) {
-  return props.objectId ? pollStore.getExecution(`${props.objectId}-${pollId}`) : null
+  return props.objectId ? pollStore.getExecution(props.objectId, pollId) : null
 }
 function isPollRunning(pollId) {
   return pollExec(pollId)?.status === 'running'
@@ -92,30 +88,17 @@ function pollStatusClass(pollId) {
 }
 function pollLastRun(pollId) {
   const exec = pollExec(pollId)
-  if (!exec) return null
+  if (!exec?.startedAt) return null
   const time = formatTimeShort(exec.completedAt || exec.startedAt)
   if (exec.status === 'running') return `Started ${formatTimeShort(exec.startedAt)}`
   if (exec.status === 'completed') return `Completed ${time}`
   if (exec.status === 'error') return `Failed ${time}`
   return null
 }
-async function handleRunPoll() {
-  const poll = selectedPoll.value
-  if (!props.objectId || !poll) return
-  await runPoll(
-    { id: props.objectId, name: props.objectLabel, class: 'Container' },
-    poll.id,
-    poll.label,
-  )
+function handleRunPoll() {
+  if (!props.objectId || !selectedPollId.value) return
+  pollStore.start(props.objectId, selectedPollId.value)
 }
-
-watch(
-  () => pollExec(selectedPollId.value)?.streamOutput,
-  async () => {
-    await nextTick()
-    if (pollOutputRef.value) pollOutputRef.value.scrollTop = pollOutputRef.value.scrollHeight
-  },
-)
 </script>
 
 <template>
@@ -149,64 +132,51 @@ watch(
 
       <TabPanels class="tools-tab-panels">
         <TabPanel value="polls" class="tools-tab-panel tools-tab-panel--polls">
-          <UnderConstructionOverlay message="Coming soon">
-            <div class="poll-row">
-              <template v-if="multiPoll">
-                <Select
-                  v-model="selectedPollId"
-                  :options="polls"
-                  option-label="label"
-                  option-value="id"
-                  class="poll-select"
-                  size="small"
-                />
-              </template>
-              <template v-else>
-                <i :class="[polls[0]?.icon, 'poll-type-icon']" />
-                <span class="poll-label">{{ polls[0]?.label }} Poll</span>
-              </template>
-              <span v-if="pollLastRun(selectedPollId)" class="poll-last-run">
-                {{ pollLastRun(selectedPollId) }}
-              </span>
-              <i
-                v-if="pollStatusIcon(selectedPollId)"
-                :class="[pollStatusIcon(selectedPollId), pollStatusClass(selectedPollId)]"
-                class="poll-status-icon"
-              />
-              <Button
-                label="Run"
-                icon="pi pi-play"
+          <div class="poll-row">
+            <template v-if="multiPoll">
+              <Select
+                v-model="selectedPollId"
+                :options="polls"
+                option-label="label"
+                option-value="id"
+                class="poll-select"
                 size="small"
-                :disabled="isPollRunning(selectedPollId) || !objectId"
-                :loading="isPollRunning(selectedPollId)"
-                @click="handleRunPoll"
+                aria-label="Poll type"
               />
-            </div>
+            </template>
+            <template v-else>
+              <i :class="[polls[0]?.icon, 'poll-type-icon']" />
+              <span class="poll-label">{{ polls[0]?.label }} Poll</span>
+            </template>
+            <span v-if="pollLastRun(selectedPollId)" class="poll-last-run">
+              {{ pollLastRun(selectedPollId) }}
+            </span>
+            <i
+              v-if="pollStatusIcon(selectedPollId)"
+              :class="[pollStatusIcon(selectedPollId), pollStatusClass(selectedPollId)]"
+              class="poll-status-icon"
+            />
+            <Button
+              label="Run"
+              icon="pi pi-play"
+              size="small"
+              :disabled="isPollRunning(selectedPollId) || !objectId"
+              :loading="isPollRunning(selectedPollId)"
+              @click="handleRunPoll"
+            />
+            <Button
+              v-tooltip.bottom="'Clear output'"
+              icon="pi pi-eraser"
+              size="small"
+              severity="secondary"
+              text
+              aria-label="Clear output"
+              :disabled="!pollExec(selectedPollId)?.lines.length"
+              @click="pollStore.clearOutput(objectId, selectedPollId)"
+            />
+          </div>
 
-            <div
-              ref="pollOutputRef"
-              class="poll-output"
-              :class="{ 'poll-output--empty': !pollExec(selectedPollId) }"
-            >
-              <template v-if="!pollExec(selectedPollId)">
-                <span class="poll-empty-hint">{{ pollEmptyHint }}</span>
-              </template>
-              <template v-else>
-                <pre class="poll-output-text">{{ pollExec(selectedPollId).streamOutput }}</pre>
-                <div v-if="pollExec(selectedPollId).status === 'pending'" class="poll-status-line">
-                  <i class="pi pi-spin pi-spinner" />
-                  <span>Sending poll request...</span>
-                </div>
-                <div
-                  v-if="pollExec(selectedPollId).status === 'error'"
-                  class="poll-status-line poll-status-line--error"
-                >
-                  <i class="pi pi-times-circle" />
-                  <span>{{ pollExec(selectedPollId).error }}</span>
-                </div>
-              </template>
-            </div>
-          </UnderConstructionOverlay>
+          <PollOutput :execution="pollExec(selectedPollId)" :empty-hint="pollEmptyHint" />
         </TabPanel>
 
         <TabPanel value="script" class="tools-tab-panel tools-tab-panel--script">
@@ -361,49 +331,6 @@ watch(
 }
 
 .status-err {
-  color: var(--p-red-500);
-}
-
-.poll-output {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 0.5rem 0.75rem;
-  background: var(--p-surface-ground);
-  font-family: var(--font-mono);
-}
-
-.poll-output--empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.poll-empty-hint {
-  font-size: 0.8125rem;
-  color: var(--p-text-muted-color);
-  font-style: italic;
-}
-
-.poll-output-text {
-  margin: 0;
-  font-size: 0.8125rem;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-all;
-  color: var(--p-text-color);
-}
-
-.poll-status-line {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  margin-top: 0.375rem;
-  font-size: 0.8125rem;
-  color: var(--p-text-muted-color);
-}
-
-.poll-status-line--error {
   color: var(--p-red-500);
 }
 

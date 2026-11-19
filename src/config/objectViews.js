@@ -15,6 +15,7 @@
  */
 import { DCI_TARGET_CLASSES, TEMPLATE_APPLICABLE_CLASSES } from '@/utils/objectUtils'
 import { moduleRegistry, MODULE_STATE } from '@/modules'
+import { INFRASTRUCTURE_POLLABLE_CLASSES } from '@/utils/pollTypes'
 
 const DCI_CAPABLE_CLASSES = [...DCI_TARGET_CLASSES].filter((c) => c !== 'Template')
 
@@ -220,7 +221,7 @@ export const OBJECT_VIEW_GROUPS = {
         id: 'polls',
         label: 'Polls',
         icon: 'pi pi-sync',
-        objectClasses: ['Node', 'Container', 'Collector'],
+        objectClasses: INFRASTRUCTURE_POLLABLE_CLASSES,
       },
     ],
   },

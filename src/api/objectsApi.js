@@ -112,6 +112,18 @@ export function wakeUpObject(id) {
 }
 
 /**
+ * Start a forced poll with streamed output: 202 `{pollType, token, expiresIn, wsUrl}`. The poll
+ * starts once `wsUrl` is connected (`openOutputStream`) and is cancelled if nobody connects
+ * within `expiresIn` seconds. 400 with `reason` when the type does not apply to the object.
+ *
+ * @param {number} objectId
+ * @param {string} pollType - key of `POLL_TYPES` (`@/utils/pollTypes`)
+ */
+export function startObjectPoll(objectId, pollType) {
+  return post(`/v1/objects/${objectId}/poll/${pollType}`, { stream: true })
+}
+
+/**
  * Screenshot of a remote Windows desktop through the agent, as `image/png` bytes. Needs
  * OBJECT_ACCESS_SCREENSHOT (`openapi.yaml` wrongly says read access). The server raises the
  * agent command timeout to 60s, so the request can stay open a while.

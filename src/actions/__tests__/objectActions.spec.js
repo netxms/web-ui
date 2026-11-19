@@ -157,13 +157,35 @@ describe('operations slots', () => {
     const nodePolls = menuFor(NODE)
       .find((i) => i.id === 'object.poll')
       .items.map((i) => i.id)
-    expect(nodePolls).toContain('object.poll.status')
-    expect(nodePolls).not.toContain('object.poll.automaticBinding')
+    expect(nodePolls).toEqual([
+      'object.poll.status',
+      'object.poll.configuration',
+      'object.poll.configuration-full',
+      'object.poll.instance-discovery',
+      'object.poll.interface-names',
+      'object.poll.discovery',
+      'object.poll.topology',
+    ])
 
     const containerPolls = menuFor(CONTAINER)
       .find((i) => i.id === 'object.poll')
       .items.map((i) => i.id)
-    expect(containerPolls).toEqual(['object.poll.automaticBinding'])
+    expect(containerPolls).toEqual(['object.poll.autobind'])
+  })
+
+  it('offers polls on the other pollable infrastructure classes', () => {
+    const pollsOf = (object) =>
+      menuFor(object)
+        .find((i) => i.id === 'object.poll')
+        ?.items.map((i) => i.id)
+    expect(pollsOf({ id: 30, name: 'cl', class: 'Cluster' })).toEqual([
+      'object.poll.status',
+      'object.poll.configuration',
+    ])
+    expect(pollsOf({ id: 31, name: 'r1', class: 'Rack' })).toEqual([
+      'object.poll.instance-discovery',
+    ])
+    expect(pollsOf(INTERFACE)).toBeUndefined()
   })
 
   it('keeps the Tools slot alive for injection even with no applicable static child', () => {
@@ -486,8 +508,9 @@ describe('effective rights gating', () => {
         .map((i) => i.id)
 
     expect(pollIds(rights('READ'))).toContain('object.poll.status')
-    expect(pollIds(rights('READ'))).not.toContain('object.poll.configuration')
-    expect(pollIds(rights('READ', 'MODIFY'))).toContain('object.poll.configuration')
+    expect(pollIds(rights('READ'))).toContain('object.poll.configuration')
+    expect(pollIds(rights('READ'))).not.toContain('object.poll.configuration-full')
+    expect(pollIds(rights('READ', 'MODIFY'))).toContain('object.poll.configuration-full')
   })
 
   it('keeps the Tools slot alive after gating out a child', () => {

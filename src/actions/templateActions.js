@@ -216,10 +216,11 @@ const templateActions = [
     icon: 'pi pi-sync',
     group: 'views',
     priority: 55,
-    objectClasses: ['TemplateGroup', 'TemplateRoot'],
+    // Templates bind automatically; template groups are not pollable.
+    objectClasses: ['Template'],
     items: [
       {
-        id: 'template.poll.automaticBinding',
+        id: 'template.poll.autobind',
         label: 'Automatic Binding',
         priority: 55,
         command: ({ actionContext }) => {
@@ -228,7 +229,7 @@ const templateActions = [
             params: {
               objectId: actionContext.object.id,
               viewId: 'polls',
-              entityId: 'automaticBinding',
+              entityId: 'autobind',
             },
             query: { autorun: '1' },
           })

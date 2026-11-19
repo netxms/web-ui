@@ -1,13 +1,14 @@
 /**
  * The WebSocket half of the WebAPI's streaming executions.
  *
- * Object tools (`POST /v1/object-tools/{id}/execute`) and ad-hoc scripts
- * (`POST /v1/objects/{id}/execute-script`) answer `stream: true` with 202 and a `wsUrl` that
- * embeds a single-use token; the execution starts when that socket connects. Both speak one
- * frame vocabulary, JSON text frames: `output` (`data`: a chunk), `result` (`data`: the return
- * value), `completed`, `stopped` (scripts only) and `error` (`message`, plus `diagnostic` for
- * scripts). The server closes the socket after the last of them, and a client that closes it
- * stops the execution.
+ * Object tools (`POST /v1/object-tools/{id}/execute`), ad-hoc scripts
+ * (`POST /v1/objects/{id}/execute-script`) and forced polls (`POST /v1/objects/{id}/poll/{type}`)
+ * answer with 202 and a `wsUrl` that embeds a single-use token; the execution starts when that
+ * socket connects. All speak one frame vocabulary, JSON text frames: `output` (`data`: a chunk;
+ * for polls one line without its terminator, plus `level` info/warning/error on highlighted
+ * lines), `result` (`data`: the return value), `completed`, `stopped` (scripts only) and `error`
+ * (`message`, plus `diagnostic` for scripts). The server closes the socket after the last of
+ * them. A client that closes it stops a tool or script; a poll runs on and its output is dropped.
  */
 
 const OUTPUT_INTERVAL_MS = 100
@@ -42,27 +43,31 @@ export function buildWsUrl(wsPath) {
  * chunk after a quiet spell goes out at once, and any other frame or the close sends what is
  * waiting ahead of it.
  *
+ * With `lines`, output frames are kept apart instead of joined, and handed over as
+ * `{ type: 'output', lines: [{ text, level }] }` (`level` null on normal lines).
+ *
  * @param {string} wsPath - `wsUrl` from the 202 answer
  * @param {object} handlers
- * @param {(frame: {type: string, data?: any, message?: string, diagnostic?: object}) => void} handlers.onFrame
+ * @param {(frame: {type: string, data?: any, lines?: Array<{text: string, level: string|null}>, message?: string, diagnostic?: object}) => void} handlers.onFrame
  * @param {(event: CloseEvent) => void} [handlers.onClose]
  * @param {() => void} [handlers.onError]
+ * @param {boolean} [handlers.lines]
  * @returns {WebSocket}
  */
-export function openOutputStream(wsPath, { onFrame, onClose, onError }) {
+export function openOutputStream(wsPath, { onFrame, onClose, onError, lines = false }) {
   const ws = new WebSocket(buildWsUrl(wsPath))
-  let pendingOutput = ''
+  let pendingOutput = lines ? [] : ''
   let flushTimer = null
   let lastFlush = 0
 
   function flushOutput() {
     clearTimeout(flushTimer)
     flushTimer = null
-    if (!pendingOutput) return
-    const data = pendingOutput
-    pendingOutput = ''
+    if (pendingOutput.length === 0) return
+    const batch = pendingOutput
+    pendingOutput = lines ? [] : ''
     lastFlush = Date.now()
-    onFrame({ type: 'output', data })
+    onFrame(lines ? { type: 'output', lines: batch } : { type: 'output', data: batch })
   }
 
   ws.addEventListener('message', (event) => {
@@ -75,7 +80,8 @@ export function openOutputStream(wsPath, { onFrame, onClose, onError }) {
     if (frame === null || typeof frame !== 'object') frame = { type: 'output', data: event.data }
 
     if (frame.type === 'output' && typeof frame.data === 'string') {
-      pendingOutput += frame.data
+      if (lines) pendingOutput.push({ text: frame.data, level: frame.level ?? null })
+      else pendingOutput += frame.data
       if (flushTimer === null) {
         const wait = lastFlush + OUTPUT_INTERVAL_MS - Date.now()
         if (wait <= 0) flushOutput()

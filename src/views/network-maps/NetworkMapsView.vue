@@ -85,6 +85,7 @@ import { useObjectDeletionNavigation } from '@/composables/useObjectDeletionNavi
 import { useWorkingState } from '@/composables/useWorkingState'
 import { findNodeByPath } from '@/utils/objectTreeNavigation'
 import { filterObjectTree } from '@/utils/objectTreeSort'
+import { pollTypesForClass } from '@/utils/pollTypes'
 
 const DEFAULT_ROOT_ID = 6
 
@@ -339,10 +340,7 @@ const mergeLinksOverride = ref(null)
 
 const toolsPanelOpen = ref(false)
 const activeToolsTab = ref('polls')
-const MAP_POLLS = [
-  { id: 'automaticBinding', label: 'Automatic Binding', icon: 'pi pi-link' },
-  { id: 'mapUpdate', label: 'Map Update', icon: 'pi pi-refresh' },
-]
+const MAP_POLLS = pollTypesForClass('NetworkMap')
 
 const canvasRef = ref(null)
 

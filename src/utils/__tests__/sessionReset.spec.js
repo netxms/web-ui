@@ -28,6 +28,12 @@ const scriptApi = vi.hoisted(() => ({
 }))
 vi.mock('@/api/scriptApi', () => scriptApi)
 
+const pollApi = vi.hoisted(() => ({ startObjectPoll: vi.fn() }))
+vi.mock('@/api/objectsApi', async (importOriginal) => ({
+  ...(await importOriginal()),
+  startObjectPoll: pollApi.startObjectPoll,
+}))
+
 vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn() }) }))
 vi.mock('primevue/useconfirm', () => ({ useConfirm: () => ({ require: vi.fn() }) }))
 vi.mock('primevue/usetoast', () => ({ useToast: () => ({ add: vi.fn() }) }))
@@ -152,22 +158,19 @@ describe('resetSessionState', () => {
     expect(terminals.sessionsForObject(42)).toEqual([])
   })
 
-  it('drops poll logs and the object selection', () => {
+  it('drops poll logs, closes running poll streams and clears the object selection', async () => {
     const polls = usePollExecutionStore()
     const selection = useSelectionStore()
-    polls.createExecution({
-      pollType: 'status',
-      pollLabel: 'Status',
-      objectId: 42,
-      objectName: 'core-sw-1',
-    })
-    polls.appendStreamOutput('42-status', 'Poll request sent\n')
+    pollApi.startObjectPoll.mockResolvedValue({ wsUrl: '/v1/polls/output/t' })
+    await polls.start(42, 'status')
+    const ws = FakeWebSocket.instances[0]
     selection.selectPrimary({ id: 42, name: 'core-sw-1' })
     selection.selectView({ id: 43, name: 'eth0' }, 'interfaces')
 
     resetSessionState()
 
-    expect(polls.getExecution('42-status')).toBeNull()
+    expect(ws.closed).toEqual({ code: 1000, reason: 'session ended' })
+    expect(polls.getExecution(42, 'status')).toBeNull()
     expect(selection.primaryObject).toBeNull()
     expect(selection.primaryObjects).toEqual([])
     expect(selection.viewObject).toBeNull()

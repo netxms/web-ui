@@ -32,6 +32,7 @@ import { useObjectDeletionNavigation } from '@/composables/useObjectDeletionNavi
 import { useWorkingState } from '@/composables/useWorkingState'
 import { findNodeByPath } from '@/utils/objectTreeNavigation'
 import { filterObjectTree } from '@/utils/objectTreeSort'
+import { pollTypesForClass } from '@/utils/pollTypes'
 
 const DEFAULT_ROOT_ID = 7
 
@@ -342,6 +343,7 @@ function toggleCreateObjectMenu(event) {
 
 const toolsPanelOpen = ref(false)
 const activeToolsTab = ref('polls')
+const DASHBOARD_POLLS = pollTypesForClass('Dashboard')
 
 const showProperties = ref(false)
 
@@ -533,7 +535,7 @@ function handleDiscard() {
     title="Dashboard Tools"
     title-icon="pi pi-wrench"
     object-label="Dashboard"
-    :polls="[{ id: 'automaticBinding', label: 'Automatic Binding', icon: 'pi pi-link' }]"
+    :polls="DASHBOARD_POLLS"
   />
 
   <!-- Triggered via the object:create DOM event -->
