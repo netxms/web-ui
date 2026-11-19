@@ -79,6 +79,7 @@ import {
   withoutHiddenLayers,
 } from '@/utils/networkMapLayers'
 import { activeMergeThreshold, configuredMergeThreshold } from '@/utils/networkMapParallelLinks'
+import { mapObjectEntries } from '@/utils/networkMapObjectList'
 import { buildCreateMenuItems } from '@/utils/createMenuItems'
 import { useObjectDeletionNavigation } from '@/composables/useObjectDeletionNavigation'
 import { useWorkingState } from '@/composables/useWorkingState'
@@ -571,6 +572,11 @@ function setLayerMenuItem(elementIds) {
 /** Resolved against canvasMapData so a "Canvas type" change previews before it is saved. */
 const isGeoCanvas = computed(
   () => canvasTypeOverride.value ?? isGeographicalCanvas(canvasMapData.value),
+)
+
+/** The search field's list: what the canvas draws, so hidden layers drop out. */
+const mapObjects = computed(() =>
+  mapObjectEntries(displayMapData.value, { geo: isGeoCanvas.value }),
 )
 
 /** Preview included (0 = never merge). */
@@ -1810,6 +1816,7 @@ function handleEdgeContextMenu(event, edgeData) {
         :map-data="mapData"
         :is-fetching="fetchingMap && !loadingMap"
         :search-term="searchTerm"
+        :objects="mapObjects"
         :editable="!isDemoMap"
         :layout-tools="!isGeoCanvas"
         :edit-mode="layoutEditMode"
@@ -1819,6 +1826,7 @@ function handleEdgeContextMenu(event, edgeData) {
         @toggle-layers="toggleLayersPanel"
         @open-map-settings="openMapProperties"
         @update:search-term="searchTerm = $event"
+        @focus-object="(id) => canvasRef?.focusElement(id)"
         @refresh="refetchMap"
         @apply-layout="(type) => canvasRef?.applyLayout(type)"
         @open-tools-panel="

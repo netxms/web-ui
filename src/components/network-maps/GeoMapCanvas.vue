@@ -622,6 +622,24 @@ function placedBounds() {
   return latLngs.length ? L.latLngBounds(latLngs) : null
 }
 
+/**
+ * Selects an object pin as a tap would and pans it to the middle at the current zoom.
+ *
+ * @param {string} id - map element id
+ * @returns {boolean} false when the map draws no such object
+ */
+function focusElement(id) {
+  const node = cy?.getElementById(String(id))
+  const geo = node?.nonempty() ? node.data('geolocation') : null
+  if (!geo || !mapHandler) return false
+  cy.elements(':selected').unselect()
+  node.select()
+  // A programmatic selection fires no tap.
+  emit('node-select', [nodePayload(node)])
+  mapHandler.map.panTo(L.latLng(geo.lat, geo.lng))
+  return true
+}
+
 function fitToPlaced() {
   const bounds = placedBounds()
   if (!bounds || !mapHandler) return false
@@ -843,7 +861,7 @@ const zoomOut = () => mapHandler?.map.zoomOut()
 // Geo maps have no graph-space coords; callers fall back to a default position.
 const screenToGraphCoords = () => null
 
-defineExpose({ fitContent, zoomIn, zoomOut, screenToGraphCoords })
+defineExpose({ fitContent, focusElement, zoomIn, zoomOut, screenToGraphCoords })
 </script>
 
 <template>

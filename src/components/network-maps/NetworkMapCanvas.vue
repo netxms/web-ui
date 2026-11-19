@@ -49,6 +49,7 @@ import MapIconMasks from './MapIconMasks.vue'
 import NetworkMapLabelLeaders from './NetworkMapLabelLeaders.vue'
 import NetworkMapOverflowTable from './NetworkMapOverflowTable.vue'
 import { computeDisplayName } from '@/utils/topologyUtils'
+import { matchesMapSearch } from '@/utils/networkMapObjectList'
 import { LAYOUT_RUNNERS } from '@/utils/layoutEngine'
 
 // Bumped per instance so concurrently mounted canvases never share SVG ids.
@@ -258,7 +259,7 @@ function isLinkDeemphasized(link) {
 
 function rebuildOverlayNodes() {
   if (!cy) return
-  const term = props.searchTerm?.toLowerCase()
+  const term = props.searchTerm?.trim()
   const options = renderOptions.value
   const elementsById = new Map(props.mapData.elements.map((e) => [e.id, e]))
   iconNodes.value = cy.nodes('.object').map((n) => {
@@ -276,7 +277,7 @@ function rebuildOverlayNodes() {
       displayName,
       ...paintMapNode({ element, displayName, status, options, measureText, dark: isDark.value }),
       dimmed:
-        (term ? !n.data('name')?.toLowerCase().includes(term) : false) || isDeemphasized(n.id()),
+        (term ? !matchesMapSearch(n.data('name'), term) : false) || isDeemphasized(n.id()),
     }
   })
 }
@@ -2086,6 +2087,23 @@ function fitContent() {
   cy?.fit(cy.$('node'), 80)
 }
 
+/**
+ * Selects an object node as a click would and pans it to the middle at the current zoom.
+ *
+ * @param {string} id - map element id
+ * @returns {boolean} false when the map draws no such object
+ */
+function focusElement(id) {
+  const node = cy?.getElementById(String(id))
+  if (!node || node.empty() || !node.hasClass('object')) return false
+  clearBaseElementSelection()
+  clearOtherSelections()
+  cy.elements(':selected').unselect()
+  node.select()
+  cy.animate({ center: { eles: node } }, { duration: 300 })
+  return true
+}
+
 function zoomIn() {
   if (!cy) return
   const center = {
@@ -2342,6 +2360,7 @@ function resetDemo() {
 
 defineExpose({
   fitContent,
+  focusElement,
   zoomIn,
   zoomOut,
   addNode,
