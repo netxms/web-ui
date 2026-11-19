@@ -28,12 +28,12 @@ const ALARMS = [
 const NODE = { id: 1, class: 'Node', name: 'web-01', category: 0, status: 0 }
 
 /** Fulfils the alarm routes; the returned list collects the state changes sent. */
-async function serveAlarms(page) {
+async function serveAlarms(page, alarms = ALARMS) {
   const changes = []
   await page.route(/\/api\/v1\/alarms(\?.*)?$/, (route) => {
     const details = route.request().url().includes('includeObjectDetails=true')
     return route.fulfill({
-      json: details ? ALARMS.map((alarm) => ({ ...alarm, sourceObject: NODE })) : ALARMS,
+      json: details ? alarms.map((alarm) => ({ ...alarm, sourceObject: NODE })) : alarms,
     })
   })
   await page.route(/\/api\/v1\/alarms\/\d+$/, (route) =>
@@ -150,4 +150,28 @@ test('the menu follows the selection', async ({ page }) => {
   await expect(menuItem(page, 'Resolve (2)')).toBeVisible()
   await expect(menuItem(page, 'Details')).toHaveCount(0)
   await expect(menuItem(page, 'Object')).toHaveCount(0)
+})
+
+test('select all stays in the header while the rows scroll under it', async ({ page }) => {
+  const many = Array.from({ length: 40 }, (_, i) => ({
+    ...base,
+    id: i + 1,
+    state: 0,
+    severity: 2,
+    message: `Alarm ${i + 1}`,
+  }))
+  await serveAlarms(page, many)
+  await page.setViewportSize({ width: 1600, height: 500 })
+  await page.goto('/alarms')
+  await expect(rows(page)).toHaveCount(40)
+
+  await page.locator('.alarms-table .app-table-wrap').evaluate((el) => (el.scrollTop = 300))
+  const selectAllCell = await page
+    .locator('.alarms-table thead th.app-table__checkbox-th')
+    .boundingBox()
+  const lastHeaderCell = await page.locator('.alarms-table thead th').last().boundingBox()
+  expect(Math.abs(selectAllCell.y - lastHeaderCell.y)).toBeLessThan(1)
+
+  await page.getByRole('checkbox', { name: 'Select all rows on this page' }).click()
+  await expect(selection(page)).toContainText('40 selected')
 })

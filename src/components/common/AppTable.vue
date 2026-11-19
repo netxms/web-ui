@@ -1161,10 +1161,14 @@ function onHeaderPointerDown(event, col) {
 /* Beats the size padding: the wrapper is absolutely positioned and fills the cell. */
 .app-table thead th.app-table__checkbox-th,
 .app-table > :deep(tbody > * > td.app-table__checkbox-td) {
-  position: relative;
   width: 2.5rem;
   padding: 0;
   text-align: center;
+}
+
+/* Body cells only: the header cell stays sticky, which positions the wrapper just as well. */
+.app-table > :deep(tbody > * > td.app-table__checkbox-td) {
+  position: relative;
 }
 
 :deep(.app-table__checkbox-wrap) {
