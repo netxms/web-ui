@@ -20,6 +20,7 @@ const table = reactive({
   pageSize: 2,
   storageKey: 'probe',
   ownerId: null,
+  groupBy: null,
 })
 
 const TableView = defineComponent({
@@ -36,6 +37,7 @@ const TableView = defineComponent({
         compact: true,
         storageKey: table.storageKey,
         ownerId: table.ownerId,
+        groupBy: table.groupBy,
         expandable: true,
       },
       { expansion: ({ row }) => h('div', { class: 'expansion' }, row.name) },
@@ -90,6 +92,7 @@ beforeEach(() => {
     pageSize: 2,
     storageKey: 'probe',
     ownerId: null,
+    groupBy: null,
   })
 })
 
@@ -198,5 +201,26 @@ describe('AppTable working state', () => {
     await go('/infrastructure/1')
 
     expect(names()).toEqual(['row01', 'row02'])
+  })
+
+  it('restores collapsed groups for the same object only', async () => {
+    table.pageSize = null
+    table.groupBy = (row) => (row.id % 2 ? { key: 'odd', label: 'odd' } : { key: 'even', label: 'even' })
+    const oddToggle = () =>
+      wrapper
+        .findAll('button.app-table__group-toggle')
+        .find((b) => b.find('.app-table__group-label').text() === 'odd')
+    await mountAt('/infrastructure/1')
+    await oddToggle().trigger('click')
+    expect(names()).toEqual(['row02', 'row04', 'row06'])
+
+    await go('/alarms')
+    await go('/infrastructure/1')
+    expect(oddToggle().attributes('aria-expanded')).toBe('false')
+    expect(names()).toEqual(['row02', 'row04', 'row06'])
+
+    await go('/alarms')
+    await go('/infrastructure/2')
+    expect(oddToggle().attributes('aria-expanded')).toBe('true')
   })
 })

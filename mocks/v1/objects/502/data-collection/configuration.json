@@ -70,8 +70,8 @@
         "script": ""
       }
     ],
-    "templateId": 0,
-    "templateItemId": 0
+    "templateId": 901,
+    "templateItemId": 11
   },
   {
     "id": 2,
@@ -176,7 +176,8 @@
     "accessList": [],
     "thresholds": [],
     "templateId": 0,
-    "templateItemId": 0
+    "templateItemId": 0,
+    "relatedObject": 503
   },
   {
     "id": 4,
@@ -235,8 +236,8 @@
         "script": ""
       }
     ],
-    "templateId": 0,
-    "templateItemId": 0
+    "templateId": 901,
+    "templateItemId": 14
   },
   {
     "id": 5,
@@ -281,6 +282,7 @@
     "accessList": [],
     "thresholds": [],
     "templateId": 0,
-    "templateItemId": 0
+    "templateItemId": 0,
+    "relatedObject": 503
   }
 ]

@@ -3,10 +3,20 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { computed, defineComponent, ref, toValue } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import PrimeVue from 'primevue/config'
+import Select from 'primevue/select'
 import DCIsView from '../DCIsView.vue'
+import AppTable from '@/components/common/AppTable.vue'
 import { entityIdForTest } from '@/composables/useEntityDetail'
 import { clearWorkingState } from '@/composables/useWorkingState'
 import { userPrefs } from '@/utils/appStorage'
+import { useDciConfigTableStore } from '@/stores/dciTableStore'
+
+// PrimeVue's Select binds a matchMedia listener on mount; jsdom does not provide one.
+window.matchMedia ??= () => ({
+  matches: false,
+  addEventListener: () => {},
+  removeEventListener: () => {},
+})
 
 // Mounting the whole view is slow under the parallel suite.
 vi.setConfig({ testTimeout: 15_000 })
@@ -57,6 +67,7 @@ const values = [
     status: 0,
     timestamp: iso(nowSeconds - 60),
     templateItemId: 0,
+    userTag: 'disk',
     comments: 'Line one\nLine two',
   },
   // Added by a template, with a threshold that fired.
@@ -68,6 +79,7 @@ const values = [
     status: 0,
     timestamp: iso(nowSeconds - 60),
     templateItemId: 2243,
+    userTag: 'disk',
     hasActiveThreshold: true,
     threshold: {
       function: 'last',
@@ -101,10 +113,14 @@ const values = [
 ]
 
 const prefetchDciHistory = vi.fn()
+// Swapped by a test; the view reads them through the query mocks.
+const liveValues = ref(values)
+const knownObjects = ref(new Map())
+let configListOptions = null
 
 vi.mock('@/queries/useObjectQueries', () => ({
   useDciCurrentValues: () => ({
-    data: ref({ values }),
+    data: computed(() => ({ values: liveValues.value })),
     isLoading: ref(false),
     isFetching: ref(false),
     isError: ref(false),
@@ -116,7 +132,7 @@ vi.mock('@/queries/useObjectQueries', () => ({
     isLoading: ref(false),
   }),
   useObjectsByIds: () => ({
-    objectsById: computed(() => new Map()),
+    objectsById: computed(() => knownObjects.value),
     isFetching: ref(false),
     unresolvedIds: ref([]),
   }),
@@ -136,6 +152,7 @@ const configList = [
     retentionType: 'default',
     templateId: 0,
     templateItemId: 0,
+    relatedObject: 55,
     thresholds: [],
   },
   {
@@ -155,14 +172,17 @@ const configList = [
 ]
 
 vi.mock('@/queries/useDciConfigQueries', () => ({
-  useDciConfigList: () => ({
-    data: ref(configList),
-    isLoading: ref(false),
-    isFetching: ref(false),
-    isError: ref(false),
-    error: ref(null),
-    refetch: vi.fn(),
-  }),
+  useDciConfigList: (objectId, options) => {
+    configListOptions = options
+    return {
+      data: ref(configList),
+      isLoading: ref(false),
+      isFetching: ref(false),
+      isError: ref(false),
+      error: ref(null),
+      refetch: vi.fn(),
+    }
+  },
   useUpdateDci: () => ({ mutate: vi.fn() }),
   useDeleteDci: () => ({ mutate: vi.fn() }),
 }))
@@ -234,6 +254,9 @@ beforeEach(() => {
   entityIdForTest.value = null
   routerPush.mockClear()
   prefetchDciHistory.mockClear()
+  liveValues.value = values
+  knownObjects.value = new Map()
+  configListOptions = null
 })
 
 const dataRows = (wrapper) => wrapper.findAll('tbody tr[aria-expanded]')
@@ -632,5 +655,154 @@ describe('DCIsView working state', () => {
     await flushPromises()
 
     expect(template.find('.dci-template-cell').exists()).toBe(true)
+  })
+})
+
+describe('DCIsView group by', () => {
+  const groupSelect = (wrapper) => wrapper.findComponent(Select)
+  const table = (wrapper) => wrapper.findComponent(AppTable)
+  const headers = (wrapper) =>
+    wrapper.findAll('tr.app-table__group-row .app-table__group-label').map((el) => el.text())
+  const disabledModes = (wrapper) =>
+    groupSelect(wrapper)
+      .props('options')
+      .filter((o) => o.disabled)
+      .map((o) => o.value)
+  const withSourceFields = () =>
+    values.map((v) => ({ ...v, templateId: v.templateItemId ? 20 : 0, relatedObject: 0 }))
+
+  async function pick(wrapper, value) {
+    groupSelect(wrapper).vm.$emit('update:modelValue', value)
+    await flushPromises()
+  }
+
+  async function toConfiguration(wrapper) {
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text() === 'Configuration')
+      .trigger('click')
+    await flushPromises()
+  }
+
+  it('remembers the grouping separately for Live Data and Configuration', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+    await pick(wrapper, 'tag')
+    expect(userPrefs.get('dci.groupBy')).toEqual({ values: 'tag' })
+    expect(headers(wrapper)).toEqual(['disk', '(untagged)'])
+
+    await toConfiguration(wrapper)
+    expect(groupSelect(wrapper).props('modelValue')).toBe('none')
+    expect(table(wrapper).props('groupBy')).toBeNull()
+
+    await pick(wrapper, 'status')
+    expect(userPrefs.get('dci.groupBy')).toEqual({ values: 'tag', config: 'status' })
+    expect(headers(wrapper)).toEqual(['Active'])
+  })
+
+  it('re-reads the grouping when preferences arrive from the server', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+    userPrefs.replace({ 'dci.groupBy': { values: 'status' } }, null)
+    await flushPromises()
+    expect(groupSelect(wrapper).props('modelValue')).toBe('status')
+    expect(headers(wrapper)).toEqual(['Active', 'Not Supported'])
+  })
+
+  it('offers source groupings in Live Data only when the server sends templateId', async () => {
+    userPrefs.set('dci.groupBy', { values: 'template' })
+    const wrapper = mountView()
+    await flushPromises()
+    expect(disabledModes(wrapper)).toEqual(['template', 'instanceDiscovery', 'relatedObject'])
+    expect(groupSelect(wrapper).props('modelValue')).toBe('none')
+    expect(table(wrapper).props('groupBy')).toBeNull()
+    expect(userPrefs.get('dci.groupBy')).toEqual({ values: 'template' })
+
+    liveValues.value = withSourceFields()
+    await flushPromises()
+    expect(disabledModes(wrapper)).toEqual([])
+    expect(groupSelect(wrapper).props('modelValue')).toBe('template')
+    expect(headers(wrapper)).toEqual(['[20]', '(no template)'])
+  })
+
+  it('loads the DCI configuration in Live Data only for template and instance discovery', async () => {
+    liveValues.value = withSourceFields()
+    const wrapper = mountView()
+    await flushPromises()
+    expect(toValue(configListOptions.enabled)).toBe(false)
+    await pick(wrapper, 'tag')
+    expect(toValue(configListOptions.enabled)).toBe(false)
+    await pick(wrapper, 'template')
+    expect(toValue(configListOptions.enabled)).toBe(true)
+    await pick(wrapper, 'instanceDiscovery')
+    expect(toValue(configListOptions.enabled)).toBe(true)
+    await pick(wrapper, 'relatedObject')
+    expect(toValue(configListOptions.enabled)).toBe(false)
+  })
+
+  it('names an instance discovery group after its prototype', async () => {
+    liveValues.value = [
+      { ...values[0], id: 501, templateId: 100, templateItemId: 1214, description: 'eth0 in' },
+      { ...values[2], templateId: 0, relatedObject: 0 },
+    ]
+    const wrapper = mountView()
+    await flushPromises()
+    await pick(wrapper, 'instanceDiscovery')
+    expect(headers(wrapper)).toEqual(['A: free space on /', '(no instance discovery)'])
+  })
+
+  it('clears the selection when the grouping changes', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+    await wrapper.findAll('.app-table__checkbox-td .app-table__checkbox-wrap')[0].trigger('click')
+    expect(wrapper.find('.selection-actions').text()).toContain('1 selected')
+
+    await pick(wrapper, 'tag')
+    expect(wrapper.find('.selection-actions').text()).toBe('')
+  })
+
+  it('keeps the selection when a remembered grouping becomes available with the data', async () => {
+    userPrefs.set('dci.groupBy', { values: 'template' })
+    const wrapper = mountView()
+    await flushPromises()
+    await wrapper.findAll('.app-table__checkbox-td .app-table__checkbox-wrap')[0].trigger('click')
+
+    liveValues.value = withSourceFields()
+    await flushPromises()
+    expect(groupSelect(wrapper).props('modelValue')).toBe('template')
+    expect(wrapper.find('.selection-actions').text()).toContain('1 selected')
+  })
+
+  it('links a template group to its object', async () => {
+    knownObjects.value = new Map([[20, { id: 20, class: 'Template', name: 'Linux' }]])
+    const wrapper = mountView()
+    await flushPromises()
+    await toConfiguration(wrapper)
+    await pick(wrapper, 'template')
+    expect(headers(wrapper)).toEqual(['Linux', '(no template)'])
+    const links = wrapper.findAll('tr.app-table__group-row a')
+    expect(links.map((a) => a.attributes('aria-label'))).toEqual(['Open Linux'])
+  })
+
+  it('shows a template it cannot read by id, without a link', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+    await toConfiguration(wrapper)
+    await pick(wrapper, 'template')
+    expect(headers(wrapper)).toEqual(['[20]', '(no template)'])
+    expect(wrapper.findAll('tr.app-table__group-row a')).toHaveLength(0)
+  })
+
+  it('the related object column links to the related object', async () => {
+    knownObjects.value = new Map([[55, { id: 55, class: 'Interface', name: 'eth0' }]])
+    const store = useDciConfigTableStore()
+    store.visibleColumnIds = [...store.visibleColumnIds, 'relatedObject']
+    const wrapper = mountView()
+    await flushPromises()
+    await toConfiguration(wrapper)
+    const link = wrapper
+      .findAllComponents({ name: 'AppLink' })
+      .find((c) => c.text() === 'eth0')
+    expect(Object.values(link.props('to').params)).toContain(55)
   })
 })

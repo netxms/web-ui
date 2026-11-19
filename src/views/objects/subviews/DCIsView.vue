@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useConfirm } from 'primevue/useconfirm'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
+import Select from 'primevue/select'
 import SelectButton from 'primevue/selectbutton'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
@@ -35,6 +36,13 @@ import { createChartModel, serializeToQuery } from '@/utils/dciChartModel'
 import { PREVIEW_RANGE_SECONDS, previewWindowEnd } from '@/utils/dciHistoryPreview'
 import { liveThresholdInfo, thresholdExpressionLabel } from '@/utils/dciThresholdUtils'
 import { dciSource, isTemplateItem } from '@/utils/dciSource'
+import {
+  DCI_GROUP_MODES,
+  SOURCE_GROUP_MODES,
+  dciGroupObjectIds,
+  dciGroupOf,
+  needsDciConfig,
+} from '@/utils/dciGrouping'
 import { objectTarget, dciTarget } from '@/utils/routeTargets'
 import { resolveHref, isPlainLeftClick } from '@/utils/navigation'
 import { notify } from '@/utils/notify'
@@ -81,7 +89,65 @@ const {
 const refreshSignal = inject('viewRefreshSignal', null)
 if (refreshSignal) watch(refreshSignal, () => refetch())
 
+// Group by: taste, so it follows the account; one choice per mode, as in legacy.
+const GROUP_BY_FIELD = 'dci.groupBy'
+const GROUP_MODE_VALUES = new Set(DCI_GROUP_MODES.map((m) => m.value))
+
+function readGroupModes() {
+  const stored = userPrefs.get(GROUP_BY_FIELD) ?? {}
+  const valid = (value) => (GROUP_MODE_VALUES.has(value) ? value : 'none')
+  return { values: valid(stored.values), config: valid(stored.config) }
+}
+
+const groupModes = ref(readGroupModes())
+
+watch(groupModes, ({ values, config }) => {
+  const stored = {
+    ...(values !== 'none' && { values }),
+    ...(config !== 'none' && { config }),
+  }
+  userPrefs.set(GROUP_BY_FIELD, Object.keys(stored).length ? stored : undefined)
+})
+watch(userPrefs.revision, () => {
+  groupModes.value = readGroupModes()
+})
+
+// Current values carry templateId and relatedObject only on newer servers.
+const liveHasSourceFields = computed(() =>
+  (dciCurrentValues.value?.values ?? []).some((dci) => 'templateId' in dci),
+)
+
+function groupModeUnavailable(value) {
+  return mode.value === 'values' && !liveHasSourceFields.value && SOURCE_GROUP_MODES.has(value)
+}
+
+const groupModeOptions = computed(() =>
+  DCI_GROUP_MODES.map((m) => ({ ...m, disabled: groupModeUnavailable(m.value) })),
+)
+
+/** The applied mode: a remembered one this server cannot serve shows as None, still stored. */
+const groupMode = computed({
+  get: () => {
+    const chosen = groupModes.value[mode.value]
+    return groupModeUnavailable(chosen) ? 'none' : chosen
+  },
+  set: (value) => {
+    groupModes.value = { ...groupModes.value, [mode.value]: value }
+  },
+})
+
+function groupModeLabel(value) {
+  return DCI_GROUP_MODES.find((m) => m.value === value)?.label ?? 'None'
+}
+
 const configModeEnabled = computed(() => isDciTarget.value && mode.value === 'config')
+
+// Live Data needs the configuration too while grouping looks up instance discovery prototypes.
+const configListEnabled = computed(
+  () =>
+    configModeEnabled.value ||
+    (isDciTarget.value && mode.value === 'values' && needsDciConfig(groupMode.value)),
+)
 
 const {
   data: dciConfigList,
@@ -90,7 +156,11 @@ const {
   isError: isErrorConfig,
   error: errorConfig,
   refetch: refetchConfig,
-} = useDciConfigList(objectId, { enabled: configModeEnabled })
+} = useDciConfigList(objectId, { enabled: configListEnabled })
+
+const configById = computed(
+  () => new Map((dciConfigList.value ?? []).map((dci) => [dci.id, dci])),
+)
 
 const updateDci = useUpdateDci()
 const deleteDci = useDeleteDci()
@@ -251,6 +321,13 @@ const configTable = ref()
 const showRelatedObjects = computed(() =>
   configColumnStore.visibleColumnIds.includes('relatedObject'),
 )
+
+// `objectName` reads the lookup below only when a group is built.
+const groupContext = computed(() => ({
+  ownerId: objectId.value,
+  prototype: (dciId) => configById.value.get(dciId) ?? null,
+  objectName: (id) => referencedObjectsById.value.get(id)?.name ?? null,
+}))
 const referencedObjectIds = computed(() => {
   const ids = new Set()
   for (const dci of dciConfigList.value ?? []) {
@@ -258,9 +335,24 @@ const referencedObjectIds = computed(() => {
     if (source?.kind === 'object') ids.add(source.objectId)
     if (showRelatedObjects.value && dci.relatedObject) ids.add(dci.relatedObject)
   }
+  const rows =
+    mode.value === 'values' ? (dciCurrentValues.value?.values ?? []) : (dciConfigList.value ?? [])
+  for (const id of dciGroupObjectIds(rows, groupMode.value, groupContext.value)) ids.add(id)
   return [...ids]
 })
 const { objectsById: referencedObjectsById } = useObjectsByIds(referencedObjectIds)
+
+const groupBy = computed(() => {
+  const groupingMode = groupMode.value
+  if (groupingMode === 'none') return null
+  const ctx = groupContext.value
+  return (row) => dciGroupOf(row, groupingMode, ctx)
+})
+
+/** Null for a group that is no object, or one the user cannot read. */
+function groupObject(group) {
+  return group.objectId ? (referencedObjectsById.value.get(group.objectId) ?? null) : null
+}
 
 // Null for a source object the user cannot read, which is then shown by id only.
 function sourceObjectOf(source) {
@@ -396,7 +488,9 @@ useWorkingState('dcis', {
 if (!hasLiveData.value) mode.value = 'config'
 
 // A filter that hides a selected DCI would otherwise chart something the user cannot see.
-watch([filterText, mode, hideTemplateItems], () => {
+// The user's choice, not the applied mode: that one also changes when the data arrives.
+const chosenGroupMode = computed(() => groupModes.value[mode.value])
+watch([filterText, mode, hideTemplateItems, chosenGroupMode], () => {
   selectedDciIds.value = new Set()
 })
 
@@ -789,6 +883,22 @@ function sourceDciTarget(row) {
         />
 
         <div class="toolbar-end">
+          <Select
+            v-model="groupMode"
+            :options="groupModeOptions"
+            option-label="label"
+            option-value="value"
+            option-disabled="disabled"
+            size="small"
+            aria-label="Group by"
+            class="group-by-select"
+          >
+            <template #value="{ value }">Group by: {{ groupModeLabel(value) }}</template>
+            <template #option="{ option }">
+              {{ option.label
+              }}<span v-if="option.disabled" class="group-by-note">&nbsp;(needs a newer server)</span>
+            </template>
+          </Select>
           <!-- Lit while template items are hidden; the accessible name says what pressing does. -->
           <Button
             v-if="canHideTemplateItems"
@@ -838,6 +948,7 @@ function sourceDciTarget(row) {
         sort-field="description"
         :sort-order="1"
         :row-class="getRowClass"
+        :group-by="groupBy"
         expandable
         selectable
         :selected-ids="selectedDciIds"
@@ -1015,6 +1126,16 @@ function sourceDciTarget(row) {
             </template>
           </div>
         </template>
+        <template #group-end="{ group }">
+          <AppLink
+            v-if="groupObject(group)"
+            :to="objectTarget(groupObject(group))"
+            :aria-label="`Open ${group.label}`"
+            class="group-object-link"
+          >
+            <i class="pi pi-external-link" aria-hidden="true" />
+          </AppLink>
+        </template>
         <template #empty>
           <div class="empty-message">No data collection items found.</div>
         </template>
@@ -1030,6 +1151,7 @@ function sourceDciTarget(row) {
         sort-field="description"
         :sort-order="1"
         :row-class="(row) => (row.status !== 'active' ? 'dci-row-inactive' : null)"
+        :group-by="groupBy"
         :page-size="100"
         storage-key="dci-config"
         reorderable
@@ -1092,7 +1214,7 @@ function sourceDciTarget(row) {
           <template v-else-if="col.id === 'relatedObject'">
             <AppLink
               v-if="row._relatedObject"
-              :to="objectTarget(row.relatedObject)"
+              :to="objectTarget(row._relatedObject)"
               class="cell-ellipsis"
               @click.stop
             >
@@ -1115,6 +1237,16 @@ function sourceDciTarget(row) {
               @click.stop="onActionsClick($event, row)"
             />
           </template>
+        </template>
+        <template #group-end="{ group }">
+          <AppLink
+            v-if="groupObject(group)"
+            :to="objectTarget(groupObject(group))"
+            :aria-label="`Open ${group.label}`"
+            class="group-object-link"
+          >
+            <i class="pi pi-external-link" aria-hidden="true" />
+          </AppLink>
         </template>
         <template #empty>
           <div class="empty-message">No data collection items configured.</div>
@@ -1175,6 +1307,25 @@ function sourceDciTarget(row) {
 
 .template-items-toggle {
   flex-shrink: 0;
+}
+
+.group-by-select {
+  flex-shrink: 0;
+}
+
+.group-by-note {
+  color: var(--p-text-muted-color);
+}
+
+.group-object-link {
+  display: inline-flex;
+  padding: 0.25rem;
+  color: var(--p-text-muted-color);
+  font-size: 0.75rem;
+}
+
+.group-object-link:hover {
+  color: var(--p-primary-color);
 }
 
 /* Past PrimeVue's own small rounded icon button, which is loaded later and at 2rem would set the

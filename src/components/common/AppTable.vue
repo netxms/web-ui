@@ -29,6 +29,8 @@ import LoadingState from '@/components/common/LoadingState.vue'
  * Replaces PrimeVue DataTable for large lists, where DataTable's overhead becomes a bottleneck.
  *
  * @slot cell {col: TableColumn, row: Object} - Falls back to `row[col.field] ?? '--'`.
+ * @slot group-end {group: Object, count: number} - After a group header's toggle button, e.g. a
+ *   link; the button itself holds no interactive content.
  * @slot empty - Shown when rows is empty and loading is false. Default: "No data".
  * @event retry - The Retry button in the error state was clicked.
  */
@@ -101,6 +103,14 @@ const props = defineProps({
    * order (a `defineTableColumnStore` store) and passes `columns` back.
    */
   reorderable: { type: Boolean, default: false },
+  /**
+   * Puts the rows under collapsible header rows: groups in label order, `last` ones after the
+   * rest, rows in the table's sort inside each. Headers count toward the page size and are never
+   * selected. Other fields of the descriptor reach the `group-end` slot.
+   * @type {import('vue').PropType<((row: object) => { key: string, label: string,
+   *   last?: boolean }) | null>}
+   */
+  groupBy: { type: Function, default: null },
 })
 
 /**
@@ -166,7 +176,7 @@ function expandRows(ids, limit = Infinity) {
   if (!props.expandable) return 0
   const wanted = new Set(ids)
   let opened = 0
-  for (const row of sortedRows.value) {
+  for (const row of displayRows.value) {
     if (opened >= limit) break
     if (!wanted.has(row.id)) continue
     expandedRows.value.add(row.id)
@@ -279,15 +289,55 @@ const internalPageSize = ref(
   })(),
 )
 
-// Clamp rather than reset, so a background refetch does not bump the user back to page 0.
-watch(
-  () => props.rows.length,
-  (length) => {
-    if (!internalPageSize.value || first.value < length) return
-    first.value =
-      Math.max(0, Math.ceil(length / internalPageSize.value) - 1) * internalPageSize.value
-  },
+const collapsedGroups = ref(new Set())
+
+function toggleGroup(key) {
+  const next = new Set(collapsedGroups.value)
+  if (!next.delete(key)) next.add(key)
+  collapsedGroups.value = next
+}
+
+/** @type {import('vue').ComputedRef<Array<{ group: object, rows: object[] }> | null>} */
+const groups = computed(() => {
+  if (!props.groupBy) return null
+  const byKey = new Map()
+  for (const row of sortedRows.value) {
+    const group = props.groupBy(row)
+    const bucket = byKey.get(group.key)
+    if (bucket) bucket.rows.push(row)
+    else byKey.set(group.key, { group, rows: [row] })
+  }
+  return [...byKey.values()].sort(
+    (a, b) =>
+      Number(!!a.group.last) - Number(!!b.group.last) ||
+      a.group.label.localeCompare(b.group.label, undefined, { sensitivity: 'base', numeric: true }),
+  )
+})
+
+/** Data rows in display order, including the rows of collapsed groups. */
+const displayRows = computed(() =>
+  groups.value ? groups.value.flatMap((bucket) => bucket.rows) : sortedRows.value,
 )
+
+/** What a page counts when grouped: headers, and rows of open groups pointing at theirs. */
+const displayItems = computed(() => {
+  if (!groups.value) return null
+  const items = []
+  for (const { group, rows } of groups.value) {
+    const header = { group, count: rows.length, collapsed: collapsedGroups.value.has(group.key) }
+    items.push(header)
+    if (!header.collapsed) for (const row of rows) items.push({ row, header })
+  }
+  return items
+})
+
+const totalRecords = computed(() => displayItems.value?.length ?? sortedRows.value.length)
+
+// Clamp rather than reset, so a background refetch does not bump the user back to page 0.
+watch(totalRecords, (length) => {
+  if (!internalPageSize.value || first.value < length) return
+  first.value = Math.max(0, Math.ceil(length / internalPageSize.value) - 1) * internalPageSize.value
+})
 
 function onPaginatorRowsChange(newSize) {
   if (newSize !== internalPageSize.value) first.value = 0
@@ -296,12 +346,33 @@ function onPaginatorRowsChange(newSize) {
   emit('page-size-change', newSize)
 }
 
+// A page that starts inside a group repeats its header, which does not count toward the size.
+const groupedPageItems = computed(() => {
+  if (!displayItems.value) return null
+  const size = internalPageSize.value
+  const slice = size
+    ? displayItems.value.slice(first.value, first.value + size)
+    : displayItems.value
+  const items = slice[0]?.row ? [{ ...slice[0].header, continued: true }] : []
+  let rowIndex = 0
+  for (const item of slice) items.push(item.row ? { row: item.row, rowIndex: rowIndex++ } : item)
+  return items
+})
+
 // Gated on internalPageSize, not the prop: a stored size can exist for a table without the
 // prop, and slicing by a size the paginator is not showing would hide rows.
 const pagedRows = computed(() => {
+  if (groupedPageItems.value) {
+    return groupedPageItems.value.filter((item) => item.row).map((item) => item.row)
+  }
   if (!internalPageSize.value) return sortedRows.value
   return sortedRows.value.slice(first.value, first.value + internalPageSize.value)
 })
+
+/** Rendered in order: group headers, and rows with their index among the page's rows. */
+const pageItems = computed(
+  () => groupedPageItems.value ?? pagedRows.value.map((row, rowIndex) => ({ row, rowIndex })),
+)
 
 const anyPagedRowExpanded = computed(
   () => props.expandable && pagedRows.value.some((row) => expandedRows.value.has(row.id)),
@@ -328,7 +399,14 @@ const {
   isSelectable: (row) => props.rowSelectable?.(row) ?? true,
 })
 
-defineExpose({ expandRow, expandRows, collapseAll, revealRow, allSelected, sortedRows })
+defineExpose({
+  expandRow,
+  expandRows,
+  collapseAll,
+  revealRow,
+  allSelected,
+  sortedRows: displayRows,
+})
 
 function canSelectRow(row) {
   return props.rowSelectable?.(row) ?? true
@@ -407,12 +485,18 @@ onBeforeUnmount(() => clearTimeout(revealTimer))
  * @returns {boolean} false when no row has that id
  */
 function revealRow(id) {
-  const index = sortedRows.value.findIndex((row) => row.id === id)
-  if (index === -1) return false
+  const row = displayRows.value.find((candidate) => candidate.id === id)
+  if (!row) return false
+
+  const groupKey = props.groupBy?.(row).key
+  if (collapsedGroups.value.has(groupKey)) toggleGroup(groupKey)
+  const index = displayItems.value
+    ? displayItems.value.findIndex((item) => item.row === row)
+    : sortedRows.value.indexOf(row)
 
   const size = internalPageSize.value
   if (size) first.value = Math.floor(index / size) * size
-  const pageIndex = size ? index - first.value : index
+  const pageIndex = pagedRows.value.indexOf(row)
   focusedRowIndex.value = pageIndex
 
   revealedRowId.value = id
@@ -431,7 +515,11 @@ function revealRow(id) {
 
 function dataRowElements() {
   const rows = tbodyRef.value?.children ?? []
-  return Array.from(rows).filter((tr) => !tr.classList.contains('app-table__expansion-row'))
+  return Array.from(rows).filter(
+    (tr) =>
+      !tr.classList.contains('app-table__expansion-row') &&
+      !tr.classList.contains('app-table__group-row'),
+  )
 }
 
 // Scrolls the wrapper directly: scrollIntoView would also move every scrollable ancestor.
@@ -480,6 +568,10 @@ if (props.storageKey) {
         expandedRows: {
           get: () => expandedRows.value,
           set: (ids) => (expandedRows.value = new Set([...ids].slice(0, RESTORED_EXPANSION_LIMIT))),
+        },
+        collapsedGroups: {
+          get: () => collapsedGroups.value,
+          set: (keys) => (collapsedGroups.value = new Set(keys)),
         },
         scrollTop: { get: () => wrapRef.value?.scrollTop ?? 0, set: restoreScroll },
       },
@@ -868,40 +960,73 @@ function onHeaderPointerDown(event, col) {
             <!-- Props are booleans, the row or stable functions, so unchanged rows skip re-render.
                  Forwarded slots must not mention `row` or `rowIdx` (even `cell.row`), or every row
                  re-renders; hence the "--" fallback lives in AppTableRow. -->
-            <AppTableRow
-              v-for="(row, rowIdx) in pagedRows"
-              :key="row.id ?? row"
-              :row="row"
-              :index="rowIdx"
-              :columns="columns"
-              :row-class="rowClass"
-              :target-for="targetFor"
-              :clickable="rowsClickable"
-              :tab-stop="rowIdx === focusedRowIndex"
-              :selectable="selectable"
-              :can-select="canSelectRow(row)"
-              :selected="selectable && isRowSelected(row)"
-              :expandable="expandable"
-              :expanded="expandable && expandedRows.has(row.id)"
-              :revealed="revealedRowId != null && row.id === revealedRowId"
-              :filler="hasFiller"
-              :total-columns="totalColumns"
-              @activate="onRowClick"
-              @toggle-select="toggleRowSelection"
-              @select-keydown="onCheckboxKeydown"
-              @row-keydown="onRowKeydown"
-              @row-focus="onRowFocus"
-              @row-contextmenu="emitRowContextmenu"
-              @row-mouseenter="emitRowMouseenter"
-              @row-mouseleave="emitRowMouseleave"
+            <template
+              v-for="item in pageItems"
+              :key="
+                item.row
+                  ? (item.row.id ?? item.row)
+                  : `app-table-group:${item.group.key}${item.continued ? ':continued' : ''}`
+              "
             >
-              <template #cell="cell">
-                <slot name="cell" v-bind="cell" />
-              </template>
-              <template #expansion="expansion">
-                <slot name="expansion" v-bind="expansion" />
-              </template>
-            </AppTableRow>
+              <AppTableRow
+                v-if="item.row"
+                :row="item.row"
+                :index="item.rowIndex"
+                :columns="columns"
+                :row-class="rowClass"
+                :target-for="targetFor"
+                :clickable="rowsClickable"
+                :tab-stop="item.rowIndex === focusedRowIndex"
+                :selectable="selectable"
+                :can-select="canSelectRow(item.row)"
+                :selected="selectable && isRowSelected(item.row)"
+                :expandable="expandable"
+                :expanded="expandable && expandedRows.has(item.row.id)"
+                :revealed="revealedRowId != null && item.row.id === revealedRowId"
+                :filler="hasFiller"
+                :total-columns="totalColumns"
+                @activate="onRowClick"
+                @toggle-select="toggleRowSelection"
+                @select-keydown="onCheckboxKeydown"
+                @row-keydown="onRowKeydown"
+                @row-focus="onRowFocus"
+                @row-contextmenu="emitRowContextmenu"
+                @row-mouseenter="emitRowMouseenter"
+                @row-mouseleave="emitRowMouseleave"
+              >
+                <template #cell="cell">
+                  <slot name="cell" v-bind="cell" />
+                </template>
+                <template #expansion="expansion">
+                  <slot name="expansion" v-bind="expansion" />
+                </template>
+              </AppTableRow>
+              <tr
+                v-else
+                class="app-table__group-row"
+                :class="{ 'app-table__group-row--continued': item.continued }"
+              >
+                <td :colspan="totalColumns">
+                  <div class="app-table__group-cell">
+                    <button
+                      type="button"
+                      class="app-table__group-toggle"
+                      :aria-expanded="!item.collapsed"
+                      @click="toggleGroup(item.group.key)"
+                    >
+                      <i
+                        :class="item.collapsed ? 'pi pi-chevron-right' : 'pi pi-chevron-down'"
+                        class="app-table__group-chevron"
+                        aria-hidden="true"
+                      />
+                      <span class="app-table__group-label">{{ item.group.label }}</span>
+                      <span class="app-table__group-count">{{ item.count }}</span>
+                    </button>
+                    <slot name="group-end" :group="item.group" :count="item.count" />
+                  </div>
+                </td>
+              </tr>
+            </template>
           </template>
         </tbody>
       </table>
@@ -913,7 +1038,7 @@ function onHeaderPointerDown(event, col) {
       :rows-per-page-options="compact ? [] : pageSizeOptions"
       :template="compact ? 'PrevPageLink CurrentPageReport NextPageLink' : undefined"
       :current-page-report-template="compact ? '{first}-{last} of {totalRecords}' : undefined"
-      :total-records="sortedRows.length"
+      :total-records="totalRecords"
       :always-show="false"
       class="app-table-paginator"
       :class="{ 'app-table-paginator--compact': compact }"
@@ -1251,5 +1376,62 @@ function onHeaderPointerDown(event, col) {
   padding: 0;
   background: var(--p-surface-ground);
   border-bottom: 1px solid var(--p-content-border-color);
+}
+
+/* The toggle button fills the cell, so the whole header row is the click target. */
+.app-table > tbody > tr.app-table__group-row > td,
+.app-table > tbody > tr.app-table__group-row:hover > td {
+  padding: 0;
+  background: var(--p-surface-ground);
+}
+
+.app-table__group-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+  padding-right: 0.75rem;
+}
+
+.app-table__group-toggle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.375rem 0.75rem;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-table__group-toggle:hover {
+  background: var(--p-content-hover-background);
+}
+
+.app-table__group-toggle:focus-visible {
+  outline: 2px solid var(--p-primary-color);
+  outline-offset: -2px;
+}
+
+.app-table__group-chevron {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+}
+
+.app-table__group-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-table__group-count {
+  flex-shrink: 0;
+  font-weight: 400;
+  color: var(--p-text-muted-color);
 }
 </style>

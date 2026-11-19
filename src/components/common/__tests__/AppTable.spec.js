@@ -1073,3 +1073,141 @@ describe('AppTable re-rendering', () => {
     expect(dataRows(wrapper)[4].text()).toContain('4 KB')
   })
 })
+
+describe('AppTable grouping', () => {
+  const groupColumns = [{ id: 'name', field: 'name', label: 'Name', sortable: true }]
+  const tagged = (name, tag, id) => ({ id, name, tag })
+  const baseRows = [tagged('b1', 'b', 1), tagged('a2', 'a', 2), tagged('x3', '', 3), tagged('a1', 'a', 4)]
+  const byTag = (row) =>
+    row.tag
+      ? { key: `t:${row.tag}`, label: row.tag }
+      : { key: 't', label: '(untagged)', last: true }
+
+  let wrapper
+  afterEach(() => {
+    wrapper?.unmount()
+    wrapper = null
+  })
+
+  function mountGrouped(props) {
+    wrapper = mount(AppTable, {
+      props: { columns: groupColumns, rows: baseRows, groupBy: byTag, sortField: 'name', ...props },
+      global: { plugins: [PrimeVue] },
+      attachTo: document.body,
+    })
+    return wrapper
+  }
+
+  const groupRows = () => wrapper.findAll('tr.app-table__group-row')
+  const toggle = (label) =>
+    groupRows()
+      .find((tr) => tr.find('.app-table__group-label').text() === label)
+      .find('button.app-table__group-toggle')
+  const body = () =>
+    wrapper
+      .findAll('tbody tr')
+      .map((tr) =>
+        tr.classes().includes('app-table__group-row')
+          ? `# ${tr.find('.app-table__group-label').text()}`
+          : tr.text(),
+      )
+  // Not a header: its text is label plus count, so header "b" holding one row reads "b1".
+  const dataRow = (name) =>
+    wrapper.findAll('tbody tr:not(.app-table__group-row)').find((tr) => tr.text() === name)
+
+  it('groups by label with the fallback last, rows sorted inside each group', () => {
+    mountGrouped()
+    expect(body()).toEqual(['# a', 'a1', 'a2', '# b', 'b1', '# (untagged)', 'x3'])
+    expect(groupRows().map((tr) => tr.find('.app-table__group-count').text())).toEqual([
+      '2',
+      '1',
+      '1',
+    ])
+  })
+
+  it('a header toggles its rows and reports aria-expanded', async () => {
+    mountGrouped()
+    expect(toggle('a').attributes('aria-expanded')).toBe('true')
+    await toggle('a').trigger('click')
+    expect(toggle('a').attributes('aria-expanded')).toBe('false')
+    expect(body()).toEqual(['# a', '# b', 'b1', '# (untagged)', 'x3'])
+    await toggle('a').trigger('click')
+    expect(body()).toEqual(['# a', 'a1', 'a2', '# b', 'b1', '# (untagged)', 'x3'])
+  })
+
+  it('without groupBy renders no group rows', () => {
+    mountGrouped({ groupBy: null })
+    expect(groupRows()).toHaveLength(0)
+    expect(body()).toEqual(['a1', 'a2', 'b1', 'x3'])
+  })
+
+  const pagedRows = [
+    tagged('a1', 'a', 1),
+    tagged('a2', 'a', 2),
+    tagged('a3', 'a', 3),
+    tagged('a4', 'a', 4),
+    tagged('b1', 'b', 5),
+  ]
+
+  async function goToFirst(first) {
+    wrapper.findComponent({ name: 'Paginator' }).vm.$emit('update:first', first)
+    await flushPromises()
+  }
+
+  it('pages over headers and rows, repeating the header on a page that starts inside a group', async () => {
+    mountGrouped({ rows: pagedRows, pageSize: 3, compact: true })
+    expect(body()).toEqual(['# a', 'a1', 'a2'])
+    await goToFirst(3)
+    expect(body()).toEqual(['# a', 'a3', 'a4', '# b'])
+    expect(groupRows()[0].classes()).toContain('app-table__group-row--continued')
+    expect(groupRows()[1].classes()).not.toContain('app-table__group-row--continued')
+    await goToFirst(6)
+    expect(body()).toEqual(['# b', 'b1'])
+  })
+
+  it('keeps the page and the collapsed groups when the rows refresh', async () => {
+    mountGrouped({ rows: pagedRows, pageSize: 3, compact: true })
+    await goToFirst(3)
+    await toggle('b').trigger('click')
+    await wrapper.setProps({ rows: pagedRows.map((r) => ({ ...r })) })
+    expect(body()).toEqual(['# a', 'a3', 'a4', '# b'])
+    expect(toggle('b').attributes('aria-expanded')).toBe('false')
+  })
+
+  it('select-all takes the data rows on the page only', async () => {
+    mountGrouped({ selectable: true })
+    await toggle('b').trigger('click')
+    expect(wrapper.findAll('tr.app-table__group-row .app-table__checkbox-wrap')).toHaveLength(0)
+    await wrapper.find('th .app-table__checkbox-wrap').trigger('click')
+    expect([...wrapper.emitted('selection-change').at(-1)[0]].sort()).toEqual([2, 3, 4])
+  })
+
+  it('revealRow opens a collapsed group and switches to its page', async () => {
+    mountGrouped({ rows: pagedRows, pageSize: 3, compact: true, onRowClick: () => {} })
+    await goToFirst(3)
+    await toggle('b').trigger('click')
+    expect(wrapper.vm.revealRow(5)).toBe(true)
+    await flushPromises()
+    expect(body()).toEqual(['# b', 'b1'])
+    expect(toggle('b').attributes('aria-expanded')).toBe('true')
+    expect(dataRow('b1').attributes('tabindex')).toBe('0')
+  })
+
+  it('arrow keys move between data rows across a header', async () => {
+    mountGrouped({ onRowClick: () => {} })
+    dataRow('a2').element.focus()
+    await dataRow('a2').trigger('keydown', { key: 'ArrowDown' })
+    await flushPromises()
+    expect(document.activeElement).toBe(dataRow('b1').element)
+  })
+
+  it('lists the rows in display order for expandRows', async () => {
+    mountGrouped({ expandable: true })
+    expect(wrapper.vm.sortedRows.map((r) => r.name)).toEqual(['a1', 'a2', 'b1', 'x3'])
+    // Display order a2 (2), b1 (1), x3 (3): the limit stops before x3.
+    expect(wrapper.vm.expandRows([3, 1, 2], 2)).toBe(2)
+    await flushPromises()
+    const open = wrapper.findAll('tr.app-table__expansion-row')
+    expect(open.map((tr) => tr.element.previousElementSibling.textContent)).toEqual(['a2', 'b1'])
+  })
+})
