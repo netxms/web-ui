@@ -249,4 +249,20 @@ describe('eppChainTarget', () => {
       query: { chain: '3' },
     })
   })
+
+  it('opens a rule editor on one section', () => {
+    expect(eppChainTarget(0, { ruleGuid: 'abc-123', section: 'alarm' })).toEqual({
+      name: 'configuration',
+      params: { sectionId: 'epp', entityId: 'abc-123' },
+      query: { section: 'alarm' },
+    })
+  })
+
+  it('ignores a section without a rule', () => {
+    expect(eppChainTarget(3, { section: 'alarm' })).toEqual({
+      name: 'configuration',
+      params: { sectionId: 'epp' },
+      query: { chain: '3' },
+    })
+  })
 })

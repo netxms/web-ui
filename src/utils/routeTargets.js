@@ -220,11 +220,16 @@ export function configTarget(sectionId, { entityId, tab } = {}) {
  * @param {number} chainId - 0 for the main chain
  * @param {object} [options]
  * @param {string} [options.ruleGuid]
+ * @param {string} [options.section] - with `ruleGuid`: a `RULE_SECTIONS` key the editor opens on
  */
-export function eppChainTarget(chainId, { ruleGuid } = {}) {
+export function eppChainTarget(chainId, { ruleGuid, section } = {}) {
+  const query = {
+    ...(chainId ? { chain: String(chainId) } : {}),
+    ...(ruleGuid != null && section ? { section } : {}),
+  }
   return {
     name: 'configuration',
     params: { sectionId: 'epp', ...(ruleGuid != null ? { entityId: ruleGuid } : {}) },
-    ...(chainId ? { query: { chain: String(chainId) } } : {}),
+    ...(Object.keys(query).length ? { query } : {}),
   }
 }

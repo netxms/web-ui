@@ -16,7 +16,9 @@ window.matchMedia =
     addListener: () => {},
     removeListener: () => {},
   }))
-// AI agent instructions crash an unfixed netxmsd without the AI assistant, so AI settings are
+const scrollIntoView = vi.fn()
+Element.prototype.scrollIntoView = scrollIntoView
+// AI assistant instructions crash an unfixed netxmsd without the AI assistant, so AI settings are
 // not offered there, but a rule that already has one must still show it.
 const serverComponents = ref([])
 const serverInfoLoading = ref(false)
@@ -48,7 +50,7 @@ const RF_AI_ANALYZE_INCIDENT = 0x100000
 
 const AI_COMMENT_LABEL = "Add AI assistant's comment on alarm creation"
 const AI_INCIDENT_LABEL = 'Perform AI-based incident analysis'
-const AI_INSTRUCTIONS_LABEL = 'AI Agent Instructions'
+const AI_INSTRUCTIONS_LABEL = 'AI Assistant Instructions'
 const UNAVAILABLE_NOTE = 'The AI assistant is not available on this server'
 
 /** Generates an alarm and an incident, so both AI checkboxes can render. */
@@ -70,20 +72,20 @@ function makeRule(overrides = {}) {
     pstorageDeleteActions: [],
     customAttributeSetActions: {},
     customAttributeDeleteActions: [],
-    aiAgentInstructions: '',
+    aiInstructions: '',
     ...overrides,
   }
 }
 
-function mountEditor(rule, components) {
+function mountEditor(rule, components, extraProps = {}) {
   serverComponents.value = components
   return mount(EppRuleDetailView, {
-    props: { rule },
+    props: { rule, ...extraProps },
     global: {
       plugins: [PrimeVue],
       directives: { tooltip: Tooltip },
       stubs: {
-        EntityDetailHeader: true,
+        EntityDetailHeader: { template: '<div><slot name="actions" /></div>' },
         NxslScriptEditor: true,
         ObjectPickerDialog: true,
         EventPickerDialog: true,
@@ -123,13 +125,13 @@ describe('EppRuleDetailView AI settings', () => {
     expect(wrapper.text()).not.toContain(AI_COMMENT_LABEL)
   })
 
-  it('keeps AI agent instructions the rule already has visible, with a note', () => {
-    const rule = makeRule({ aiAgentInstructions: 'Summarize the outage' })
+  it('keeps AI assistant instructions the rule already has visible, with a note', () => {
+    const rule = makeRule({ aiInstructions: 'Summarize the outage' })
     const wrapper = mountEditor(rule, ['CORE'])
     expect(wrapper.text()).toContain(AI_INSTRUCTIONS_LABEL)
     expect(wrapper.text()).toContain('so these instructions cannot run')
     expect(
-      wrapper.find('textarea[placeholder="Instructions for the AI agent..."]').element.value,
+      wrapper.find('textarea[placeholder="Instructions for the AI assistant..."]').element.value,
     ).toBe('Summarize the outage')
   })
 
@@ -143,16 +145,16 @@ describe('EppRuleDetailView AI settings', () => {
     expect(noteCount(wrapper)).toBe(2)
   })
 
-  it('does not hide AI agent instructions while they are being cleared', async () => {
-    const rule = makeRule({ aiAgentInstructions: 'Summarize the outage' })
+  it('does not hide AI assistant instructions while they are being cleared', async () => {
+    const rule = makeRule({ aiInstructions: 'Summarize the outage' })
     const wrapper = mountEditor(rule, ['CORE'])
-    await wrapper.find('textarea[placeholder="Instructions for the AI agent..."]').setValue('')
+    await wrapper.find('textarea[placeholder="Instructions for the AI assistant..."]').setValue('')
     expect(wrapper.text()).toContain(AI_INSTRUCTIONS_LABEL)
   })
 
   it('hides the note until server-info has answered', async () => {
     serverInfoLoading.value = true
-    const rule = makeRule({ aiAgentInstructions: 'Summarize the outage' })
+    const rule = makeRule({ aiInstructions: 'Summarize the outage' })
     const wrapper = mountEditor(rule, [])
     expect(wrapper.text()).toContain(AI_INSTRUCTIONS_LABEL)
     expect(noteCount(wrapper)).toBe(0)
@@ -161,5 +163,61 @@ describe('EppRuleDetailView AI settings', () => {
     serverInfoLoading.value = false
     await nextTick()
     expect(noteCount(wrapper)).toBe(0)
+  })
+})
+
+describe('EppRuleDetailView AI assistant instructions', () => {
+  const AI = ['CORE', SERVER_COMPONENTS.AI_ASSISTANT]
+  const textarea = (wrapper) =>
+    wrapper.find('textarea[placeholder="Instructions for the AI assistant..."]')
+
+  async function saveAndGet(wrapper) {
+    const save = wrapper.findAll('button').find((b) => b.text() === 'Save')
+    await save.trigger('click')
+    return wrapper.emitted('saved')[0][0]
+  }
+
+  it('saves an edit under the name the server reads first, and the old one', async () => {
+    const wrapper = mountEditor(makeRule({ aiInstructions: 'Summarize the outage' }), AI)
+    expect(textarea(wrapper).element.value).toBe('Summarize the outage')
+
+    await textarea(wrapper).setValue('Find the root cause')
+    const saved = await saveAndGet(wrapper)
+    expect(saved.aiInstructions).toBe('Find the root cause')
+    expect(saved.aiAgentInstructions).toBe('Find the root cause')
+  })
+
+  it('reads instructions from a server that still sends the old name', () => {
+    const rule = makeRule({
+      aiInstructions: undefined,
+      aiAgentInstructions: 'Summarize the outage',
+    })
+    const wrapper = mountEditor(rule, AI)
+    expect(textarea(wrapper).element.value).toBe('Summarize the outage')
+  })
+})
+
+describe('EppRuleDetailView section', () => {
+  const selectedTab = (wrapper) => wrapper.find('[role="tab"][aria-selected="true"]').text()
+
+  it('opens on the General tab by default', () => {
+    expect(selectedTab(mountEditor(makeRule(), ['CORE']))).toBe('General')
+  })
+
+  it('opens on the tab and panel a summary linked to, scrolled into view', async () => {
+    scrollIntoView.mockClear()
+    const wrapper = mountEditor(makeRule(), ['CORE'], { section: 'timers' })
+    await nextTick()
+    await nextTick()
+    expect(selectedTab(wrapper)).toBe('Action')
+    const panel = wrapper.find('[data-rule-section="timers"]')
+    expect(panel.find('[aria-expanded="true"]').exists()).toBe(true)
+    expect(scrollIntoView.mock.contexts[0]).toBe(panel.element)
+  })
+
+  it('opens condition sections on the Condition tab', async () => {
+    const wrapper = mountEditor(makeRule(), ['CORE'], { section: 'sources' })
+    await nextTick()
+    expect(selectedTab(wrapper)).toBe('Condition')
   })
 })

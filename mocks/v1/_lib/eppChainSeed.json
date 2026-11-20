@@ -21,11 +21,8 @@
         ],
         "timeFrames": [
           {
-            "startTime": 480,
-            "endTime": 1020,
-            "dayOfWeek": 62,
-            "dayOfMonth": "1-5, 8, 11-13, L",
-            "month": 0
+            "time": 8001700,
+            "date": 2251383201872191
           }
         ],
         "actions": [],
@@ -47,7 +44,7 @@
         "customAttributeSetActions": {},
         "customAttributeDeleteActions": [],
         "rootCauseAnalysisScript": null,
-        "aiAgentInstructions": "",
+        "aiInstructions": "",
         "createIncident": false,
         "incidentCreationDelay": 0,
         "incidentTitle": "",
@@ -89,7 +86,7 @@
         "customAttributeSetActions": {},
         "customAttributeDeleteActions": [],
         "rootCauseAnalysisScript": null,
-        "aiAgentInstructions": "",
+        "aiInstructions": "",
         "createIncident": false,
         "incidentCreationDelay": 0,
         "incidentTitle": "",
@@ -117,10 +114,10 @@
         "actions": [
           {
             "id": 1,
-            "timerDelay": "",
-            "timerKey": "",
-            "blockingTimerKey": "",
-            "snoozeTime": "",
+            "timerDelay": "300",
+            "timerKey": "THRESHOLD_%i",
+            "blockingTimerKey": "THRESHOLD_NOTIFIED_%i",
+            "snoozeTime": "3600",
             "active": true
           }
         ],
@@ -142,7 +139,7 @@
         "customAttributeSetActions": {},
         "customAttributeDeleteActions": [],
         "rootCauseAnalysisScript": null,
-        "aiAgentInstructions": "",
+        "aiInstructions": "",
         "createIncident": false,
         "incidentCreationDelay": 0,
         "incidentTitle": "",
@@ -175,7 +172,9 @@
             "active": true
           }
         ],
-        "timerCancellations": [],
+        "timerCancellations": [
+          "CPU_RECOVERY_%i"
+        ],
         "comments": "High CPU - alarm + run remediation script",
         "downtimeTag": "",
         "filterScript": "",
@@ -188,12 +187,14 @@
         "alarmTimeout": 3600,
         "alarmTimeoutEvent": 0,
         "alarmCategories": [],
-        "pstorageSetActions": {},
+        "pstorageSetActions": {
+          "cpu.lastHigh.%i": "%t"
+        },
         "pstorageDeleteActions": [],
         "customAttributeSetActions": {},
         "customAttributeDeleteActions": [],
         "rootCauseAnalysisScript": null,
-        "aiAgentInstructions": "",
+        "aiInstructions": "",
         "createIncident": false,
         "incidentCreationDelay": 0,
         "incidentTitle": "",
@@ -209,7 +210,7 @@
         "chainId": 0,
         "chainCalls": [],
         "errors": null,
-        "flags": 7960,
+        "flags": 73496,
         "sources": [
           1010
         ],
@@ -219,7 +220,7 @@
         "actions": [],
         "timerCancellations": [],
         "comments": "Maintenance window - suppress all alerts for selected nodes",
-        "downtimeTag": "",
+        "downtimeTag": "maintenance",
         "filterScript": "",
         "actionScript": "",
         "alarmSeverity": 0,
@@ -232,10 +233,14 @@
         "alarmCategories": [],
         "pstorageSetActions": {},
         "pstorageDeleteActions": [],
-        "customAttributeSetActions": {},
-        "customAttributeDeleteActions": [],
+        "customAttributeSetActions": {
+          "maintenance": "yes"
+        },
+        "customAttributeDeleteActions": [
+          "lastAlert"
+        ],
         "rootCauseAnalysisScript": null,
-        "aiAgentInstructions": "",
+        "aiInstructions": "",
         "createIncident": false,
         "incidentCreationDelay": 0,
         "incidentTitle": "",
@@ -253,7 +258,7 @@
           3
         ],
         "errors": null,
-        "flags": 6152,
+        "flags": 1579016,
         "sources": [],
         "sourceExclusions": [],
         "events": [
@@ -290,7 +295,7 @@
         "customAttributeSetActions": {},
         "customAttributeDeleteActions": [],
         "rootCauseAnalysisScript": 5,
-        "aiAgentInstructions": "",
+        "aiInstructions": "Check the backup job log on %n and summarise why it failed.",
         "createIncident": true,
         "incidentCreationDelay": 0,
         "incidentTitle": "",
@@ -298,7 +303,8 @@
         "performAiAnalysis": false,
         "aiAnalysisDepth": "standard",
         "aiAssignOwner": false,
-        "aiAnalysisPrompt": ""
+        "aiAnalysisPrompt": "",
+        "incidentDelay": 60
       }
     ]
   },
@@ -321,7 +327,7 @@
         "chainId": 2,
         "chainCalls": [],
         "errors": null,
-        "flags": 8,
+        "flags": 7944,
         "sources": [],
         "sourceExclusions": [],
         "events": [],
@@ -330,7 +336,7 @@
         "timerCancellations": [],
         "comments": "Repeat threshold in 15 min - raise to critical",
         "downtimeTag": "",
-        "filterScript": "",
+        "filterScript": "// Third threshold for the same DCI within 15 minutes\ncount = ReadPersistentStorage(\"threshold.count.\" .. $event.dciId);\nreturn count != null and count >= 3;",
         "actionScript": "",
         "alarmSeverity": 4,
         "alarmMessage": "Escalated: %m",
@@ -351,10 +357,13 @@
         "chainId": 2,
         "chainCalls": [],
         "errors": null,
-        "flags": 1,
+        "flags": 7937,
         "sources": [],
         "sourceExclusions": [],
-        "events": [],
+        "events": [
+          6,
+          100003
+        ],
         "timeFrames": [],
         "actions": [],
         "timerCancellations": [],
@@ -393,16 +402,18 @@
           2
         ],
         "errors": null,
-        "flags": 8,
+        "flags": 7944,
         "sources": [],
         "sourceExclusions": [],
-        "events": [],
+        "events": [
+          100003
+        ],
         "timeFrames": [],
         "actions": [],
         "timerCancellations": [],
         "comments": "Third failure in a row - escalate",
         "downtimeTag": "",
-        "filterScript": "",
+        "filterScript": "// Escalate on the third failure in a row\nfailures = ReadPersistentStorage(\"backup.failures.\" .. $node.id);\nreturn failures != null and failures >= 3;",
         "actionScript": "",
         "alarmSeverity": 3,
         "alarmMessage": "Backup failing on %n",

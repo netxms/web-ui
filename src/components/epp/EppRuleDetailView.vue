@@ -31,6 +31,44 @@ import { useObjectsByIds } from '@/queries/useObjectQueries'
 import FormField from '@/components/common/FormField.vue'
 import EppRuleChainCalls from '@/components/epp/EppRuleChainCalls.vue'
 import { chainLabel } from '@/utils/eppChains'
+import {
+  RF_ACCEPT_CORRELATED_EVENTS,
+  RF_ADD_AI_COMMENT,
+  RF_AI_ANALYZE_INCIDENT,
+  RF_AI_AUTO_ASSIGN,
+  RF_ALL_SEVERITIES,
+  RF_CREATE_HELPDESK_TICKET,
+  RF_CREATE_INCIDENT,
+  RF_DISABLED,
+  RF_END_DOWNTIME,
+  RF_GENERATE_ALARM,
+  RF_NEGATED_EVENTS,
+  RF_NEGATED_SOURCE,
+  RF_NEGATED_TIME_FRAMES,
+  RF_SEVERITY_CRITICAL,
+  RF_SEVERITY_INFO,
+  RF_SEVERITY_MAJOR,
+  RF_SEVERITY_MINOR,
+  RF_SEVERITY_WARNING,
+  RF_START_DOWNTIME,
+  RF_STOP_PROCESSING,
+  RF_TERMINATE_BY_REGEXP,
+  SEVERITY_FROM_EVENT,
+  SEVERITY_RESOLVE,
+  SEVERITY_TERMINATE,
+  RULE_SECTIONS,
+  aiInstructionsOf,
+} from '@/utils/eppRules'
+import {
+  DOW_OPTIONS,
+  MONTH_OPTIONS,
+  decodeTimeFrame,
+  encodeTimeFrame,
+  formatDayOfMonthSet,
+  frameLabel,
+  isAnyTime,
+  parseDayOfMonth,
+} from '@/utils/eppTimeFrames'
 import { useServerComponents } from '@/composables/useServerComponents'
 import { SERVER_COMPONENTS } from '@/config/serverComponents'
 
@@ -57,41 +95,14 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  /** A `RULE_SECTIONS` key: opens on that section's tab, expanded and scrolled into view. */
+  section: {
+    type: String,
+    default: null,
+  },
 })
 
 const emit = defineEmits(['close', 'saved'])
-
-// nxcldefs.h
-const RF_STOP_PROCESSING = 0x000001
-const RF_NEGATED_SOURCE = 0x000002
-const RF_NEGATED_EVENTS = 0x000004
-const RF_GENERATE_ALARM = 0x000008
-const RF_DISABLED = 0x000010
-const RF_TERMINATE_BY_REGEXP = 0x000020
-const RF_SEVERITY_INFO = 0x000100
-const RF_SEVERITY_WARNING = 0x000200
-const RF_SEVERITY_MINOR = 0x000400
-const RF_SEVERITY_MAJOR = 0x000800
-const RF_SEVERITY_CRITICAL = 0x001000
-const RF_ALL_SEVERITIES =
-  RF_SEVERITY_INFO |
-  RF_SEVERITY_WARNING |
-  RF_SEVERITY_MINOR |
-  RF_SEVERITY_MAJOR |
-  RF_SEVERITY_CRITICAL
-const RF_CREATE_HELPDESK_TICKET = 0x002000
-const RF_ACCEPT_CORRELATED_EVENTS = 0x004000
-const RF_NEGATED_TIME_FRAMES = 0x008000
-const RF_START_DOWNTIME = 0x010000
-const RF_END_DOWNTIME = 0x020000
-const RF_ADD_AI_COMMENT = 0x040000
-const RF_CREATE_INCIDENT = 0x080000
-const RF_AI_ANALYZE_INCIDENT = 0x100000
-const RF_AI_AUTO_ASSIGN = 0x200000
-
-const SEVERITY_FROM_EVENT = 5
-const SEVERITY_TERMINATE = 6
-const SEVERITY_RESOLVE = 7
 
 const ALARM_ACTION_OPTIONS = [
   { label: 'Do not change alarms', value: 'no-action' },
@@ -127,60 +138,6 @@ const severityFlags = [
   { label: 'Minor', flag: RF_SEVERITY_MINOR },
   { label: 'Major', flag: RF_SEVERITY_MAJOR },
   { label: 'Critical', flag: RF_SEVERITY_CRITICAL },
-]
-
-const DOW_OPTIONS = [
-  { label: 'Mon', bit: 2 },
-  { label: 'Tue', bit: 4 },
-  { label: 'Wed', bit: 8 },
-  { label: 'Thu', bit: 16 },
-  { label: 'Fri', bit: 32 },
-  { label: 'Sat', bit: 64 },
-  { label: 'Sun', bit: 1 },
-]
-
-const MONTH_OPTIONS = [
-  { label: 'Jan', bit: 1 },
-  { label: 'Feb', bit: 2 },
-  { label: 'Mar', bit: 4 },
-  { label: 'Apr', bit: 8 },
-  { label: 'May', bit: 16 },
-  { label: 'Jun', bit: 32 },
-  { label: 'Jul', bit: 64 },
-  { label: 'Aug', bit: 128 },
-  { label: 'Sep', bit: 256 },
-  { label: 'Oct', bit: 512 },
-  { label: 'Nov', bit: 1024 },
-  { label: 'Dec', bit: 2048 },
-]
-
-const MONTH_NAMES_SHORT = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-]
-const MONTH_NAMES_FULL = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
 ]
 
 const isNew = computed(() => props.rule === null)
@@ -226,10 +183,6 @@ function removeTimeFrame(i) {
   form.value.timeFrames.splice(i, 1)
 }
 
-function isAnyTime(frame) {
-  return frame.startTime === 0 && frame.endTime === 1439
-}
-
 function setAnyTime(i, val) {
   if (val) {
     form.value.timeFrames[i].startTime = 0
@@ -262,45 +215,6 @@ function setAllMonths(i) {
 
 function clearAllMonths(i) {
   form.value.timeFrames[i].month = 0
-}
-
-function parseDayOfMonth(str) {
-  const days = new Set()
-  if (!str?.trim()) return days
-  for (const part of str.split(',')) {
-    const t = part.trim()
-    if (t.toUpperCase() === 'L') {
-      days.add('L')
-      continue
-    }
-    if (t.includes('-')) {
-      const [a, b] = t.split('-').map(Number)
-      if (!isNaN(a) && !isNaN(b)) for (let d = a; d <= Math.min(b, 31); d++) days.add(d)
-    } else {
-      const n = parseInt(t, 10)
-      if (!isNaN(n) && n >= 1 && n <= 31) days.add(n)
-    }
-  }
-  return days
-}
-
-function formatDayOfMonthSet(days) {
-  const nums = [...days].filter((d) => d !== 'L').sort((a, b) => a - b)
-  const parts = []
-  let i = 0
-  while (i < nums.length) {
-    let j = i
-    while (j + 1 < nums.length && nums[j + 1] === nums[j] + 1) j++
-    if (j - i >= 2) {
-      parts.push(`${nums[i]}-${nums[j]}`)
-      i = j + 1
-    } else {
-      parts.push(String(nums[i]))
-      i++
-    }
-  }
-  if (days.has('L')) parts.push('L')
-  return parts.join(', ')
 }
 
 function isDayOfMonthActive(str, day) {
@@ -348,183 +262,6 @@ function toggleDayOfMonth(fi, day) {
 onMounted(() => document.addEventListener('mouseup', stopDomDrag))
 onUnmounted(() => document.removeEventListener('mouseup', stopDomDrag))
 
-// Server time frames are {time, date} integers:
-// time: (startHH * 100 + startMM) * 10000 + (endHH * 100 + endMM)
-// date: bits 1-31 = day of month, bit 0 = last day, bits 31-37 = DOW (Sun=31),
-//       bits 39-50 = months (Jan=39)
-// Internally startTime/endTime are minutes from midnight; "any time" is 0-1439. A 0 dayOfWeek or
-// month means "no restriction" and is encoded as all bits set.
-
-function encodeTimeFrame({ startTime, endTime, dayOfWeek, dayOfMonth, month }) {
-  const sh = Math.floor(startTime / 60),
-    sm = startTime % 60
-  const eh = Math.floor(endTime / 60),
-    em = endTime % 60
-  const time = (sh * 100 + sm) * 10000 + (eh * 100 + em)
-
-  let date = 0
-
-  // Day of month: bit d for day d (1-31), bit 0 for last day
-  const days = parseDayOfMonth(dayOfMonth)
-  if (days.size === 0) {
-    for (let d = 0; d <= 31; d++) date += Math.pow(2, d)
-  } else {
-    for (const d of days) {
-      if (d === 'L') date += 1
-      else date += Math.pow(2, d)
-    }
-  }
-
-  // Day of week: our bits Sun=1,Mon=2,Tue=4,Wed=8,Thu=16,Fri=32,Sat=64 → server bits 31-37
-  const ourDowBits = [1, 2, 4, 8, 16, 32, 64] // Sun, Mon, Tue, Wed, Thu, Fri, Sat
-  const effectiveDow = dayOfWeek === 0 ? 127 : dayOfWeek
-  for (let i = 0; i < 7; i++) {
-    if (effectiveDow & ourDowBits[i]) date += Math.pow(2, 31 + i)
-  }
-
-  // Month: our bits Jan=1<<0 … Dec=1<<11 → server bits 39-50
-  const effectiveMonth = month === 0 ? 4095 : month
-  for (let i = 0; i < 12; i++) {
-    if (effectiveMonth & (1 << i)) date += Math.pow(2, 39 + i)
-  }
-
-  return { time, date }
-}
-
-function hasBit(n, pos) {
-  return Math.floor(n / Math.pow(2, pos)) % 2 >= 1
-}
-
-function decodeTimeFrame({ time, date }) {
-  const startBCD = Math.floor((time ?? 0) / 10000)
-  const endBCD = (time ?? 0) % 10000
-  const startTime = Math.floor(startBCD / 100) * 60 + (startBCD % 100)
-  const endTime = Math.floor(endBCD / 100) * 60 + (endBCD % 100)
-
-  const domDays = new Set()
-  if (hasBit(date, 0)) domDays.add('L')
-  for (let d = 1; d <= 31; d++) {
-    if (hasBit(date, d)) domDays.add(d)
-  }
-  const dayOfMonth = formatDayOfMonthSet(domDays)
-
-  const ourDowBits = [1, 2, 4, 8, 16, 32, 64] // Sun, Mon, Tue, Wed, Thu, Fri, Sat
-  let dayOfWeek = 0
-  for (let i = 0; i < 7; i++) {
-    if (hasBit(date, 31 + i)) dayOfWeek |= ourDowBits[i]
-  }
-
-  let month = 0
-  for (let i = 0; i < 12; i++) {
-    if (hasBit(date, 39 + i)) month |= 1 << i
-  }
-
-  return { startTime, endTime, dayOfMonth, dayOfWeek, month }
-}
-
-function ordinal(n) {
-  const v = n % 100
-  if (v >= 11 && v <= 13) return `${n}th`
-  switch (n % 10) {
-    case 1:
-      return `${n}st`
-    case 2:
-      return `${n}nd`
-    case 3:
-      return `${n}rd`
-    default:
-      return `${n}th`
-  }
-}
-
-function formatDomLabel(str) {
-  if (!str?.trim()) return null
-  const days = parseDayOfMonth(str)
-  if (!days.size) return null
-  const nums = [...days].filter((d) => d !== 'L').sort((a, b) => a - b)
-  const hasL = days.has('L')
-  const parts = []
-  let i = 0
-  while (i < nums.length) {
-    let j = i
-    while (j + 1 < nums.length && nums[j + 1] === nums[j] + 1) j++
-    if (j - i >= 2) {
-      parts.push(`${ordinal(nums[i])}–${ordinal(nums[j])}`)
-      i = j + 1
-    } else {
-      parts.push(ordinal(nums[i]))
-      i++
-    }
-  }
-  if (hasL) parts.push('last day')
-  return parts.join(', ')
-}
-
-function formatMonthsLabel(mask) {
-  if (!mask || mask === 4095) return null
-  const indices = []
-  for (let i = 0; i < 12; i++) {
-    if (mask & (1 << i)) indices.push(i)
-  }
-  if (indices.length === 1) return MONTH_NAMES_FULL[indices[0]]
-  const parts = []
-  let i = 0
-  while (i < indices.length) {
-    let j = i
-    while (j + 1 < indices.length && indices[j + 1] === indices[j] + 1) j++
-    if (j - i >= 2) {
-      parts.push(`${MONTH_NAMES_SHORT[indices[i]]}–${MONTH_NAMES_SHORT[indices[j]]}`)
-      i = j + 1
-    } else {
-      parts.push(MONTH_NAMES_SHORT[indices[i]])
-      i++
-    }
-  }
-  return parts.join(', ')
-}
-
-function formatDowLabel(mask) {
-  if (!mask || mask === 127) return null
-  if (mask === 62) return 'weekdays'
-  if (mask === 65) return 'weekends'
-  return DOW_OPTIONS.filter((d) => mask & d.bit)
-    .map((d) => d.label)
-    .join(', ')
-}
-
-function formatTimeLabel(frame) {
-  if (isAnyTime(frame)) return null
-  const fmt = (m) =>
-    `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
-  return `${fmt(frame.startTime)}–${fmt(frame.endTime)}`
-}
-
-function frameLabel(frame) {
-  const time = formatTimeLabel(frame)
-  const dow = formatDowLabel(frame.dayOfWeek)
-  const dom = formatDomLabel(frame.dayOfMonth)
-  const months = formatMonthsLabel(frame.month)
-
-  let main = time ?? ''
-
-  if (dom && months) {
-    const datePart = `${dom} of ${months}`
-    main = main ? `${main}, ${datePart}` : datePart
-  } else if (dom) {
-    const domPart = `${dom} of each month`
-    main = main ? `${main}, ${domPart}` : domPart
-  } else if (months) {
-    main = main ? `${main} in ${months}` : `in ${months}`
-  }
-
-  if (dow) {
-    main = main ? `${main}, ${dow} only` : dow
-  }
-
-  if (!main) return 'Always'
-  return main.charAt(0).toUpperCase() + main.slice(1)
-}
-
 function adjustTime(fi, field, unit, delta) {
   const frame = form.value.timeFrames[fi]
   const key = field === 'start' ? 'startTime' : 'endTime'
@@ -570,7 +307,7 @@ function buildForm(rule) {
       customAttributeSetActions: [],
       customAttributeDeleteActions: [],
       rootCauseAnalysisScript: null,
-      aiAgentInstructions: '',
+      aiInstructions: '',
       incidentDelay: 0,
       incidentTitle: '',
       incidentDescription: '',
@@ -578,8 +315,11 @@ function buildForm(rule) {
       incidentAIPrompt: '',
     }
   }
+  // eslint-disable-next-line no-unused-vars
+  const { aiAgentInstructions: _legacyAiInstructions, ...fields } = rule
   return {
-    ...rule,
+    ...fields,
+    aiInstructions: aiInstructionsOf(rule),
     actions: (rule.actions ?? []).map((a) => ({ ...a })),
     timeFrames: (rule.timeFrames ?? []).map((f) => ({
       _key: Math.random(),
@@ -639,9 +379,7 @@ const showAiComment = computed(() => aiAvailable.value || !!(props.rule?.flags &
 const showAiIncidentAnalysis = computed(
   () => aiAvailable.value || !!(props.rule?.flags & RF_AI_ANALYZE_INCIDENT),
 )
-const showAiAgentInstructions = computed(
-  () => aiAvailable.value || !!props.rule?.aiAgentInstructions,
-)
+const showAiAgentInstructions = computed(() => aiAvailable.value || !!aiInstructionsOf(props.rule))
 
 const alarmActionType = computed({
   get: () => {
@@ -928,7 +666,7 @@ function computeInitialExpanded(f) {
   if (f.actions.length) open.push('serveractions')
   if (f.actionScript) open.push('script')
   if (f.timerCancellations.length) open.push('timers')
-  if (f.aiAgentInstructions) open.push('aiagent')
+  if (f.aiInstructions) open.push('aiagent')
   if (f.chainCalls?.length) open.push('chaincalls')
   return open
 }
@@ -1001,6 +739,8 @@ function save() {
     alarmTimeout: Number(form.value.alarmTimeout) || 0,
     alarmTimeoutEvent: Number(form.value.alarmTimeoutEvent) || 0,
     incidentDelay: Number(form.value.incidentDelay) || 0,
+    // Servers before netxms 2a49dc61c1 read only the old name; newer ones prefer the new one.
+    aiAgentInstructions: form.value.aiInstructions,
   }
   emit('saved', data)
 }
@@ -1017,11 +757,35 @@ const headerTitle = computed(() => {
   return props.rule.comments || 'Edit Rule'
 })
 
-const activeTab = ref('general')
+const activeTab = ref(RULE_SECTIONS[props.section]?.tab ?? 'general')
+const rootEl = ref(null)
+
+async function revealSection(section) {
+  const target = RULE_SECTIONS[section]
+  if (!target) return
+  activeTab.value = target.tab
+  if (target.panel && !expandedPanels.value.includes(target.panel)) {
+    expandedPanels.value = [...expandedPanels.value, target.panel]
+  }
+  await nextTick()
+  rootEl.value
+    ?.querySelector(`[data-rule-section="${section}"]`)
+    ?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+}
+
+onMounted(() => {
+  if (props.section) revealSection(props.section)
+})
+watch(
+  () => props.section,
+  (section) => {
+    if (section) revealSection(section)
+  },
+)
 </script>
 
 <template>
-  <div class="epp-rule-detail">
+  <div ref="rootEl" class="epp-rule-detail">
     <EntityDetailHeader :title="headerTitle" subtitle="Event Processing Rule" @back="emit('close')">
       <template #actions>
         <template v-if="!readonly">
@@ -1102,7 +866,7 @@ const activeTab = ref('general')
                 </label>
               </DetailCard>
 
-              <DetailCard title="Severity Filter">
+              <DetailCard title="Severity Filter" data-rule-section="severity">
                 <div class="severity-checkboxes" style="padding: 0.5rem 0">
                   <label v-for="sev in severityFlags" :key="sev.flag" class="severity-check">
                     <Checkbox
@@ -1115,7 +879,7 @@ const activeTab = ref('general')
                 </div>
               </DetailCard>
 
-              <DetailCard title="Events" :wide="true">
+              <DetailCard title="Events" :wide="true" data-rule-section="events">
                 <div class="card-section">
                   <label class="toggle-label-small">
                     <ToggleSwitch v-model="negatedEvents" size="small" />
@@ -1160,7 +924,7 @@ const activeTab = ref('general')
                 </div>
               </DetailCard>
 
-              <DetailCard title="Source Objects" :wide="true">
+              <DetailCard title="Source Objects" :wide="true" data-rule-section="sources">
                 <div class="card-section">
                   <label class="toggle-label-small">
                     <ToggleSwitch v-model="negatedSources" size="small" />
@@ -1235,7 +999,7 @@ const activeTab = ref('general')
                 </div>
               </DetailCard>
 
-              <DetailCard title="Time Filter" :wide="true">
+              <DetailCard title="Time Filter" :wide="true" data-rule-section="time">
                 <div class="card-section">
                   <label class="toggle-label-small">
                     <ToggleSwitch v-model="negatedTimeFrames" size="small" />
@@ -1449,7 +1213,7 @@ const activeTab = ref('general')
                 </div>
               </DetailCard>
 
-              <DetailCard title="Filter Script" :wide="true">
+              <DetailCard title="Filter Script" :wide="true" data-rule-section="filter-script">
                 <div class="card-section">
                   <NxslScriptEditor
                     v-model="form.filterScript"
@@ -1465,7 +1229,7 @@ const activeTab = ref('general')
 
           <TabPanel value="action">
             <div class="action-tab-content">
-              <DetailCard title="General" :wide="true">
+              <DetailCard title="General" :wide="true" data-rule-section="action-options">
                 <label class="option-row" for="flag-stop">
                   <span @click.stop>
                     <Checkbox input-id="flag-stop" v-model="stopProcessing" :binary="true" />
@@ -1481,7 +1245,7 @@ const activeTab = ref('general')
                 </p>
               </DetailCard>
               <Accordion v-model:value="expandedPanels" multiple class="action-accordion">
-                <AccordionPanel value="chaincalls">
+                <AccordionPanel value="chaincalls" data-rule-section="chaincalls">
                   <AccordionHeader>
                     <div class="panel-header">
                       <span>Call Chains</span>
@@ -1501,7 +1265,7 @@ const activeTab = ref('general')
                   </AccordionContent>
                 </AccordionPanel>
 
-                <AccordionPanel value="alarm">
+                <AccordionPanel value="alarm" data-rule-section="alarm">
                   <AccordionHeader>
                     <div class="panel-header">
                       <span>Alarm</span>
@@ -1686,7 +1450,7 @@ const activeTab = ref('general')
                   </AccordionContent>
                 </AccordionPanel>
 
-                <AccordionPanel value="incident">
+                <AccordionPanel value="incident" data-rule-section="incident">
                   <AccordionHeader>
                     <div class="panel-header">
                       <span>Incident</span>
@@ -1792,7 +1556,7 @@ const activeTab = ref('general')
                   </AccordionContent>
                 </AccordionPanel>
 
-                <AccordionPanel value="downtime">
+                <AccordionPanel value="downtime" data-rule-section="downtime">
                   <AccordionHeader>
                     <div class="panel-header">
                       <span>Downtime Control</span>
@@ -1834,7 +1598,7 @@ const activeTab = ref('general')
                   </AccordionContent>
                 </AccordionPanel>
 
-                <AccordionPanel value="pstorage">
+                <AccordionPanel value="pstorage" data-rule-section="pstorage">
                   <AccordionHeader>
                     <div class="panel-header">
                       <span>Persistent Storage</span>
@@ -1943,7 +1707,7 @@ const activeTab = ref('general')
                   </AccordionContent>
                 </AccordionPanel>
 
-                <AccordionPanel value="customattr">
+                <AccordionPanel value="customattr" data-rule-section="customattr">
                   <AccordionHeader>
                     <div class="panel-header">
                       <span>Custom Attributes</span>
@@ -2056,7 +1820,7 @@ const activeTab = ref('general')
                   </AccordionContent>
                 </AccordionPanel>
 
-                <AccordionPanel value="serveractions">
+                <AccordionPanel value="serveractions" data-rule-section="serveractions">
                   <AccordionHeader>
                     <div class="panel-header">
                       <span>Server Actions</span>
@@ -2184,7 +1948,7 @@ const activeTab = ref('general')
                   </AccordionContent>
                 </AccordionPanel>
 
-                <AccordionPanel value="script">
+                <AccordionPanel value="script" data-rule-section="script">
                   <AccordionHeader>
                     <div class="panel-header">
                       <span>Script</span>
@@ -2205,7 +1969,7 @@ const activeTab = ref('general')
                   </AccordionContent>
                 </AccordionPanel>
 
-                <AccordionPanel value="timers">
+                <AccordionPanel value="timers" data-rule-section="timers">
                   <AccordionHeader>
                     <div class="panel-header">
                       <span>Timer Cancellations</span>
@@ -2263,12 +2027,16 @@ const activeTab = ref('general')
                   </AccordionContent>
                 </AccordionPanel>
 
-                <AccordionPanel v-if="showAiAgentInstructions" value="aiagent">
+                <AccordionPanel
+                  v-if="showAiAgentInstructions"
+                  value="aiagent"
+                  data-rule-section="aiagent"
+                >
                   <AccordionHeader>
                     <div class="panel-header">
-                      <span>AI Agent Instructions</span>
+                      <span>AI Assistant Instructions</span>
                       <span class="panel-summary">
-                        {{ form.aiAgentInstructions ? 'Configured' : 'Empty' }}
+                        {{ form.aiInstructions ? 'Configured' : 'Empty' }}
                       </span>
                     </div>
                   </AccordionHeader>
@@ -2284,11 +2052,11 @@ const activeTab = ref('general')
                         cannot run. Remove them unless AI is being set up.
                       </Message>
                       <div class="field-hint">
-                        Instructions provided to the AI agent when processing this event.
+                        Instructions given to the AI assistant when this rule processes an event.
                       </div>
                       <Textarea
-                        v-model="form.aiAgentInstructions"
-                        placeholder="Instructions for the AI agent..."
+                        v-model="form.aiInstructions"
+                        placeholder="Instructions for the AI assistant..."
                         rows="4"
                         style="width: 100%"
                         auto-resize

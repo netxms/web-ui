@@ -3,11 +3,11 @@ import { ref, computed } from 'vue'
 import Checkbox from 'primevue/checkbox'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Button from 'primevue/button'
-import Tag from 'primevue/tag'
+import { ChevronsDownUp, ChevronsUpDown } from 'lucide-vue-next'
 import QueryErrorState from '@/components/common/QueryErrorState.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
-import AppLink from '@/components/common/AppLink.vue'
 import { useRowSelection } from '@/composables/useRowSelection'
+import { isRuleEnabled as isEnabled } from '@/utils/eppRules'
 
 defineOptions({ name: 'EppTable' })
 
@@ -22,10 +22,6 @@ const props = defineProps({
   canReorder: { type: Boolean, default: true },
   canManage: { type: Boolean, default: false },
   positionMap: { type: Object, default: () => ({}) },
-  /** Chain id → display name, for the chips naming the chains a rule enters. */
-  chainLabels: { type: Map, default: () => new Map() },
-  /** `(chainId) => RouteLocationRaw`; makes those chips real links. */
-  chainTargetFor: { type: Function, default: null },
 })
 
 const emit = defineEmits([
@@ -38,19 +34,13 @@ const emit = defineEmits([
   'retry',
 ])
 
-const RF_DISABLED = 0x10
-const RF_STOP_PROCESSING = 0x01
+const totalCols = computed(() => (props.canReorder ? 8 : 7))
 
-function isEnabled(rule) {
-  return (rule.flags & RF_DISABLED) === 0
+const anyExpanded = computed(() => props.rules.some((rule) => props.expandedIds.has(rule.guid)))
+
+function toggleAllExpanded() {
+  emit('expansion-change', anyExpanded.value ? new Set() : new Set(props.rules.map((r) => r.guid)))
 }
-
-/** A chain deleted between load and save keeps its id visible rather than vanishing. */
-function chainLabelFor(chainId) {
-  return props.chainLabels.get(chainId) ?? `Chain #${chainId}`
-}
-
-const totalCols = computed(() => (props.canReorder ? 7 : 6))
 
 const dragSrcIndex = ref(null)
 const dropIndex = ref(null)
@@ -136,6 +126,7 @@ function onRowContextMenu(event, rule) {
           <col style="width: 2.25rem" />
           <col style="width: 3rem" />
           <col />
+          <col class="epp-table__col-actions" />
           <col style="width: 3.25rem" />
           <col style="width: 3.25rem" />
           <col v-if="canReorder" style="width: 2.5rem" />
@@ -144,9 +135,21 @@ function onRowContextMenu(event, rule) {
         <thead>
           <tr>
             <th class="epp-table__th-icon" />
-            <th class="epp-table__th-icon" />
+            <th class="epp-table__th-icon">
+              <button
+                v-if="rules.length"
+                v-tooltip.bottom="anyExpanded ? 'Collapse all' : 'Expand all'"
+                type="button"
+                class="epp-table__expander-btn"
+                :aria-label="anyExpanded ? 'Collapse all rules' : 'Expand all rules'"
+                @click.stop="toggleAllExpanded"
+              >
+                <component :is="anyExpanded ? ChevronsDownUp : ChevronsUpDown" :size="14" />
+              </button>
+            </th>
             <th class="epp-table__th-pos">#</th>
             <th>Description</th>
+            <th class="epp-table__th-actions">Actions</th>
             <th class="epp-table__th-icon" />
             <th class="epp-table__th-icon" />
             <th v-if="canReorder" class="epp-table__th-icon" />
@@ -236,27 +239,15 @@ function onRowContextMenu(event, rule) {
                     >
                       {{ rule.comments || '(unnamed rule)' }}
                     </span>
-                    <Tag
-                      v-if="rule.flags & RF_STOP_PROCESSING"
-                      v-tooltip.top="'Stop processing after this rule'"
-                      value="STOP"
-                      severity="warn"
-                      class="flag-tag"
-                    />
-                    <!-- `.stop` keeps the click off the row's expand handler; the anchor
-                         keeps new-tab clicks. -->
-                    <AppLink
-                      v-for="chainId in rule.chainCalls ?? []"
-                      :key="chainId"
-                      v-tooltip.top="`Go to the ${chainLabelFor(chainId)} chain`"
-                      :to="chainTargetFor?.(chainId) ?? ''"
-                      class="chain-call-chip"
-                      @click.stop
-                    >
-                      <i class="pi pi-arrow-right chain-call-chip__icon" />
-                      {{ chainLabelFor(chainId) }}
-                    </AppLink>
                   </div>
+                </td>
+
+                <td
+                  class="epp-table__td-actions"
+                  :class="{ 'epp-table__td-actions--disabled': !isEnabled(rule) }"
+                  @click.stop="onExpanderClick($event, rule)"
+                >
+                  <slot name="actions" :rule="rule" />
                 </td>
 
                 <td class="epp-table__td-icon">
@@ -318,6 +309,7 @@ function onRowContextMenu(event, rule) {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  container-type: inline-size;
 }
 
 .epp-table-wrap {
@@ -504,36 +496,32 @@ function onRowContextMenu(event, rule) {
   color: var(--p-primary-color);
 }
 
-.flag-tag {
-  font-size: 0.7rem;
-  padding: 1px 5px;
-  flex-shrink: 0;
+.epp-table__col-actions {
+  width: 13rem;
 }
 
-/* Reads as an outbound edge rather than a status tag. */
-.chain-call-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  font-size: 0.7rem;
-  line-height: 1.4;
-  padding: 1px 6px 1px 4px;
-  border: 1px solid var(--p-primary-color);
-  border-radius: 0.75rem;
-  color: var(--p-primary-color);
-  flex-shrink: 0;
-  max-width: 12rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.epp-table__td-actions {
+  cursor: pointer;
 }
 
-.chain-call-chip:hover {
-  background: var(--p-highlight-background);
+.epp-table thead th.epp-table__th-actions {
+  text-align: right;
 }
 
-.chain-call-chip__icon {
-  font-size: 0.6rem;
+.epp-table__td-actions--disabled {
+  opacity: 0.45;
+}
+
+/* A narrow table keeps the description readable; the expanded rule still lists every action. */
+@container (max-width: 48rem) {
+  .epp-table__col-actions {
+    width: 0;
+  }
+
+  .epp-table tbody td.epp-table__td-actions,
+  .epp-table thead th.epp-table__th-actions {
+    padding: 0;
+  }
 }
 
 .row-actions {

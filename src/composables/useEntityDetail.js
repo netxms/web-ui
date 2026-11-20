@@ -4,9 +4,11 @@ import { useRoute, useRouter } from 'vue-router'
 /**
  * @param {Object} [options]
  * @param {string} [options.paramName='entityId']
+ * @param {string[]} [options.detailQueryKeys] - query keys that belong to the detail view and
+ *   are dropped when it closes
  */
 export function useEntityDetail(options = {}) {
-  const { paramName = 'entityId' } = options
+  const { paramName = 'entityId', detailQueryKeys = [] } = options
 
   const route = useRoute()
   const router = useRouter()
@@ -29,10 +31,12 @@ export function useEntityDetail(options = {}) {
   function closeDetail() {
     const params = { ...route.params }
     delete params[paramName]
+    const query = { ...route.query }
+    for (const key of detailQueryKeys) delete query[key]
     router.push({
       name: route.name,
       params,
-      query: route.query,
+      query,
     })
   }
 

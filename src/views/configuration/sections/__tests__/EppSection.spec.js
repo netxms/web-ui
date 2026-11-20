@@ -85,6 +85,9 @@ vi.mock('@/queries/useEventTemplateQueries', () => ({
   useEventTemplates: () => ({ data: ref([]) }),
 }))
 vi.mock('@/queries/useServerActionQueries', () => ({ useServerActions: () => ({ data: ref([]) }) }))
+vi.mock('@/queries/useAlarmCategoryQueries', () => ({
+  useAlarmCategories: () => ({ data: ref([]) }),
+}))
 vi.mock('@/composables/usePermissions', () => ({
   usePermissions: () => ({ can: permissions }),
 }))

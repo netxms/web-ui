@@ -2,12 +2,13 @@
 import { ref, computed, defineAsyncComponent, watch } from 'vue'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import { useEppChainDrafts } from '@/composables/useEppChainDrafts'
-import Tag from 'primevue/tag'
-import StatusTag from '@/components/common/StatusTag.vue'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
 import SelectButton from 'primevue/selectbutton'
+import { Columns2, Rows3 } from 'lucide-vue-next'
 import EppTable from '@/components/epp/EppTable.vue'
+import EppActionStrip from '@/components/epp/EppActionStrip.vue'
+import EppRuleSummary from '@/components/epp/EppRuleSummary.vue'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import SmartFilterInput from '@/components/common/SmartFilterInput.vue'
@@ -46,26 +47,17 @@ import { eppChainTarget } from '@/utils/routeTargets'
 import { useObjectsByIds } from '@/queries/useObjectQueries'
 import { useEventTemplates } from '@/queries/useEventTemplateQueries'
 import { useServerActions } from '@/queries/useServerActionQueries'
+import { useAlarmCategories } from '@/queries/useAlarmCategoryQueries'
 import { usePermissions } from '@/composables/usePermissions'
 import { useWorkingState } from '@/composables/useWorkingState'
 import { useEppClipboardStore } from '@/stores/eppClipboardStore'
 import { notifyAction } from '@/utils/notify'
+import { userPrefs } from '@/utils/appStorage'
+import { RF_DISABLED, isRuleEnabled as isEnabled } from '@/utils/eppRules'
 
 const confirm = useConfirm()
 const toast = useToast()
 const { can } = usePermissions()
-
-const RF_DISABLED = 0x10
-const RF_GENERATE_ALARM = 0x08
-const RF_NEGATED_SOURCE = 0x02
-const RF_NEGATED_EVENTS = 0x04
-const RF_SEVERITY_INFO = 0x100
-const RF_SEVERITY_WARNING = 0x200
-const RF_SEVERITY_MINOR = 0x400
-const RF_SEVERITY_MAJOR = 0x800
-const RF_SEVERITY_CRITICAL = 0x1000
-const SEVERITY_TERMINATE = 6
-const SEVERITY_RESOLVE = 7
 
 // Async so cytoscape is fetched when someone opens the flow, not with Event Processing.
 const EppChainFlow = defineAsyncComponent(() => import('@/components/epp/EppChainFlow.vue'))
@@ -85,19 +77,39 @@ const VIEW_OPTIONS = [
   },
 ]
 
-const ALARM_SEVERITY_LABELS = ['Normal', 'Warning', 'Minor', 'Major', 'Critical', 'From Event']
-// Last label; alarmSeverity 5+ ("from event") clamps to it.
-const SEVERITY_FROM_EVENT_INDEX = ALARM_SEVERITY_LABELS.length - 1
-
-const SEVERITY_FLAG_LABELS = [
-  { flag: RF_SEVERITY_INFO, label: 'Normal' },
-  { flag: RF_SEVERITY_WARNING, label: 'Warning' },
-  { flag: RF_SEVERITY_MINOR, label: 'Minor' },
-  { flag: RF_SEVERITY_MAJOR, label: 'Major' },
-  { flag: RF_SEVERITY_CRITICAL, label: 'Critical' },
+const SUMMARY_LAYOUT_OPTIONS = [
+  {
+    value: 'steps',
+    label: 'Steps',
+    icon: Columns2,
+    tooltip: 'Expanded rules: filter and actions side by side',
+  },
+  {
+    value: 'pipeline',
+    label: 'Pipeline',
+    icon: Rows3,
+    tooltip: 'Expanded rules: filter and actions in one column',
+  },
 ]
+const SUMMARY_LAYOUT_PREF = 'eppView.summaryLayout'
 
-const { entityId, isDetailView, openDetail, closeDetail } = useEntityDetail()
+function readSummaryLayout() {
+  const stored = userPrefs.get(SUMMARY_LAYOUT_PREF)
+  return SUMMARY_LAYOUT_OPTIONS.some((o) => o.value === stored) ? stored : 'steps'
+}
+
+const summaryLayout = ref(readSummaryLayout())
+watch(summaryLayout, (layout) =>
+  userPrefs.set(SUMMARY_LAYOUT_PREF, layout === 'steps' ? undefined : layout),
+)
+watch(userPrefs.revision, () => {
+  summaryLayout.value = readSummaryLayout()
+})
+
+// `section` belongs to the rule editor: a summary opens the editor on the part it links to.
+const { entityId, isDetailView, openDetail, closeDetail } = useEntityDetail({
+  detailQueryKeys: ['section'],
+})
 
 const editingRule = computed(() => {
   if (!isDetailView.value || entityId.value === 'new') return null
@@ -196,6 +208,13 @@ const serverActionsMap = computed(() => {
   return map
 })
 
+const { data: alarmCategoriesData } = useAlarmCategories()
+const alarmCategoryMap = computed(() => {
+  const map = {}
+  for (const c of alarmCategoriesData.value ?? []) map[c.id] = c
+  return map
+})
+
 // One draft per chain, so several chains can be edited before any is written (see
 // `useEppChainDrafts` for why each draft's base version is pinned).
 const {
@@ -244,14 +263,11 @@ const allSourceIds = computed(() => {
   const ids = new Set()
   for (const rule of localRules.value ?? []) {
     for (const id of rule.sources ?? []) ids.add(id)
+    for (const id of rule.sourceExclusions ?? []) ids.add(id)
   }
   return [...ids]
 })
 const { objectsById } = useObjectsByIds(allSourceIds)
-
-function sourceName(id) {
-  return objectsById.value.get(id)?.name ?? `Object #${id}`
-}
 
 // A saved draft is kept until its refetch lands, so the rules on screen never flip back to the
 // pre-save copy in the gap.
@@ -315,30 +331,17 @@ const pendingIds = computed(
 
 const expandedRowIds = ref(new Set())
 
-function isEnabled(rule) {
-  return (rule.flags & RF_DISABLED) === 0
+/** A chain deleted between load and save keeps its id visible rather than vanishing. */
+function chainLabelFor(chainId) {
+  return chainLabels.value.get(chainId) ?? `Chain #${chainId}`
 }
 
-function alarmActionType(rule) {
-  if (!(rule.flags & RF_GENERATE_ALARM)) return null
-  if (rule.alarmSeverity === SEVERITY_TERMINATE) return 'terminate'
-  if (rule.alarmSeverity === SEVERITY_RESOLVE) return 'resolve'
-  return 'generate'
+function actionNameFor(actionId) {
+  return serverActionsMap.value[actionId]?.name ?? `Action #${actionId}`
 }
 
-function alarmSeverityIndex(rule) {
-  return Math.min(rule.alarmSeverity, ALARM_SEVERITY_LABELS.length - 1)
-}
-
-function activeSeverityLabels(rule) {
-  return SEVERITY_FLAG_LABELS.filter((s) => rule.flags & s.flag).map((s) => s.label)
-}
-
-function scriptPreview(script) {
-  if (!script) return null
-  const first = script.split('\n').find((l) => l.trim() && !l.trim().startsWith('//'))
-  const line = first ?? script.split('\n')[0]
-  return line.length > 80 ? line.slice(0, 80) + '...' : line
+function ruleSectionTarget(rule, section) {
+  return eppChainTarget(activeChainId.value, { ruleGuid: rule.guid, section })
 }
 
 /** Marks a rule the server has not seen yet; `ruleForSave` drops it on the way out. */
@@ -917,6 +920,7 @@ function onMenuClick({ event, rule }) {
     :chain-id="activeChainId"
     :call-graph="callGraph"
     :readonly="!canEditActiveChain"
+    :section="typeof route.query.section === 'string' ? route.query.section : null"
     @close="closeDetail"
     @saved="onRuleSaved"
   />
@@ -1137,6 +1141,21 @@ function onMenuClick({ event, rule }) {
           :chains="chains"
           class="chain-callers-button"
         />
+        <div class="layout-toggle" role="group" aria-label="Expanded rule layout">
+          <button
+            v-for="option in SUMMARY_LAYOUT_OPTIONS"
+            :key="option.value"
+            v-tooltip.bottom="option.tooltip"
+            type="button"
+            class="layout-toggle__button"
+            :class="{ 'layout-toggle__button--active': summaryLayout === option.value }"
+            :aria-label="option.label"
+            :aria-pressed="summaryLayout === option.value"
+            @click="summaryLayout = option.value"
+          >
+            <component :is="option.icon" :size="18" :stroke-width="1.75" aria-hidden="true" />
+          </button>
+        </div>
         <div class="toolbar-spacer" />
         <Button
           v-if="canEditActiveChain"
@@ -1218,8 +1237,6 @@ function onMenuClick({ event, rule }) {
         :can-reorder="canEditActiveChain"
         :can-manage="canEditActiveChain"
         :position-map="rulePositionMap"
-        :chain-labels="chainLabels"
-        :chain-target-for="(chainId) => eppChainTarget(chainId)"
         @reorder="onReorder"
         @toggle-enabled="onToggleEnabled"
         @selection-change="selectedRuleIds = $event"
@@ -1228,138 +1245,31 @@ function onMenuClick({ event, rule }) {
         @menu-click="onMenuClick"
         @retry="refetch"
       >
+        <template #actions="{ rule }">
+          <EppActionStrip
+            :rule="rule"
+            :action-name-for="actionNameFor"
+            :chain-label-for="chainLabelFor"
+            :chain-target-for="(chainId) => eppChainTarget(chainId)"
+          />
+        </template>
+
         <template #expansion="{ rule }">
-          <div class="rule-expansion">
-            <div class="expansion-panel">
-              <div class="expansion-panel-title">Condition</div>
-
-              <div class="expansion-row">
-                <span class="expansion-label">Events</span>
-                <div class="expansion-chips">
-                  <template v-if="rule.events.length">
-                    <Tag
-                      v-for="code in rule.events"
-                      :key="code"
-                      severity="secondary"
-                      class="expansion-chip"
-                      :class="{ 'negated-chip': rule.flags & RF_NEGATED_EVENTS }"
-                    >
-                      {{ eventTemplateMap[code]?.name ?? `#${code}` }}
-                    </Tag>
-                  </template>
-                  <span v-else class="expansion-muted">any event</span>
-                </div>
-              </div>
-
-              <div class="expansion-row">
-                <span class="expansion-label">Sources</span>
-                <div class="expansion-chips">
-                  <template v-if="rule.sources.length">
-                    <Tag
-                      v-for="id in rule.sources"
-                      :key="id"
-                      severity="secondary"
-                      class="expansion-chip"
-                      :class="{ 'negated-chip': rule.flags & RF_NEGATED_SOURCE }"
-                    >
-                      {{ sourceName(id) }}
-                    </Tag>
-                  </template>
-                  <span v-else class="expansion-muted">any object</span>
-                </div>
-              </div>
-
-              <div class="expansion-row">
-                <span class="expansion-label">Severities</span>
-                <div class="expansion-chips">
-                  <template v-if="activeSeverityLabels(rule).length < 5">
-                    <Tag
-                      v-for="label in activeSeverityLabels(rule)"
-                      :key="label"
-                      severity="secondary"
-                      class="expansion-chip"
-                    >
-                      {{ label }}
-                    </Tag>
-                    <span v-if="!activeSeverityLabels(rule).length" class="expansion-muted">
-                      none
-                    </span>
-                  </template>
-                  <span v-else class="expansion-muted">any severity</span>
-                </div>
-              </div>
-
-              <div v-if="scriptPreview(rule.filterScript)" class="expansion-row">
-                <span class="expansion-label">Filter script</span>
-                <code class="expansion-code">{{ scriptPreview(rule.filterScript) }}</code>
-              </div>
-            </div>
-
-            <div class="expansion-panel">
-              <div class="expansion-panel-title">Actions</div>
-
-              <div class="expansion-row">
-                <span class="expansion-label">Alarm</span>
-                <div class="expansion-chips">
-                  <template v-if="alarmActionType(rule) === 'generate'">
-                    <Tag
-                      v-if="alarmSeverityIndex(rule) === SEVERITY_FROM_EVENT_INDEX"
-                      value="From Event"
-                      severity="secondary"
-                      class="expansion-chip"
-                    />
-                    <StatusTag v-else :status="alarmSeverityIndex(rule)" class="expansion-chip" />
-                    <span v-if="rule.alarmMessage" class="expansion-inline-text">
-                      {{ rule.alarmMessage }}
-                    </span>
-                  </template>
-                  <template v-else-if="alarmActionType(rule) === 'resolve'">
-                    <Tag value="Resolve" severity="success" class="expansion-chip" />
-                    <span v-if="rule.alarmKey" class="expansion-inline-text">{{
-                      rule.alarmKey
-                    }}</span>
-                  </template>
-                  <template v-else-if="alarmActionType(rule) === 'terminate'">
-                    <Tag value="Terminate" severity="secondary" class="expansion-chip" />
-                    <span v-if="rule.alarmKey" class="expansion-inline-text">{{
-                      rule.alarmKey
-                    }}</span>
-                  </template>
-                  <span v-else class="expansion-muted">none</span>
-                </div>
-              </div>
-
-              <div v-if="rule.actions.length" class="expansion-row">
-                <span class="expansion-label">Execute</span>
-                <div class="expansion-chips">
-                  <Tag
-                    v-for="action in rule.actions"
-                    :key="action.id"
-                    severity="info"
-                    outlined
-                    class="expansion-chip"
-                  >
-                    {{ serverActionsMap[action.id]?.name ?? `Action #${action.id}` }}
-                  </Tag>
-                </div>
-              </div>
-
-              <div v-if="scriptPreview(rule.actionScript)" class="expansion-row">
-                <span class="expansion-label">Action script</span>
-                <code class="expansion-code">{{ scriptPreview(rule.actionScript) }}</code>
-              </div>
-            </div>
-
-            <div class="expansion-edit">
-              <Button
-                :label="canEditActiveChain ? 'Edit Rule' : 'View Rule'"
-                icon="pi pi-pencil"
-                size="small"
-                severity="secondary"
-                @click.stop="openDetail(rule.guid)"
-              />
-            </div>
-          </div>
+          <EppRuleSummary
+            class="rule-expansion"
+            :rule="rule"
+            :layout="summaryLayout"
+            :position="rulePositionMap[rule.guid] ?? null"
+            :rule-count="localRules.length"
+            :in-main-chain="isMainChain(activeChainId)"
+            :event-templates="eventTemplateMap"
+            :objects-by-id="objectsById"
+            :server-actions="serverActionsMap"
+            :alarm-categories="alarmCategoryMap"
+            :chain-label-for="chainLabelFor"
+            :chain-target-for="(chainId) => eppChainTarget(chainId)"
+            :section-target-for="(section) => ruleSectionTarget(rule, section)"
+          />
         </template>
       </EppTable>
     </template>
@@ -1520,6 +1430,45 @@ function onMenuClick({ event, rule }) {
   margin-left: 0.5rem;
 }
 
+/* Icon-only and outlined, so it reads as a display option rather than a second view switch. */
+.layout-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  margin-left: 0.5rem;
+  border: 1px solid var(--p-content-border-color);
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.layout-toggle__button {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--p-text-muted-color);
+  cursor: pointer;
+}
+
+.layout-toggle__button:hover {
+  background: var(--p-content-hover-background);
+  color: var(--p-text-color);
+}
+
+.layout-toggle__button--active,
+.layout-toggle__button--active:hover {
+  background: var(--p-highlight-background);
+  color: var(--p-highlight-color);
+}
+
+.layout-toggle__button:focus-visible {
+  outline: 2px solid var(--p-primary-color);
+  outline-offset: 1px;
+}
+
 .view-switch {
   margin-right: 0.25rem;
 }
@@ -1535,91 +1484,7 @@ function onMenuClick({ event, rule }) {
 }
 
 .rule-expansion {
-  display: flex;
-  gap: 1.5rem;
-  padding: 0.75rem 1rem;
+  padding: 0.25rem 1rem 0.75rem 4.5rem;
   background: var(--p-surface-ground);
-  align-items: flex-start;
-}
-
-.expansion-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  min-width: 0;
-}
-
-.expansion-panel-title {
-  font-weight: 600;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--p-text-muted-color);
-  margin-bottom: 0.25rem;
-}
-
-.expansion-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-}
-
-.expansion-label {
-  width: 80px;
-  flex-shrink: 0;
-  color: var(--p-text-muted-color);
-  font-size: 0.8rem;
-  padding-top: 2px;
-}
-
-.expansion-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  align-items: center;
-}
-
-.expansion-chip {
-  font-size: 0.75rem;
-}
-
-.negated-chip {
-  text-decoration: line-through;
-  opacity: 0.7;
-}
-
-.expansion-muted {
-  font-size: 0.85rem;
-  color: var(--p-text-muted-color);
-  font-style: italic;
-}
-
-.expansion-inline-text {
-  font-size: 0.85rem;
-  color: var(--p-text-muted-color);
-  font-family: var(--font-mono);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 240px;
-}
-
-.expansion-code {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  color: var(--p-text-muted-color);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 300px;
-}
-
-.expansion-edit {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  align-self: center;
 }
 </style>
