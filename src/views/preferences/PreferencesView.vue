@@ -339,6 +339,11 @@ function restartSetup() {
   padding-bottom: 0.25rem;
 }
 
+/* A long hint wraps instead: a ToggleSwitch has no in-flow content, so it shrinks to nothing. */
+.pref-row > :not(.pref-label) {
+  flex-shrink: 0;
+}
+
 .pref-row--stacked {
   align-items: flex-start;
 }
@@ -360,7 +365,6 @@ function restartSetup() {
 /* Underlined rather than boxed; fixed width so the selects line up down one right edge. */
 .pref-select {
   width: 210px;
-  flex-shrink: 0;
   background: transparent;
   border: 0;
   border-bottom: 1px solid var(--p-content-border-color);
@@ -394,7 +398,6 @@ function restartSetup() {
 .theme-swatches {
   display: flex;
   gap: 0.625rem;
-  flex-shrink: 0;
 }
 
 .theme-swatch {
