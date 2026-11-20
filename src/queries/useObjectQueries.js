@@ -49,6 +49,7 @@ export const objectKeys = {
     contextObjectId,
   ],
   statusExplanation: (id) => ['objects', 'statusExplanation', id],
+  ancestors: (id) => ['objects', 'ancestors', id],
   rackLayout: (id) => ['objects', 'rackLayout', id],
   // unitSystem is a cache discriminator, not a request parameter: the layout is cached in the
   // chassis's own units. Omit it for a prefix key matching every unit variant.
@@ -112,6 +113,54 @@ export function useObjectStatusExplanation(objectId) {
     queryFn: () => objectsApi.getObjectStatusExplanation(toValue(objectId)),
     enabled: computed(() => !!toValue(objectId)),
     ...VOLATILE_TIER,
+  })
+}
+
+/**
+ * Every ancestor of an object, found by walking `parents` through the detail queries. Data is
+ * `null` when the object does not exist; `complete` is false when a parent could not be read, so
+ * its own parents are missing.
+ *
+ * @param {import('vue').MaybeRefOrGetter<number|null>} objectId
+ * @returns {import('@tanstack/vue-query').UseQueryReturnType<
+ *   { ids: number[], complete: boolean } | null, Error>}
+ */
+export function useObjectAncestors(objectId) {
+  const queryClient = useQueryClient()
+
+  function fetchDetail(id) {
+    return queryClient.fetchQuery({
+      queryKey: objectKeys.detail(id),
+      queryFn: ({ signal }) => objectsApi.getObject(id, { signal, priority: 'interactive' }),
+      ...MODERATE_TIER,
+    })
+  }
+
+  return useQuery({
+    queryKey: computed(() => objectKeys.ancestors(toValue(objectId))),
+    queryFn: async () => {
+      const id = toValue(objectId)
+      let object
+      try {
+        object = await fetchDetail(id)
+      } catch (error) {
+        if (error?.status === 404) return null
+        throw error
+      }
+      const seen = new Set()
+      let complete = true
+      let level = object?.parents ?? []
+      while (level.length) {
+        const fresh = level.filter((parentId) => !seen.has(parentId))
+        fresh.forEach((parentId) => seen.add(parentId))
+        const parents = await Promise.allSettled(fresh.map(fetchDetail))
+        if (parents.some((result) => result.status === 'rejected')) complete = false
+        level = parents.flatMap((result) => result.value?.parents ?? [])
+      }
+      return { ids: [...seen], complete }
+    },
+    enabled: computed(() => !!toValue(objectId)),
+    ...MODERATE_TIER,
   })
 }
 

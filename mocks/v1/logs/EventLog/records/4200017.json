@@ -1,0 +1,65 @@
+{
+  "event_id": 4200017,
+  "event_timestamp": 1795174930,
+  "origin_timestamp": 1795174930,
+  "origin": 0,
+  "event_source": 502,
+  "zone_uin": 0,
+  "dci_id": 1204,
+  "event_code": 6,
+  "event_severity": 2,
+  "event_message": "Threshold reached for CPU usage on web-01.dc-alpha.example.com: 94.2 > 90",
+  "event_tags": "",
+  "root_event_id": 0,
+  "raw_data": {
+    "id": 4200017,
+    "rootId": 0,
+    "code": 6,
+    "name": "SYS_THRESHOLD_REACHED",
+    "timestamp": 1795174930,
+    "originTimestamp": 1795174930,
+    "origin": 0,
+    "source": 502,
+    "zone": 0,
+    "dci": 1204,
+    "severity": 2,
+    "message": "Threshold reached for CPU usage on web-01.dc-alpha.example.com: 94.2 > 90",
+    "lastAlarmKey": "ESC_502",
+    "lastAlarmMessage": "Escalated: Threshold reached for CPU usage on web-01.dc-alpha.example.com: 94.2 > 90",
+    "lastAlarmId": 8841,
+    "tags": null,
+    "parameters": [
+      { "name": "dciName", "value": "System.CPU.Usage" },
+      { "name": "dciDescription", "value": "CPU usage" },
+      { "name": "thresholdValue", "value": "90" },
+      { "name": "currentValue", "value": "94.2" }
+    ],
+    "processingMetadata": [
+      {
+        "rule": 3,
+        "chainId": 0,
+        "guid": "11111111-1111-1111-1111-000000000003",
+        "comments": "Threshold crossed - alarm + notify",
+        "effects": [
+          { "type": "alarm", "id": 8840 },
+          { "type": "action", "id": 1, "scheduled": true, "info": "Send email to on-call" },
+          { "type": "chain-call", "info": "Escalation" }
+        ]
+      },
+      {
+        "rule": 1,
+        "chainId": 2,
+        "guid": "22222222-2222-2222-2222-000000000001",
+        "comments": "Repeat threshold in 15 min - raise to critical",
+        "effects": [{ "type": "alarm", "id": 8841 }]
+      },
+      {
+        "rule": 2,
+        "chainId": 2,
+        "guid": "22222222-2222-2222-2222-000000000002",
+        "comments": "Stop processing once escalated",
+        "effects": []
+      }
+    ]
+  }
+}

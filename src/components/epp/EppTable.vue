@@ -176,6 +176,7 @@ function onRowContextMenu(event, rule) {
           <template v-else>
             <template v-for="(rule, index) in rules" :key="rule.guid">
               <tr
+                :data-rule-guid="rule.guid"
                 :class="{
                   'epp-table__row--selected': isRuleSelected(rule),
                   'epp-table__row--expanded': expandedIds.has(rule.guid),
@@ -239,6 +240,7 @@ function onRowContextMenu(event, rule) {
                     >
                       {{ rule.comments || '(unnamed rule)' }}
                     </span>
+                    <slot name="marker" :rule="rule" />
                   </div>
                 </td>
 

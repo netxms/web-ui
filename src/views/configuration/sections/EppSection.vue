@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, defineAsyncComponent, watch } from 'vue'
+import { ref, computed, defineAsyncComponent, nextTick, shallowRef, watch } from 'vue'
 import { useUnsavedChangesGuard } from '@/composables/useUnsavedChangesGuard'
 import { useEppChainDrafts } from '@/composables/useEppChainDrafts'
 import Button from 'primevue/button'
@@ -61,6 +61,18 @@ const { can } = usePermissions()
 
 // Async so cytoscape is fetched when someone opens the flow, not with Event Processing.
 const EppChainFlow = defineAsyncComponent(() => import('@/components/epp/EppChainFlow.vue'))
+
+// Event simulation is dev only: a production build folds these to null and bundles none of it.
+const EppSimulator = import.meta.env.DEV
+  ? defineAsyncComponent(() => import('@/components/epp/simulation/EppSimulator.vue'))
+  : null
+const EppTraceMark = import.meta.env.DEV
+  ? defineAsyncComponent(() => import('@/components/epp/simulation/EppTraceMark.vue'))
+  : null
+const simulatorOpen = ref(false)
+/** Marks of the trace the simulator shows; see `EppSimulator`'s `result`. */
+const simulation = shallowRef(null)
+const simulatorToggle = ref(null)
 
 const VIEW_OPTIONS = [
   {
@@ -146,8 +158,10 @@ function setView(view) {
 }
 
 // The call graph lives on the rules, so it means loading every chain; only the rule editor's
-// chain-call picker and the flow view need it.
-const needsCallGraph = computed(() => isDetailView.value || isFlowView.value)
+// chain-call picker, the flow view and the simulator need it.
+const needsCallGraph = computed(
+  () => isDetailView.value || isFlowView.value || simulatorOpen.value || simulation.value != null,
+)
 const {
   callGraph,
   chainsWithRules,
@@ -760,11 +774,41 @@ const pendingInsertIndex = ref(null)
 
 // Only view state is reset on a chain switch. The clipboard survives: a cut carried into
 // another chain is how rules move between them.
-watch(activeChainId, () => {
+watch(activeChainId, (chainId) => {
   selectedRuleIds.value = new Set()
-  expandedRowIds.value = new Set()
+  expandedRowIds.value = simulation.value?.expandFor(chainId) ?? new Set()
   pendingInsertIndex.value = null
 })
+
+// A new simulation run opens the rules it matched.
+if (import.meta.env.DEV) {
+  watch(
+    () => simulation.value?.runId,
+    (runId) => {
+      if (runId) expandedRowIds.value = simulation.value.expandFor(activeChainId.value)
+    },
+  )
+}
+
+const openTracedRule = import.meta.env.DEV
+  ? async ({ chainId, ruleGuid }) => {
+      if (chainId !== activeChainId.value || isFlowView.value || isDetailView.value) {
+        await router.push(eppChainTarget(chainId))
+        await nextTick()
+      }
+      if (!ruleGuid) return
+      expandedRowIds.value = new Set([...expandedRowIds.value, ruleGuid])
+      // The chain's rows may still be rendering after the switch.
+      for (let frame = 0; frame < 30; frame++) {
+        const row = document.querySelector(`[data-rule-guid="${CSS.escape(ruleGuid)}"]`)
+        if (row) {
+          row.scrollIntoView({ block: 'center', behavior: 'smooth' })
+          return
+        }
+        await new Promise((resolve) => requestAnimationFrame(resolve))
+      }
+    }
+  : null
 
 function openNewRule() {
   pendingInsertIndex.value = null
@@ -928,6 +972,7 @@ function onMenuClick({ event, rule }) {
   <div v-else class="epp-section">
     <SectionHeader title="Event Processing" icon="pi pi-sitemap">
       <template #actions>
+        <span v-if="EppSimulator" ref="simulatorToggle" class="simulator-toggle" />
         <SelectButton
           :model-value="isFlowView ? 'flow' : 'tabs'"
           :options="VIEW_OPTIONS"
@@ -1004,6 +1049,7 @@ function onMenuClick({ event, rule }) {
       :loading="isLoadingChains || isLoadingCallGraph"
       :active-chain-id="activeChainId"
       :dirty-chain-ids="dirtyChainIds"
+      :path="simulation?.path ?? null"
       @select-chain="onFlowSelectChain"
     />
 
@@ -1017,7 +1063,11 @@ function onMenuClick({ event, rule }) {
           :target-for="(chainId) => eppChainTarget(chainId)"
           @select="selectChain"
           @add="openNewChain"
-        />
+        >
+          <template v-if="simulation" #marker="{ chain }">
+            <component :is="EppTraceMark" kind="chain" :mark="simulation.chains.get(chain.id)" />
+          </template>
+        </EppChainTabs>
         <div v-if="can.manageEpp" class="chain-actions">
           <Button
             v-tooltip.bottom="'Chain properties'"
@@ -1245,6 +1295,10 @@ function onMenuClick({ event, rule }) {
         @menu-click="onMenuClick"
         @retry="refetch"
       >
+        <template v-if="simulation" #marker="{ rule }">
+          <component :is="EppTraceMark" :mark="simulation.rules.get(rule.guid)" />
+        </template>
+
         <template #actions="{ rule }">
           <EppActionStrip
             :rule="rule"
@@ -1302,6 +1356,22 @@ function onMenuClick({ event, rule }) {
       @confirm="onChainDeleteConfirm"
     />
   </div>
+
+  <component
+    :is="EppSimulator"
+    v-if="EppSimulator"
+    v-model:open="simulatorOpen"
+    :toggle-to="isDetailView ? null : simulatorToggle"
+    :chains="chains"
+    :chains-with-rules="chainsWithRules"
+    :rules-for="rulesFor"
+    :loading="isLoadingCallGraph"
+    :event-templates="eventTemplateMap"
+    :action-name-for="actionNameFor"
+    :chain-label-for="chainLabelFor"
+    @update:result="simulation = $event"
+    @open-rule="openTracedRule"
+  />
 </template>
 
 <style scoped>
@@ -1471,6 +1541,10 @@ function onMenuClick({ event, rule }) {
 
 .view-switch {
   margin-right: 0.25rem;
+}
+
+.simulator-toggle {
+  display: contents;
 }
 
 .view-switch :deep(.p-togglebutton-content) {

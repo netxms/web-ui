@@ -1,0 +1,33 @@
+{
+  "event_id": 4200016,
+  "event_timestamp": 1795174870,
+  "origin_timestamp": 1795174870,
+  "origin": 0,
+  "event_source": 502,
+  "zone_uin": 0,
+  "dci_id": 0,
+  "event_code": 4,
+  "event_severity": 3,
+  "event_message": "Interface eth0 is down on web-01.dc-alpha.example.com",
+  "event_tags": "",
+  "root_event_id": 0,
+  "raw_data": {
+    "id": 4200016,
+    "rootId": 0,
+    "code": 4,
+    "name": "SYS_IF_DOWN",
+    "timestamp": 1795174870,
+    "originTimestamp": 1795174870,
+    "origin": 0,
+    "source": 502,
+    "zone": 0,
+    "dci": 0,
+    "severity": 3,
+    "message": "Interface eth0 is down on web-01.dc-alpha.example.com",
+    "lastAlarmKey": "IF_DOWN_502_eth0",
+    "lastAlarmMessage": "Interface eth0 is down on web-01.dc-alpha.example.com",
+    "lastAlarmId": 8839,
+    "tags": null,
+    "parameters": [{ "name": "interfaceName", "value": "eth0" }]
+  }
+}

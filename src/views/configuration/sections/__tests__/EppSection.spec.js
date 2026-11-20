@@ -92,6 +92,15 @@ vi.mock('@/composables/usePermissions', () => ({
   usePermissions: () => ({ can: permissions }),
 }))
 vi.mock('@/composables/useUnsavedChangesGuard', () => ({ useUnsavedChangesGuard: () => {} }))
+// Dev-only, and loaded in tests too: `import.meta.env.DEV` is true under Vitest.
+vi.mock('@/components/epp/simulation/EppSimulator.vue', () => ({
+  __esModule: true,
+  default: { render: () => null },
+}))
+vi.mock('@/components/epp/simulation/EppTraceMark.vue', () => ({
+  __esModule: true,
+  default: { render: () => null },
+}))
 
 // PrimeVue's ContextMenu binds a matchMedia listener on mount; jsdom does not provide one.
 window.matchMedia =

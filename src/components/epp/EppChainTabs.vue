@@ -155,6 +155,7 @@ function onTabKeydown(event, chainId) {
           <i :class="isMainChain(chain) ? 'pi pi-sitemap' : 'pi pi-link'" class="chain-tab-icon" />
           <span class="chain-tab-label">{{ chainLabel(chain) }}</span>
           <span class="chain-tab-count">{{ chain.ruleCount ?? 0 }}</span>
+          <slot name="marker" :chain="chain" />
           <span
             v-if="dirtyChainIds.has(chain.id)"
             class="chain-tab-dirty"

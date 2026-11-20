@@ -32,6 +32,13 @@ const props = defineProps({
   activeChainId: { type: Number, default: MAIN_CHAIN_ID },
   /** Marked so the map agrees with the tab strip. */
   dirtyChainIds: { type: Set, default: () => new Set() },
+  /**
+   * One event's way through the chains, from `tracePath`: chain id and call edge key → the
+   * 1-based order in which the event entered; `loops` holds calls skipped as loops.
+   *
+   * @type {{ chains: Map<number, number[]>, edges: Map<string, number[]>, loops: Set<string> }}
+   */
+  path: { type: Object, default: null },
 })
 
 const emit = defineEmits(['select-chain'])
@@ -62,6 +69,8 @@ const palette = computed(() =>
         edgeText: '#cbd5e1',
         canvas: '#0f172a',
         cycle: '#fb923c',
+        trace: '#a78bfa',
+        traceInk: '#1e1b4b',
       }
     : {
         surface: '#ffffff',
@@ -78,6 +87,8 @@ const palette = computed(() =>
         edgeText: '#475569',
         canvas: '#f8fafc',
         cycle: '#ea580c',
+        trace: '#7c3aed',
+        traceInk: '#ffffff',
       },
 )
 
@@ -420,6 +431,46 @@ function buildStyle() {
         'target-arrow-color': p.active,
       },
     },
+    // A traced path: the order the event entered each chain sits above the card and on the call.
+    { selector: '.untraced', style: { opacity: 0.35 } },
+    {
+      selector: 'node.traced',
+      style: {
+        'underlay-color': p.trace,
+        'underlay-opacity': 0.2,
+        'underlay-padding': 6,
+        'underlay-shape': 'round-rectangle',
+        label: 'data(traceLabel)',
+        'text-valign': 'top',
+        'text-halign': 'center',
+        'text-margin-y': -6,
+        color: p.traceInk,
+        'font-size': 11,
+        'font-weight': 700,
+        'text-background-color': p.trace,
+        'text-background-opacity': 1,
+        'text-background-padding': 3,
+        'text-background-shape': 'roundrectangle',
+      },
+    },
+    // Numbered at its start: mid-edge, the number can land on a card the call passes over.
+    {
+      selector: 'edge.traced',
+      style: {
+        width: 3.5,
+        'line-style': 'solid',
+        'line-color': p.trace,
+        'line-opacity': 1,
+        'target-arrow-color': p.trace,
+        label: '',
+        'source-label': 'data(traceLabel)',
+        'source-text-offset': 26,
+        color: p.traceInk,
+        'font-weight': 700,
+        'text-background-color': p.trace,
+      },
+    },
+    { selector: 'edge.trace-loop', style: { 'line-opacity': 1, width: 2.5 } },
     { selector: '.dimmed', style: { opacity: 0.4 } },
     // Underlay, so a selection does not wash out the card's text.
     {
@@ -613,7 +664,31 @@ async function build() {
   await runLayout()
   // Rebuilt elements; re-apply the picked chain's halo.
   if (pickedChainId.value != null) pickChain(pickedChainId.value)
+  applyPath()
 }
+
+/** In place, so a new trace keeps the viewer's pan and zoom. */
+function applyPath() {
+  if (!cy.value) return
+  const path = props.path
+  cy.value.batch(() => {
+    cy.value.elements().removeClass('traced untraced trace-loop')
+    if (!path) return
+    cy.value.nodes().forEach((node) => {
+      const orders = path.chains.get(node.data('chainId'))
+      node.addClass(orders ? 'traced' : 'untraced')
+      node.data('traceLabel', orders ? orders.join(', ') : '')
+    })
+    cy.value.edges().forEach((edge) => {
+      const orders = path.edges.get(edge.id())
+      edge.data('traceLabel', orders ? orders.join(', ') : '')
+      if (orders) edge.addClass('traced')
+      else edge.addClass(path.loops.has(edge.id()) ? 'trace-loop' : 'untraced')
+    })
+  })
+}
+
+watch(() => props.path, applyPath)
 
 onMounted(async () => {
   containerRef.value?.addEventListener('wheel', markAdjusted, { passive: true })
@@ -705,6 +780,9 @@ function fit() {
           <span class="legend-swatch legend-swatch--unreachable" />Never reached
         </span>
         <span class="legend-item"><span class="legend-line legend-line--cycle" />Loops back</span>
+        <span v-if="path" class="legend-item">
+          <span class="legend-line legend-line--trace" />Event path, in entry order
+        </span>
       </div>
       <div class="flow-actions">
         <Button
@@ -940,6 +1018,14 @@ function fit() {
   width: 1rem;
   height: 0;
   border-top: 2px dashed var(--p-orange-500);
+}
+
+.legend-line--trace {
+  border-top: 3px solid #7c3aed;
+}
+
+html.app-dark .legend-line--trace {
+  border-top-color: #a78bfa;
 }
 
 .flow-actions {
