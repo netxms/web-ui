@@ -50,6 +50,8 @@ export const MAX_CHART_POINTS = 1000
 /** Hard row cap, well above the point budget so bucketing rather than truncation applies. */
 const MAX_ROWS = 10000
 
+const HEX_COLOR = /^#[0-9a-f]{6}$/i
+
 /** @param {string} id */
 export function getTimePreset(id) {
   return CHART_TIME_PRESETS.find((p) => p.id === id) ?? null
@@ -57,7 +59,8 @@ export function getTimePreset(id) {
 
 /**
  * @param {object} [init]
- * @param {Array<{ nodeId: number, dciId: number, label?: string }>} [init.dcis]
+ * @param {Array<{ nodeId: number, dciId: number, label?: string, color?: string }>} [init.dcis]
+ *   `color` is '#rrggbb'; without it the series takes the theme's slot color
  * @param {'line'|'table'|'comparison'} [init.mode]
  * @param {'bar'|'pie'} [init.comparisonType]
  * @param {boolean} [init.raw] - read raw samples rather than processed values
@@ -222,6 +225,9 @@ export function serializeToQuery(model, defaultNodeId) {
         d.nodeId != null && d.nodeId !== defaultNodeId ? `${d.nodeId}:${d.dciId}` : d.dciId,
       )
       .join(',')
+    // Positional, so a DCI without a color keeps an empty entry.
+    const colors = model.dcis.map((d) => (HEX_COLOR.test(d.color ?? '') ? d.color.slice(1) : ''))
+    if (colors.some(Boolean)) query.col = colors.join(',').toLowerCase()
   }
 
   if (model.mode !== 'line') query.m = model.mode
@@ -262,12 +268,15 @@ export function serializeToQuery(model, defaultNodeId) {
 export function parseFromQuery(query = {}, defaultNodeId) {
   const model = createChartModel()
 
+  const colors = rawList(query.col).map((c) => `#${c.trim().toLowerCase()}`)
   model.dcis = parseList(query.dci)
-    .map((entry) => {
+    .map((entry, i) => {
       const [a, b] = entry.split(':')
       const nodeId = b == null ? defaultNodeId : Number(a)
       const dciId = Number(b == null ? a : b)
-      return Number.isFinite(dciId) && dciId > 0 && nodeId != null ? { nodeId, dciId } : null
+      if (!(Number.isFinite(dciId) && dciId > 0 && nodeId != null)) return null
+      const color = colors[i]
+      return HEX_COLOR.test(color ?? '') ? { nodeId, dciId, color } : { nodeId, dciId }
     })
     .filter(Boolean)
 
@@ -308,12 +317,15 @@ export function parseFromQuery(query = {}, defaultNodeId) {
 
 /** Tolerates arrays (a repeated query param) and empty values. */
 function parseList(value) {
-  if (value == null) return []
-  const raw = Array.isArray(value) ? value.join(',') : String(value)
-  return raw
-    .split(',')
+  return rawList(value)
     .map((s) => s.trim())
     .filter(Boolean)
+}
+
+/** Keeps empty entries, for lists read by position. */
+function rawList(value) {
+  if (value == null) return []
+  return (Array.isArray(value) ? value.join(',') : String(value)).split(',')
 }
 
 export function chartTabLabel(model) {

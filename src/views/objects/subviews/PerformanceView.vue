@@ -15,6 +15,7 @@ import { MODERATE_TIER } from '@/queries/config'
 import { objectTarget } from '@/utils/routeTargets'
 import { resolveHref, isPlainLeftClick } from '@/utils/navigation'
 import { DCI_TARGET_CLASSES } from '@/utils/objectUtils'
+import { parseConfigColor } from '@/utils/colorUtils'
 import { createChartModel, serializeToQuery, CHART_TIME_PRESETS } from '@/utils/dciChartModel'
 
 const props = defineProps({
@@ -147,7 +148,7 @@ const dataCollectionTarget = computed(() => objectTarget(props.object, 'dcis'))
 const router = useRouter()
 
 /**
- * Reopens one card's DCIs in the full chart view with the card's own time window and
+ * Reopens one card's DCIs in the full chart view with the card's own time window, colors and
  * area/log settings.
  */
 function chartTargetFor(chart) {
@@ -157,6 +158,10 @@ function chartTargetFor(chart) {
       nodeId: objectId.value,
       dciId: dci.id,
       label: dci.chartConfig?.name || dci.description || dci.name,
+      // Automatic colors match without help: both charts pick by series position.
+      color: dci.chartConfig?.automaticColor
+        ? undefined
+        : (parseConfigColor(dci.chartConfig?.color) ?? undefined),
     })),
     time: { preset: perfPresetFor(cfg) },
     render: {

@@ -286,6 +286,36 @@ describe('URL codec', () => {
     expect(model.yAxis.min).toBeNull()
   })
 
+  it('round trips series colors by position, leaving theme-colored DCIs empty', () => {
+    const model = createChartModel({
+      dcis: [
+        { nodeId: 7, dciId: 1, color: '#7F007F' },
+        { nodeId: 7, dciId: 2 },
+        { nodeId: 9, dciId: 3, color: '#00ff00' },
+      ],
+    })
+    const query = serializeToQuery(model, 7)
+    expect(query.col).toBe('7f007f,,00ff00')
+    expect(parseFromQuery(query, 7).dcis).toEqual([
+      { nodeId: 7, dciId: 1, color: '#7f007f' },
+      { nodeId: 7, dciId: 2 },
+      { nodeId: 9, dciId: 3, color: '#00ff00' },
+    ])
+  })
+
+  it('omits the color param when every series takes a theme color', () => {
+    const model = createChartModel({ dcis: [{ nodeId: 7, dciId: 1, color: 'purple' }] })
+    expect(serializeToQuery(model, 7).col).toBeUndefined()
+  })
+
+  it('ignores malformed colors and colors beyond the DCI list', () => {
+    const model = parseFromQuery({ dci: '1,2', col: 'zzzzzz,abc,123456' }, 7)
+    expect(model.dcis).toEqual([
+      { nodeId: 7, dciId: 1 },
+      { nodeId: 7, dciId: 2 },
+    ])
+  })
+
   it('omits y-axis bounds while the axis is automatic', () => {
     const model = createChartModel({
       dcis: [{ nodeId: 7, dciId: 1 }],
