@@ -14,6 +14,7 @@ import {
   linkDefaultsChanged,
   dciContainerLines,
   bendPointsToSegments,
+  drawnBendPoints,
   snapCoord,
   snapPoint,
   resolveMapRenderOptions,
@@ -1454,7 +1455,7 @@ const bendEditGeom = computed(() => {
   const tgt = nodePos(link.to)
   if (!src || !tgt) return null
   const drag = bendDragState.value
-  const points = drag && drag.edgeId === link.id ? drag.points : (link.bendPoints ?? [])
+  const points = drag && drag.edgeId === link.id ? drag.points : drawnBendPoints(link)
   return { id: link.id, src, tgt, points }
 })
 
@@ -1695,7 +1696,7 @@ function buildCyElements(mapData) {
   const drawnLinks = buildDrawnLinks(
     links,
     props.linkMergeThreshold,
-    (link) => !!link.bendPoints?.length,
+    (link) => drawnBendPoints(link).length > 0,
   )
   drawnLinksById = new Map(drawnLinks.map((drawn) => [drawn.id, drawn]))
   for (const drawn of drawnLinks) {
@@ -1707,6 +1708,7 @@ function buildCyElements(mapData) {
 function linkEdge({ link, fanOffset }, mapData) {
   // Demo links have no `raw` and fall back to type heuristics.
   const visual = link.raw ? resolveLinkVisual(link, mapData.rawContent) : null
+  const bendPoints = drawnBendPoints(link)
   return {
     data: {
       id: link.id,
@@ -1721,7 +1723,7 @@ function linkEdge({ link, fanOffset }, mapData) {
       lineDash: visual?.dash ?? null,
       lineWidth: visual?.width ?? null,
       lineColor: visual?.color ?? null,
-      bendPoints: link.bendPoints?.length ? link.bendPoints : null,
+      bendPoints: bendPoints.length ? bendPoints : null,
       fanOffset,
       rawValue: link.dciData?.rawValue,
       maxValue: link.dciData?.maxValue,

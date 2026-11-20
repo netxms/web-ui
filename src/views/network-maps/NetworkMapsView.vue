@@ -68,6 +68,7 @@ import {
   isGeographicalCanvas,
   mapInitialView,
   countUnplacedObjects,
+  LINK_ROUTING,
 } from '@/utils/networkMapUtils'
 import { safeBgrIntToHex } from '@/utils/networkMapAdapters'
 import {
@@ -886,11 +887,10 @@ function handleElementUpdated(patch) {
   refreshSelectedElement()
 }
 
-// Bend points imply "Bend points" routing (index 3), as in the legacy editor.
-const LINK_ROUTING_BEND_POINTS = 3
+// Bend points imply "Bend points" routing, as in the legacy editor.
 function handleLinkBendPoints({ id, bendPoints }) {
   const patch = { bendPoints }
-  if (bendPoints.length) patch.routing = LINK_ROUTING_BEND_POINTS
+  if (bendPoints.length) patch.routing = LINK_ROUTING.BEND_POINTS
   editor.updateLink(id, patch)
 }
 

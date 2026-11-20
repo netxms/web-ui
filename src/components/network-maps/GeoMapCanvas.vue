@@ -20,6 +20,7 @@ import {
   linkDefaultsChanged,
   resolveMapRenderOptions,
   bendPointsToSegments,
+  drawnBendPoints,
   MAP_INITIAL_VIEW_ZOOM_AND_CENTER,
 } from '@/utils/networkMapUtils'
 import { linkLabelBoxes, groupLabelBoxes } from '@/utils/networkMapLinkLabels'
@@ -264,12 +265,9 @@ function buildElements() {
   const links = (props.mapData.links ?? []).filter(
     (link) => placed.has(link.from) && placed.has(link.to),
   )
-  hasGeoBendPoints = links.some((link) => link.geoBendPoints?.length)
-  const drawnLinks = buildDrawnLinks(
-    links,
-    props.linkMergeThreshold,
-    (link) => !!link.geoBendPoints?.length,
-  )
+  const hasBends = (link) => drawnBendPoints(link, 'geoBendPoints').length > 0
+  hasGeoBendPoints = links.some(hasBends)
+  const drawnLinks = buildDrawnLinks(links, props.linkMergeThreshold, hasBends)
   drawnLinksById = new Map(drawnLinks.map((drawn) => [drawn.id, drawn]))
   const edges = drawnLinks.map((drawn) =>
     drawn.kind === 'group' ? groupEdge(drawn) : linkEdge(drawn),
@@ -281,6 +279,7 @@ function buildElements() {
 function linkEdge({ link, fanOffset }) {
   // Demo links have no raw config and fall back to type heuristics.
   const visual = link.raw ? resolveLinkVisual(link, props.mapData.rawContent) : null
+  const geoBendPoints = drawnBendPoints(link, 'geoBendPoints')
   return {
     data: {
       id: link.id,
@@ -293,7 +292,7 @@ function linkEdge({ link, fanOffset }) {
       lineDash: visual?.dash ?? null,
       lineWidth: visual?.width ?? null,
       lineColor: visual?.color ?? null,
-      geoBendPoints: link.geoBendPoints?.length ? link.geoBendPoints : null,
+      geoBendPoints: geoBendPoints.length ? geoBendPoints : null,
       fanOffset,
     },
     classes: fanOffset ? 'fanned' : '',

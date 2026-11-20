@@ -22,6 +22,8 @@ import {
   formatMapDciValue,
   dciContainerLines,
   bendPointsToSegments,
+  drawnBendPoints,
+  LINK_ROUTING,
   snapCoord,
   snapPoint,
   resolveMapRenderOptions,
@@ -211,6 +213,31 @@ describe('getLinkUtilizationColor', () => {
 
   it('clamps above the last threshold rather than running off the table', () => {
     expect(getLinkUtilizationColor(5000)).toBe('#f90010')
+  })
+})
+
+describe('drawnBendPoints', () => {
+  const points = [{ x: 10, y: 20 }]
+  const geo = [{ lat: 1, lng: 2 }]
+
+  it('draws stored points under bend point routing', () => {
+    const link = { routing: LINK_ROUTING.BEND_POINTS, bendPoints: points, geoBendPoints: geo }
+    expect(drawnBendPoints(link)).toEqual(points)
+    expect(drawnBendPoints(link, 'geoBendPoints')).toEqual(geo)
+  })
+
+  it.each([
+    ['map default', LINK_ROUTING.DEFAULT],
+    ['direct', LINK_ROUTING.DIRECT],
+    ['manhattan', LINK_ROUTING.MANHATTAN],
+  ])('ignores stored points once routing is %s', (_, routing) => {
+    const link = { routing, bendPoints: points, geoBendPoints: geo }
+    expect(drawnBendPoints(link)).toEqual([])
+    expect(drawnBendPoints(link, 'geoBendPoints')).toEqual([])
+  })
+
+  it('returns no points for a bend point link without any', () => {
+    expect(drawnBendPoints({ routing: LINK_ROUTING.BEND_POINTS })).toEqual([])
   })
 })
 

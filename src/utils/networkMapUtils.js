@@ -391,11 +391,25 @@ const LINK_STYLE_DASH = {
   5: '8 3 2 3 2 3',
 }
 
+/** LinkConfig `routing` codes. */
+export const LINK_ROUTING = { DEFAULT: 0, DIRECT: 1, MANHATTAN: 2, BEND_POINTS: 3 }
+
 const LINK_ROUTING_LABELS = ['Map default', 'Direct', 'Manhattan', 'Bend points']
 export const LINK_STYLE_LABELS = ['Map default', 'Solid', 'Dash', 'Dot', 'Dashdot', 'Dashdotdot']
 
 // Manhattan has no orthogonal auto-routing yet and draws straight.
-const LINK_ROUTING_IN_DEVELOPMENT = new Set([2])
+const LINK_ROUTING_IN_DEVELOPMENT = new Set([LINK_ROUTING.MANHATTAN])
+
+/**
+ * Stored points outlive a routing change, so switching back restores them (legacy keeps them
+ * too). Only the link's own routing counts: legacy draws a "Bend points" map default as Direct.
+ * @param {object} link - internal link
+ * @param {'bendPoints' | 'geoBendPoints'} [field]
+ * @returns {object[]}
+ */
+export function drawnBendPoints(link, field = 'bendPoints') {
+  return link.routing === LINK_ROUTING.BEND_POINTS ? (link[field] ?? []) : []
+}
 
 /** @returns {{ label: string, value: number }[]} */
 export function buildRoutingOptions() {
