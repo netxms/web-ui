@@ -426,8 +426,8 @@ function onAddKeyEnter() {
   font-weight: 600;
   color: var(--p-text-muted-color);
   background: color-mix(in srgb, var(--p-surface-border) 30%, var(--p-surface-card));
-  border-bottom: 1px solid color-mix(in srgb, var(--p-text-color) 15%, transparent);
-  border-right: 1px solid color-mix(in srgb, var(--p-text-color) 15%, transparent);
+  border-bottom: 1px solid var(--p-content-border-color);
+  border-right: 1px solid var(--p-content-border-color);
   white-space: nowrap;
 }
 
@@ -438,8 +438,8 @@ function onAddKeyEnter() {
 .attr-table td {
   padding: 0.375rem 0.5rem;
   vertical-align: middle;
-  border-bottom: 1px solid color-mix(in srgb, var(--p-text-color) 10%, transparent);
-  border-right: 1px solid color-mix(in srgb, var(--p-text-color) 10%, transparent);
+  border-bottom: 1px solid var(--p-content-border-color);
+  border-right: 1px solid var(--p-content-border-color);
 }
 
 .attr-table td:last-child {
@@ -447,7 +447,7 @@ function onAddKeyEnter() {
 }
 
 .inherited-body tr:last-child td {
-  border-bottom: 2px solid color-mix(in srgb, var(--p-text-color) 15%, transparent);
+  border-bottom: 2px solid var(--p-content-border-color);
 }
 
 .col-name {
@@ -520,7 +520,7 @@ function onAddKeyEnter() {
 .add-footer td {
   position: relative;
   background: color-mix(in srgb, var(--p-surface-border) 30%, var(--p-surface-card));
-  border-top: 2px solid color-mix(in srgb, var(--p-text-color) 15%, transparent);
+  border-top: 2px solid var(--p-content-border-color);
   border-bottom: none;
 }
 

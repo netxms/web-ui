@@ -178,6 +178,15 @@ a.p-button {
   text-decoration: none;
 }
 
+/* An <input> keeps `line-height: normal`, but the label of a select-type field is a span that
+   inherits the body's 1.5, so a Select stood taller than the InputText or Button beside it. */
+.p-select-label,
+.p-multiselect-label,
+.p-treeselect-label,
+.p-cascadeselect-label {
+  line-height: normal;
+}
+
 *,
 *::before,
 *::after {

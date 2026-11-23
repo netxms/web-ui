@@ -46,11 +46,11 @@ export const SEVERITY_RESOLVE = 7
  */
 export const RULE_SECTIONS = {
   condition: { tab: 'condition' },
-  events: { tab: 'condition' },
-  sources: { tab: 'condition' },
-  severity: { tab: 'condition' },
-  time: { tab: 'condition' },
-  'filter-script': { tab: 'condition' },
+  events: { tab: 'condition', panel: 'events' },
+  sources: { tab: 'condition', panel: 'sources' },
+  severity: { tab: 'condition', panel: 'severity' },
+  time: { tab: 'condition', panel: 'time' },
+  'filter-script': { tab: 'condition', panel: 'filter-script' },
   actions: { tab: 'action' },
   'action-options': { tab: 'action' },
   chaincalls: { tab: 'action', panel: 'chaincalls' },

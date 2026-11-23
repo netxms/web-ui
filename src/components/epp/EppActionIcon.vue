@@ -1,15 +1,20 @@
 <script setup>
 import { computed } from 'vue'
 import {
+  Activity,
   BellOff,
   BellRing,
+  Boxes,
   CircleCheck,
   CirclePause,
   CirclePlay,
+  Clock,
+  Code,
   CornerDownRight,
   Database,
   FileCode,
   FileX,
+  Gauge,
   MessageSquareText,
   OctagonX,
   ScrollText,
@@ -25,11 +30,13 @@ import { STEP_KINDS } from '@/utils/eppRuleSummary'
 defineOptions({ name: 'EppActionIcon' })
 
 const props = defineProps({
-  /** A `STEP_KINDS` key. */
+  /** A `STEP_KINDS` key, or a `CONDITIONS` one for a rule editor condition section. */
   type: { type: String, required: true },
   /** On a tinted square, for step lists; bare for the collapsed row's strip. */
   tile: { type: Boolean, default: false },
   size: { type: Number, default: 15 },
+  /** Grey, on an outlined tile: a rule editor section that does nothing yet. */
+  muted: { type: Boolean, default: false },
 })
 
 const ICONS = {
@@ -53,14 +60,26 @@ const ICONS = {
   stop: OctagonX,
 }
 
-const icon = computed(() => ICONS[props.type] ?? Zap)
-const kind = computed(() => STEP_KINDS[props.type] ?? 'run')
+// In the color of the rule summary's Filter mark.
+const CONDITIONS = {
+  events: Activity,
+  sources: Boxes,
+  severity: Gauge,
+  time: Clock,
+  'filter-script': Code,
+}
+
+const icon = computed(() => ICONS[props.type] ?? CONDITIONS[props.type] ?? Zap)
+const kind = computed(() => (CONDITIONS[props.type] ? 'when' : (STEP_KINDS[props.type] ?? 'run')))
 </script>
 
 <template>
   <span
     class="epp-action-icon"
-    :class="[`epp-action-icon--${kind}`, { 'epp-action-icon--tile': tile }]"
+    :class="[
+      `epp-action-icon--${kind}`,
+      { 'epp-action-icon--tile': tile, 'epp-action-icon--muted': muted },
+    ]"
     aria-hidden="true"
   >
     <component :is="icon" :size="size" :stroke-width="1.9" />
@@ -110,10 +129,24 @@ html.app-dark .epp-action-icon {
   --epp-kind-color: var(--epp-kind-stop);
 }
 
+.epp-action-icon--when {
+  --epp-kind-color: var(--p-primary-color);
+}
+
 .epp-action-icon--tile {
   width: 1.625rem;
   height: 1.625rem;
   border-radius: 6px;
   background: color-mix(in srgb, var(--epp-kind-color) 13%, var(--p-surface-card, transparent));
+}
+
+/* After the kind classes, which it overrides. */
+.epp-action-icon--muted {
+  --epp-kind-color: var(--p-text-muted-color);
+}
+
+.epp-action-icon--tile.epp-action-icon--muted {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--p-content-border-color);
 }
 </style>

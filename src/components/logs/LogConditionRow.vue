@@ -6,6 +6,7 @@ import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import ObjectPickerDialog from '@/components/objects/ObjectPickerDialog.vue'
+import EventLabel from '@/components/epp/EventLabel.vue'
 import { useZoneNames } from '@/queries/useObjectQueries'
 import { useUsers } from '@/queries/useUserQueries'
 import { useEventTemplates } from '@/queries/useEventTemplateQueries'
@@ -61,8 +62,10 @@ const eventOptions = computed(() =>
   (eventTemplates.value ?? []).map((template) => ({
     value: template.code,
     label: template.name,
+    severity: template.severity,
   })),
 )
+const eventsByCode = computed(() => new Map(eventOptions.value.map((o) => [o.value, o])))
 
 const zoneOptions = computed(() =>
   [...zonesByUin.value.entries()].map(([uin, name]) => ({ value: uin, label: `${name} (${uin})` })),
@@ -284,7 +287,19 @@ function toIso(value) {
           filter
           class="operand-select"
           @update:model-value="(v) => patch({ value: v })"
-        />
+        >
+          <template #value="{ value, placeholder }">
+            <EventLabel
+              v-if="value != null && value !== ''"
+              :name="eventsByCode.get(Number(value))?.label ?? `#${value}`"
+              :severity="eventsByCode.get(Number(value))?.severity"
+            />
+            <template v-else>{{ placeholder }}</template>
+          </template>
+          <template #option="{ option }">
+            <EventLabel :name="option.label" :severity="option.severity" />
+          </template>
+        </Select>
         <Select
           v-else-if="editor === 'zone'"
           :model-value="condition.value"

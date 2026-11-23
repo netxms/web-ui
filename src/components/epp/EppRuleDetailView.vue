@@ -4,9 +4,11 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
 import Select from 'primevue/select'
+import SelectButton from 'primevue/selectbutton'
+import MultiSelect from 'primevue/multiselect'
+import InputNumber from 'primevue/inputnumber'
 import Checkbox from 'primevue/checkbox'
 import ToggleSwitch from 'primevue/toggleswitch'
-import Tag from 'primevue/tag'
 import Message from 'primevue/message'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
@@ -30,6 +32,12 @@ import { useScriptLibrary } from '@/queries/useScriptQueries'
 import { useObjectsByIds } from '@/queries/useObjectQueries'
 import FormField from '@/components/common/FormField.vue'
 import EppRuleChainCalls from '@/components/epp/EppRuleChainCalls.vue'
+import EppKeyTable from '@/components/epp/EppKeyTable.vue'
+import EppPickTable from '@/components/epp/EppPickTable.vue'
+import EventLabel from '@/components/epp/EventLabel.vue'
+import ObjectIcon from '@/components/objects/ObjectIcon.vue'
+import StatusIcon from '@/components/common/StatusIcon.vue'
+import EppActionIcon from '@/components/epp/EppActionIcon.vue'
 import { chainLabel } from '@/utils/eppChains'
 import {
   RF_ACCEPT_CORRELATED_EVENTS,
@@ -105,10 +113,10 @@ const props = defineProps({
 const emit = defineEmits(['close', 'saved'])
 
 const ALARM_ACTION_OPTIONS = [
-  { label: 'Do not change alarms', value: 'no-action' },
-  { label: 'Create new alarm', value: 'generate' },
-  { label: 'Resolve alarms', value: 'resolve' },
-  { label: 'Terminate alarms', value: 'terminate' },
+  { label: 'No change', value: 'no-action' },
+  { label: 'Create', value: 'generate' },
+  { label: 'Resolve', value: 'resolve' },
+  { label: 'Terminate', value: 'terminate' },
 ]
 
 const ALARM_SEVERITY_OPTIONS = [
@@ -128,16 +136,16 @@ const AI_DEPTH_OPTIONS = [
 
 const DOWNTIME_OPTIONS = [
   { label: 'Do nothing', value: 'none' },
-  { label: 'Start downtime', value: 'start' },
-  { label: 'End downtime', value: 'end' },
+  { label: 'Start', value: 'start' },
+  { label: 'End', value: 'end' },
 ]
 
 const severityFlags = [
-  { label: 'Normal', flag: RF_SEVERITY_INFO },
-  { label: 'Warning', flag: RF_SEVERITY_WARNING },
-  { label: 'Minor', flag: RF_SEVERITY_MINOR },
-  { label: 'Major', flag: RF_SEVERITY_MAJOR },
-  { label: 'Critical', flag: RF_SEVERITY_CRITICAL },
+  { label: 'Normal', flag: RF_SEVERITY_INFO, status: 0 },
+  { label: 'Warning', flag: RF_SEVERITY_WARNING, status: 1 },
+  { label: 'Minor', flag: RF_SEVERITY_MINOR, status: 2 },
+  { label: 'Major', flag: RF_SEVERITY_MAJOR, status: 3 },
+  { label: 'Critical', flag: RF_SEVERITY_CRITICAL, status: 4 },
 ]
 
 const isNew = computed(() => props.rule === null)
@@ -170,6 +178,11 @@ function expandFrame(key) {
 
 function collapseFrame(key) {
   expandedFrameKeys.value = expandedFrameKeys.value.filter((k) => k !== key)
+}
+
+function toggleFrame(key) {
+  if (isFrameExpanded(key)) collapseFrame(key)
+  else expandFrame(key)
 }
 
 function addTimeFrame() {
@@ -332,7 +345,7 @@ function buildForm(rule) {
     pstorageDeleteActions: [...(rule.pstorageDeleteActions ?? [])],
     customAttributeSetActions: objToKvArray(rule.customAttributeSetActions),
     customAttributeDeleteActions: [...(rule.customAttributeDeleteActions ?? [])],
-    rootCauseAnalysisScript: rule.rootCauseAnalysisScript ?? null,
+    rootCauseAnalysisScript: rule.rootCauseAnalysisScript || null,
     incidentDelay: rule.incidentDelay ?? 0,
     incidentTitle: rule.incidentTitle ?? '',
     incidentDescription: rule.incidentDescription ?? '',
@@ -445,39 +458,28 @@ function removeEvent(code) {
   form.value.events = form.value.events.filter((c) => c !== code)
 }
 
-const { data: alarmCategoriesData } = useAlarmCategories()
-const alarmCategoryMap = computed(() => {
-  const map = {}
-  for (const c of alarmCategoriesData.value ?? []) map[c.id] = c
-  return map
-})
-// Picking adds at once, so options already on the rule are left out.
-const alarmCategoryOptions = computed(() =>
-  (alarmCategoriesData.value ?? [])
-    .filter((c) => !form.value.alarmCategories.includes(c.id))
-    .map((c) => ({ label: c.name, value: c.id })),
+const eventItems = computed(() =>
+  form.value.events.map((code) => ({
+    key: code,
+    label: eventTemplateMap.value[code]?.name ?? `#${code}`,
+    severity: eventTemplateMap.value[code]?.severity,
+  })),
 )
 
-const selectedCategoryToAdd = ref(null)
-
-// The reset waits a tick: PrimeVue's Select only re-reads the prop when it changes between
-// renders.
-async function addAlarmCategory({ value }) {
-  if (value == null) return
-  form.value.alarmCategories = [...form.value.alarmCategories, value]
-  await nextTick()
-  selectedCategoryToAdd.value = null
-}
-
-function removeAlarmCategory(id) {
-  form.value.alarmCategories = form.value.alarmCategories.filter((c) => c !== id)
-}
+const { data: alarmCategoriesData } = useAlarmCategories()
+const alarmCategoryOptions = computed(() =>
+  (alarmCategoriesData.value ?? []).map((c) => ({ label: c.name, value: c.id })),
+)
 
 const { data: scriptLibraryData } = useScriptLibrary()
-const scriptOptions = computed(() => [
-  { label: '(none)', value: null },
-  ...(scriptLibraryData.value ?? []).map((s) => ({ label: s.name, value: s.id })),
-])
+// The rule names its root cause script; the server drops a value that is not a string.
+const scriptOptions = computed(() => {
+  const names = (scriptLibraryData.value ?? []).map((s) => s.name)
+  const current = form.value.rootCauseAnalysisScript
+  // Kept while the library loads, and when the script has since been deleted from it.
+  if (current && !names.includes(current)) names.unshift(current)
+  return [{ label: '(none)', value: null }, ...names.map((name) => ({ label: name, value: name }))]
+})
 
 const sourcePickerVisible = ref(false)
 const exclusionPickerVisible = ref(false)
@@ -508,13 +510,12 @@ function removeExclusion(id) {
   form.value.sourceExclusions = form.value.sourceExclusions.filter((s) => s !== id)
 }
 
-function sourceName(id) {
-  return objectsById.value.get(id)?.name ?? `Object #${id}`
+function objectItems(ids) {
+  return ids.map((id) => ({ key: id, label: objectsById.value.get(id)?.name ?? `Object #${id}` }))
 }
 
-function exclusionName(id) {
-  return objectsById.value.get(id)?.name ?? `Object #${id}`
-}
+const sourceItems = computed(() => objectItems(form.value.sources))
+const exclusionItems = computed(() => objectItems(form.value.sourceExclusions))
 
 const { data: serverActionsData } = useServerActions()
 const serverActionsMap = computed(() => {
@@ -566,97 +567,23 @@ function actionRowHint(action) {
   return parts.join(' | ')
 }
 
-const newTimerKey = ref('')
-
-function addTimerCancellation() {
-  const key = newTimerKey.value.trim()
-  if (!key || form.value.timerCancellations.includes(key)) return
-  form.value.timerCancellations = [...form.value.timerCancellations, key]
-  newTimerKey.value = ''
-}
-
-function removeTimerCancellation(key) {
-  form.value.timerCancellations = form.value.timerCancellations.filter((k) => k !== key)
-}
-
-const newPstorageKey = ref('')
-const newPstorageValue = ref('')
-
-function addPstorageSet() {
-  const key = newPstorageKey.value.trim()
-  if (!key) return
-  const idx = form.value.pstorageSetActions.findIndex((e) => e.key === key)
-  if (idx !== -1) {
-    form.value.pstorageSetActions[idx].value = newPstorageValue.value
-  } else {
-    form.value.pstorageSetActions = [
-      ...form.value.pstorageSetActions,
-      { key, value: newPstorageValue.value },
-    ]
+// A condition section that narrows nothing lets every event through. An inverted empty list
+// narrows to nothing at all: the server matches no event against it.
+function conditionNarrows(f) {
+  return {
+    events: f.events.length > 0 || !!(f.flags & RF_NEGATED_EVENTS),
+    sources:
+      f.sources.length > 0 || f.sourceExclusions.length > 0 || !!(f.flags & RF_NEGATED_SOURCE),
+    severity: (f.flags & RF_ALL_SEVERITIES) !== RF_ALL_SEVERITIES,
+    time: f.timeFrames.length > 0 || !!(f.flags & RF_NEGATED_TIME_FRAMES),
+    'filter-script': !!f.filterScript?.trim(),
   }
-  newPstorageKey.value = ''
-  newPstorageValue.value = ''
-}
-
-function removePstorageSet(key) {
-  form.value.pstorageSetActions = form.value.pstorageSetActions.filter((e) => e.key !== key)
-}
-
-const newPstorageDeleteKey = ref('')
-
-function addPstorageDelete() {
-  const key = newPstorageDeleteKey.value.trim()
-  if (!key || form.value.pstorageDeleteActions.includes(key)) return
-  form.value.pstorageDeleteActions = [...form.value.pstorageDeleteActions, key]
-  newPstorageDeleteKey.value = ''
-}
-
-function removePstorageDelete(key) {
-  form.value.pstorageDeleteActions = form.value.pstorageDeleteActions.filter((k) => k !== key)
-}
-
-const newCustomAttrKey = ref('')
-const newCustomAttrValue = ref('')
-
-function addCustomAttrSet() {
-  const key = newCustomAttrKey.value.trim()
-  if (!key) return
-  const idx = form.value.customAttributeSetActions.findIndex((e) => e.key === key)
-  if (idx !== -1) {
-    form.value.customAttributeSetActions[idx].value = newCustomAttrValue.value
-  } else {
-    form.value.customAttributeSetActions = [
-      ...form.value.customAttributeSetActions,
-      { key, value: newCustomAttrValue.value },
-    ]
-  }
-  newCustomAttrKey.value = ''
-  newCustomAttrValue.value = ''
-}
-
-function removeCustomAttrSet(key) {
-  form.value.customAttributeSetActions = form.value.customAttributeSetActions.filter(
-    (e) => e.key !== key,
-  )
-}
-
-const newCustomAttrDeleteKey = ref('')
-
-function addCustomAttrDelete() {
-  const key = newCustomAttrDeleteKey.value.trim()
-  if (!key || form.value.customAttributeDeleteActions.includes(key)) return
-  form.value.customAttributeDeleteActions = [...form.value.customAttributeDeleteActions, key]
-  newCustomAttrDeleteKey.value = ''
-}
-
-function removeCustomAttrDelete(key) {
-  form.value.customAttributeDeleteActions = form.value.customAttributeDeleteActions.filter(
-    (k) => k !== key,
-  )
 }
 
 function computeInitialExpanded(f) {
-  const open = []
+  const open = Object.entries(conditionNarrows(f)).flatMap(([key, narrows]) =>
+    narrows ? [key] : [],
+  )
   if (f.flags & RF_GENERATE_ALARM) open.push('alarm')
   if (f.flags & RF_CREATE_INCIDENT) open.push('incident')
   if (f.flags & (RF_START_DOWNTIME | RF_END_DOWNTIME)) open.push('downtime')
@@ -673,9 +600,19 @@ function computeInitialExpanded(f) {
 
 const expandedPanels = ref(computeInitialExpanded(form.value))
 
+const NOT_CONFIGURED = 'Not configured'
+
+function countLabel(n, noun) {
+  return `${n} ${noun}${n === 1 ? '' : 's'}`
+}
+
+function setDeleteSummary(set, remove) {
+  return set.length || remove.length ? `${set.length} set, ${remove.length} delete` : NOT_CONFIGURED
+}
+
 const chainCallsPanelSummary = computed(() => {
   const ids = form.value.chainCalls ?? []
-  if (!ids.length) return 'None'
+  if (!ids.length) return NOT_CONFIGURED
   const byId = new Map(props.chains.map((chain) => [chain.id, chain]))
   return ids.map((id) => chainLabel(byId.get(id) ?? { id })).join(' → ')
 })
@@ -683,7 +620,7 @@ const chainCallsPanelSummary = computed(() => {
 const alarmPanelSummary = computed(() => {
   switch (alarmActionType.value) {
     case 'no-action':
-      return 'No action'
+      return NOT_CONFIGURED
     case 'generate': {
       const sev = ALARM_SEVERITY_OPTIONS.find((o) => o.value === alarmGenerateSeverity.value)
       return `Create: ${sev?.label ?? '?'}`
@@ -698,7 +635,7 @@ const alarmPanelSummary = computed(() => {
 })
 
 const incidentPanelSummary = computed(() => {
-  if (!createIncident.value) return 'Disabled'
+  if (!createIncident.value) return NOT_CONFIGURED
   if (aiAnalyzeIncident.value) return 'Create + AI analysis'
   return 'Create on alarm'
 })
@@ -710,7 +647,90 @@ const downtimePanelSummary = computed(() => {
     case 'end':
       return `End${form.value.downtimeTag ? ': ' + form.value.downtimeTag : ''}`
     default:
-      return 'Do nothing'
+      return NOT_CONFIGURED
+  }
+})
+
+function capitalize(text) {
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
+/** "One of 3 objects", "not SYS_IF_UP": the rule summary's wording for a list clause. */
+function listClause(items, noun, negated) {
+  const what = items.length === 1 ? items[0].label : `one of ${countLabel(items.length, noun)}`
+  return negated ? `not ${what}` : what
+}
+
+const NOTHING_MATCHES = 'Nothing matches'
+
+const eventsSummary = computed(() => {
+  const negated = negatedEvents.value
+  if (!eventItems.value.length) return negated ? NOTHING_MATCHES : 'Any event'
+  return capitalize(listClause(eventItems.value, 'event', negated))
+})
+
+const sourcesSummary = computed(() => {
+  const negated = negatedSources.value
+  const sources = sourceItems.value
+  const exclusions = exclusionItems.value.length
+  if (!sources.length && !exclusions) return negated ? NOTHING_MATCHES : 'Any object'
+  const what = sources.length
+    ? listClause(sources, 'object', negated)
+    : negated
+      ? 'not any object'
+      : 'any object'
+  return capitalize(exclusions ? `${what}, except ${countLabel(exclusions, 'object')}` : what)
+})
+
+const severitySummary = computed(() => {
+  const chosen = severityFlags.filter((s) => form.value.flags & s.flag)
+  if (chosen.length === severityFlags.length) return 'Any severity'
+  if (!chosen.length) return NOTHING_MATCHES
+  return chosen.map((s) => s.label).join(', ')
+})
+
+const timeSummary = computed(() => {
+  const count = form.value.timeFrames.length
+  const negated = negatedTimeFrames.value
+  if (!count) return negated ? NOTHING_MATCHES : 'Any time'
+  return `${negated ? 'Outside' : 'Within'} ${countLabel(count, 'time frame')}`
+})
+
+// Each section's header carries the icon the rule summary gives its step, grey while the section
+// does nothing.
+const sectionIcons = computed(() => {
+  const f = form.value
+  const alarm = alarmActionType.value
+  const downtime = downtimeControl.value
+  const narrows = conditionNarrows(f)
+  return {
+    events: { type: 'events', muted: !narrows.events },
+    sources: { type: 'sources', muted: !narrows.sources },
+    severity: { type: 'severity', muted: !narrows.severity },
+    time: { type: 'time', muted: !narrows.time },
+    'filter-script': { type: 'filter-script', muted: !narrows['filter-script'] },
+    chaincalls: { type: 'chain-call', muted: !f.chainCalls?.length },
+    alarm: {
+      type: alarm === 'no-action' ? 'alarm-generate' : `alarm-${alarm}`,
+      muted: alarm === 'no-action',
+    },
+    incident: { type: 'incident', muted: !createIncident.value },
+    downtime: {
+      type: downtime === 'end' ? 'downtime-end' : 'downtime-start',
+      muted: downtime === 'none',
+    },
+    pstorage: {
+      type: 'pstorage',
+      muted: !f.pstorageSetActions.length && !f.pstorageDeleteActions.length,
+    },
+    customattr: {
+      type: 'custom-attributes',
+      muted: !f.customAttributeSetActions.length && !f.customAttributeDeleteActions.length,
+    },
+    serveractions: { type: 'server-action', muted: !f.actions.length },
+    script: { type: 'action-script', muted: !f.actionScript },
+    timers: { type: 'timer-cancel', muted: !f.timerCancellations.length },
+    aiagent: { type: 'ai-instructions', muted: !f.aiInstructions },
   }
 })
 
@@ -826,7 +846,7 @@ watch(
       <fieldset class="detail-form" :disabled="readonly">
         <TabPanels>
           <TabPanel value="general">
-            <div class="detail-cards-grid">
+            <div class="panel-tab">
               <DetailCard title="Description" :wide="true">
                 <div class="field-col" style="padding: 0.5rem 0">
                   <Textarea
@@ -852,383 +872,493 @@ watch(
           </TabPanel>
 
           <TabPanel value="condition">
-            <div class="detail-cards-grid">
-              <DetailCard title="General">
-                <label class="option-row" for="flag-correlated">
-                  <span @click.stop>
-                    <Checkbox
-                      input-id="flag-correlated"
-                      v-model="acceptCorrelatedEvents"
-                      :binary="true"
-                    />
-                  </span>
-                  Accept correlated events
-                </label>
-              </DetailCard>
-
-              <DetailCard title="Severity Filter" data-rule-section="severity">
-                <div class="severity-checkboxes" style="padding: 0.5rem 0">
-                  <label v-for="sev in severityFlags" :key="sev.flag" class="severity-check">
-                    <Checkbox
-                      :model-value="isSeverityChecked(sev.flag)"
-                      :binary="true"
-                      @change="toggleSeverity(sev.flag)"
-                    />
-                    {{ sev.label }}
-                  </label>
-                </div>
-              </DetailCard>
-
-              <DetailCard title="Events" :wide="true" data-rule-section="events">
-                <div class="card-section">
-                  <label class="toggle-label-small">
-                    <ToggleSwitch v-model="negatedEvents" size="small" />
-                    Inverse match
-                  </label>
-                  <div class="chip-list">
-                    <Tag
-                      v-for="code in form.events"
-                      :key="code"
-                      severity="secondary"
-                      class="item-chip"
-                    >
-                      <template #default>
-                        <span>{{ eventTemplateMap[code]?.name ?? `#${code}` }}</span>
-                        <button
-                          class="chip-remove"
-                          aria-label="Remove event"
-                          @click.stop="removeEvent(code)"
-                        >
-                          <i class="pi pi-times" />
-                        </button>
-                      </template>
-                    </Tag>
-                    <span v-if="!form.events.length" class="empty-chip-hint">(any event)</span>
-                  </div>
-                  <div class="add-row">
-                    <Button
-                      label="Pick events..."
-                      icon="pi pi-list"
-                      size="small"
-                      severity="secondary"
-                      outlined
-                      @click="showEventPicker = true"
-                    />
-                  </div>
-                  <EventPickerDialog
-                    v-model:visible="showEventPicker"
-                    :model-value="form.events"
-                    multiple
-                    @update:model-value="form.events = $event"
-                  />
-                </div>
-              </DetailCard>
-
-              <DetailCard title="Source Objects" :wide="true" data-rule-section="sources">
-                <div class="card-section">
-                  <label class="toggle-label-small">
-                    <ToggleSwitch v-model="negatedSources" size="small" />
-                    Inverse match
-                  </label>
-
-                  <div class="source-sub">
-                    <div class="source-sub-label">Sources</div>
-                    <div class="chip-list">
-                      <Tag
-                        v-for="id in form.sources"
-                        :key="id"
-                        severity="secondary"
-                        class="item-chip"
+            <div class="panel-tab">
+              <Accordion v-model:value="expandedPanels" multiple class="action-accordion">
+                <AccordionPanel value="events" data-rule-section="events">
+                  <AccordionHeader>
+                    <div class="panel-header">
+                      <EppActionIcon v-bind="sectionIcons.events" tile />
+                      <span>Events</span>
+                      <span class="panel-summary">{{ eventsSummary }}</span>
+                    </div>
+                  </AccordionHeader>
+                  <AccordionContent>
+                    <div class="panel-content">
+                      <label v-if="form.events.length || negatedEvents" class="toggle-label">
+                        <Checkbox v-model="negatedEvents" :binary="true" />
+                        Inverse rule (match events not listed below)
+                      </label>
+                      <EppPickTable
+                        :items="eventItems"
+                        column="Event"
+                        empty-text="Any event"
+                        add-label="Pick events..."
+                        add-icon="pi pi-list"
+                        item-name="event"
+                        mono
+                        @add="showEventPicker = true"
+                        @remove="removeEvent"
                       >
-                        <template #default>
-                          <span>{{ sourceName(id) }}</span>
-                          <button
-                            class="chip-remove"
-                            aria-label="Remove source"
-                            @click.stop="removeSource(id)"
-                          >
-                            <i class="pi pi-times" />
-                          </button>
+                        <template #item="{ item }">
+                          <EventLabel :name="item.label" :severity="item.severity" />
                         </template>
-                      </Tag>
-                      <span v-if="!form.sources.length" class="empty-chip-hint">(any object)</span>
+                      </EppPickTable>
+                      <label class="toggle-label">
+                        <Checkbox v-model="acceptCorrelatedEvents" :binary="true" />
+                        Accept correlated events
+                      </label>
+                      <EventPickerDialog
+                        v-model:visible="showEventPicker"
+                        :model-value="form.events"
+                        multiple
+                        @update:model-value="form.events = $event"
+                      />
                     </div>
-                    <Button
-                      label="Add object..."
-                      icon="pi pi-plus"
-                      size="small"
-                      severity="secondary"
-                      outlined
-                      @click="sourcePickerVisible = true"
-                    />
-                  </div>
+                  </AccordionContent>
+                </AccordionPanel>
 
-                  <div class="source-sub">
-                    <div class="source-sub-label">Exclusions</div>
-                    <div class="chip-list">
-                      <Tag
-                        v-for="id in form.sourceExclusions"
-                        :key="id"
-                        severity="warn"
-                        class="item-chip"
-                      >
-                        <template #default>
-                          <span>{{ exclusionName(id) }}</span>
-                          <button
-                            class="chip-remove"
-                            aria-label="Remove exclusion"
-                            @click.stop="removeExclusion(id)"
-                          >
-                            <i class="pi pi-times" />
-                          </button>
-                        </template>
-                      </Tag>
-                      <span v-if="!form.sourceExclusions.length" class="empty-chip-hint"
-                        >(none)</span
-                      >
+                <AccordionPanel value="sources" data-rule-section="sources">
+                  <AccordionHeader>
+                    <div class="panel-header">
+                      <EppActionIcon v-bind="sectionIcons.sources" tile />
+                      <span>Source Objects</span>
+                      <span class="panel-summary">{{ sourcesSummary }}</span>
                     </div>
-                    <Button
-                      label="Add exclusion..."
-                      icon="pi pi-plus"
-                      size="small"
-                      severity="secondary"
-                      outlined
-                      @click="exclusionPickerVisible = true"
-                    />
-                  </div>
-                </div>
-              </DetailCard>
-
-              <DetailCard title="Time Filter" :wide="true" data-rule-section="time">
-                <div class="card-section">
-                  <label class="toggle-label-small">
-                    <ToggleSwitch v-model="negatedTimeFrames" size="small" />
-                    Inverse rule
-                  </label>
-                  <div v-if="!form.timeFrames.length" class="tf-empty-state">
-                    No time restriction — rule matches at any time.
-                  </div>
-                  <template v-for="(frame, fi) in form.timeFrames" :key="frame._key">
-                    <div v-if="!isFrameExpanded(frame._key)" class="tf-card tf-card--collapsed">
-                      <span class="tf-label">{{ frameLabel(frame) }}</span>
-                      <div class="tf-card-actions">
-                        <button class="tf-icon-btn" @click="expandFrame(frame._key)">
-                          <i class="pi pi-pencil" />
-                        </button>
-                        <button
-                          class="tf-icon-btn tf-icon-btn--danger"
-                          @click="removeTimeFrame(fi)"
+                  </AccordionHeader>
+                  <AccordionContent>
+                    <div class="panel-content">
+                      <label
+                        v-if="form.sources.length || form.sourceExclusions.length || negatedSources"
+                        class="toggle-label"
+                      >
+                        <Checkbox v-model="negatedSources" :binary="true" />
+                        Inverse rule (match objects not listed below)
+                      </label>
+                      <div class="pick-pair">
+                        <EppPickTable
+                          :items="sourceItems"
+                          title="Sources"
+                          column="Object"
+                          empty-text="Any object"
+                          add-label="Add object..."
+                          item-name="source"
+                          @add="sourcePickerVisible = true"
+                          @remove="removeSource"
                         >
-                          <i class="pi pi-trash" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div v-else class="tf-card">
-                      <div class="tf-card-header">
-                        <span class="tf-card-label">Time Frame {{ fi + 1 }}</span>
-                      </div>
-
-                      <div class="tf-row">
-                        <span class="field-label">Time</span>
-                        <div class="tf-time-row">
-                          <label class="toggle-label">
-                            <ToggleSwitch
-                              :model-value="isAnyTime(frame)"
-                              @update:model-value="setAnyTime(fi, $event)"
-                            />
-                            Any time
-                          </label>
-                          <template v-if="!isAnyTime(frame)">
-                            <div class="tf-spinner">
-                              <button class="tf-spin-btn" @click="adjustTime(fi, 'start', 'h', 1)">
-                                <i class="pi pi-chevron-up" />
-                              </button>
-                              <span />
-                              <button class="tf-spin-btn" @click="adjustTime(fi, 'start', 'm', 1)">
-                                <i class="pi pi-chevron-up" />
-                              </button>
-                              <input
-                                class="tf-time-part"
-                                maxlength="2"
-                                :value="String(Math.floor(frame.startTime / 60)).padStart(2, '0')"
-                                @change="setTimePart(fi, 'start', 'h', $event.target.value)"
+                          <template #item="{ item }">
+                            <span class="item-cell">
+                              <ObjectIcon
+                                v-if="objectsById.get(item.key)"
+                                :object="objectsById.get(item.key)"
+                                size="0.95rem"
                               />
-                              <span class="tf-colon">:</span>
-                              <input
-                                class="tf-time-part"
-                                maxlength="2"
-                                :value="String(frame.startTime % 60).padStart(2, '0')"
-                                @change="setTimePart(fi, 'start', 'm', $event.target.value)"
-                              />
-                              <button class="tf-spin-btn" @click="adjustTime(fi, 'start', 'h', -1)">
-                                <i class="pi pi-chevron-down" />
-                              </button>
-                              <span />
-                              <button class="tf-spin-btn" @click="adjustTime(fi, 'start', 'm', -1)">
-                                <i class="pi pi-chevron-down" />
-                              </button>
-                            </div>
-                            <span class="tf-sep">to</span>
-                            <div class="tf-spinner">
-                              <button class="tf-spin-btn" @click="adjustTime(fi, 'end', 'h', 1)">
-                                <i class="pi pi-chevron-up" />
-                              </button>
-                              <span />
-                              <button class="tf-spin-btn" @click="adjustTime(fi, 'end', 'm', 1)">
-                                <i class="pi pi-chevron-up" />
-                              </button>
-                              <input
-                                class="tf-time-part"
-                                maxlength="2"
-                                :value="String(Math.floor(frame.endTime / 60)).padStart(2, '0')"
-                                @change="setTimePart(fi, 'end', 'h', $event.target.value)"
-                              />
-                              <span class="tf-colon">:</span>
-                              <input
-                                class="tf-time-part"
-                                maxlength="2"
-                                :value="String(frame.endTime % 60).padStart(2, '0')"
-                                @change="setTimePart(fi, 'end', 'm', $event.target.value)"
-                              />
-                              <button class="tf-spin-btn" @click="adjustTime(fi, 'end', 'h', -1)">
-                                <i class="pi pi-chevron-down" />
-                              </button>
-                              <span />
-                              <button class="tf-spin-btn" @click="adjustTime(fi, 'end', 'm', -1)">
-                                <i class="pi pi-chevron-down" />
-                              </button>
-                            </div>
-                          </template>
-                        </div>
-                      </div>
-
-                      <div class="tf-row">
-                        <span class="field-label">Days of week</span>
-                        <div class="tf-chips">
-                          <button
-                            v-for="d in DOW_OPTIONS"
-                            :key="d.bit"
-                            class="tf-chip"
-                            :class="{ active: frame.dayOfWeek & d.bit }"
-                            @click="toggleDow(fi, d.bit)"
-                          >
-                            {{ d.label }}
-                          </button>
-                          <span v-if="!frame.dayOfWeek" class="tf-any">(any)</span>
-                          <span class="tf-links">
-                            <button class="tf-link" @click="setAllDow(fi)">All</button>
-                            <button class="tf-link" @click="clearAllDow(fi)">None</button>
-                          </span>
-                        </div>
-                      </div>
-
-                      <div class="tf-row tf-row--top">
-                        <span class="field-label">Day of month</span>
-                        <div class="tf-dom">
-                          <!-- `@mouseenter` is the drag-paint gesture; Enter and Space toggle a
-                               chip instead. -->
-                          <div class="tf-dom-grid">
-                            <!-- eslint-disable-next-line vuejs-accessibility/mouse-events-have-key-events -->
-                            <button
-                              v-for="d in 31"
-                              :key="d"
-                              type="button"
-                              class="tf-chip tf-dom-btn"
-                              :class="{ active: isDayOfMonthActive(frame.dayOfMonth, d) }"
-                              :aria-pressed="isDayOfMonthActive(frame.dayOfMonth, d)"
-                              @mousedown.prevent="startDomDrag(fi, d)"
-                              @mouseenter="applyDomDrag(fi, d)"
-                              @keydown.enter.prevent="toggleDayOfMonth(fi, d)"
-                              @keydown.space.prevent="toggleDayOfMonth(fi, d)"
-                            >
-                              {{ d }}
-                            </button>
-                            <!-- eslint-disable-next-line vuejs-accessibility/mouse-events-have-key-events -->
-                            <button
-                              type="button"
-                              class="tf-chip tf-dom-btn"
-                              :class="{ active: isDayOfMonthActive(frame.dayOfMonth, 'L') }"
-                              :aria-pressed="isDayOfMonthActive(frame.dayOfMonth, 'L')"
-                              aria-label="Last day of month"
-                              @mousedown.prevent="startDomDrag(fi, 'L')"
-                              @mouseenter="applyDomDrag(fi, 'L')"
-                              @keydown.enter.prevent="toggleDayOfMonth(fi, 'L')"
-                              @keydown.space.prevent="toggleDayOfMonth(fi, 'L')"
-                            >
-                              L
-                            </button>
-                          </div>
-                          <div class="tf-dom-text">
-                            <InputText
-                              v-model="frame.dayOfMonth"
-                              placeholder="any (e.g. 1-5, 8, L)"
-                              class="tf-dom-input"
-                            />
-                            <span class="field-hint">
-                              Comma-separated days or ranges. L&nbsp;=&nbsp;last day of month.
+                              <span class="item-cell__name">{{ item.label }}</span>
                             </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="tf-row">
-                        <span class="field-label">Months</span>
-                        <div class="tf-chips">
-                          <button
-                            v-for="m in MONTH_OPTIONS"
-                            :key="m.bit"
-                            class="tf-chip"
-                            :class="{ active: frame.month & m.bit }"
-                            @click="toggleMonth(fi, m.bit)"
-                          >
-                            {{ m.label }}
-                          </button>
-                          <span v-if="!frame.month" class="tf-any">(any)</span>
-                          <span class="tf-links">
-                            <button class="tf-link" @click="setAllMonths(fi)">All</button>
-                            <button class="tf-link" @click="clearAllMonths(fi)">None</button>
-                          </span>
-                        </div>
-                      </div>
-
-                      <div class="tf-done-row">
-                        <Button
-                          label="Done"
-                          size="small"
-                          severity="secondary"
-                          @click="collapseFrame(frame._key)"
-                        />
+                          </template>
+                        </EppPickTable>
+                        <EppPickTable
+                          :items="exclusionItems"
+                          title="Exclusions"
+                          column="Object"
+                          empty-text="None"
+                          add-label="Add exclusion..."
+                          item-name="exclusion"
+                          @add="exclusionPickerVisible = true"
+                          @remove="removeExclusion"
+                        >
+                          <template #item="{ item }">
+                            <span class="item-cell">
+                              <ObjectIcon
+                                v-if="objectsById.get(item.key)"
+                                :object="objectsById.get(item.key)"
+                                size="0.95rem"
+                              />
+                              <span class="item-cell__name">{{ item.label }}</span>
+                            </span>
+                          </template>
+                        </EppPickTable>
                       </div>
                     </div>
-                  </template>
-                  <Button
-                    label="Add time frame"
-                    icon="pi pi-plus"
-                    size="small"
-                    severity="secondary"
-                    outlined
-                    @click="addTimeFrame"
-                  />
-                </div>
-              </DetailCard>
+                  </AccordionContent>
+                </AccordionPanel>
 
-              <DetailCard title="Filter Script" :wide="true" data-rule-section="filter-script">
-                <div class="card-section">
-                  <NxslScriptEditor
-                    v-model="form.filterScript"
-                    :readonly="readonly"
-                    hint-key="epp-filter"
-                    placeholder="// NXSL script&#10;return true;"
-                    showCompile
-                  />
-                </div>
-              </DetailCard>
+                <AccordionPanel value="severity" data-rule-section="severity">
+                  <AccordionHeader>
+                    <div class="panel-header">
+                      <EppActionIcon v-bind="sectionIcons.severity" tile />
+                      <span>Severity</span>
+                      <span class="panel-summary">{{ severitySummary }}</span>
+                    </div>
+                  </AccordionHeader>
+                  <AccordionContent>
+                    <div class="panel-content">
+                      <div class="severity-checkboxes">
+                        <label v-for="sev in severityFlags" :key="sev.flag" class="severity-check">
+                          <Checkbox
+                            :model-value="isSeverityChecked(sev.flag)"
+                            :binary="true"
+                            @change="toggleSeverity(sev.flag)"
+                          />
+                          <StatusIcon :status="sev.status" />
+                          {{ sev.label }}
+                        </label>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionPanel>
+
+                <AccordionPanel value="time" data-rule-section="time">
+                  <AccordionHeader>
+                    <div class="panel-header">
+                      <EppActionIcon v-bind="sectionIcons.time" tile />
+                      <span>Time Filter</span>
+                      <span class="panel-summary">{{ timeSummary }}</span>
+                    </div>
+                  </AccordionHeader>
+                  <AccordionContent>
+                    <div class="panel-content">
+                      <label
+                        v-if="form.timeFrames.length || negatedTimeFrames"
+                        class="toggle-label"
+                      >
+                        <Checkbox v-model="negatedTimeFrames" :binary="true" />
+                        Inverse rule (match time that is not within the time frames below)
+                      </label>
+                      <div class="edit-table-card">
+                        <table class="edit-table" aria-label="Time frames">
+                          <colgroup>
+                            <col />
+                            <col class="time-frame-actions-col" />
+                          </colgroup>
+                          <thead>
+                            <tr>
+                              <th>Time frame</th>
+                              <th />
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr v-if="!form.timeFrames.length">
+                              <td colspan="2" class="edit-table__empty">Any time</td>
+                            </tr>
+                            <template v-for="(frame, fi) in form.timeFrames" :key="frame._key">
+                              <tr>
+                                <td>{{ frameLabel(frame) }}</td>
+                                <td class="edit-table__actions">
+                                  <div class="row-buttons">
+                                    <Button
+                                      :aria-label="
+                                        isFrameExpanded(frame._key)
+                                          ? 'Close time frame'
+                                          : 'Edit time frame'
+                                      "
+                                      :aria-expanded="isFrameExpanded(frame._key)"
+                                      :icon="
+                                        isFrameExpanded(frame._key)
+                                          ? 'pi pi-chevron-up'
+                                          : 'pi pi-pencil'
+                                      "
+                                      text
+                                      rounded
+                                      size="small"
+                                      severity="secondary"
+                                      @click="toggleFrame(frame._key)"
+                                    />
+                                    <Button
+                                      aria-label="Remove time frame"
+                                      icon="pi pi-trash"
+                                      text
+                                      rounded
+                                      severity="danger"
+                                      size="small"
+                                      @click="removeTimeFrame(fi)"
+                                    />
+                                  </div>
+                                </td>
+                              </tr>
+                              <tr v-if="isFrameExpanded(frame._key)">
+                                <td colspan="2" class="row-details">
+                                  <div class="tf-editor">
+                                    <div class="tf-row">
+                                      <span class="field-label">Time</span>
+                                      <div class="tf-time-row">
+                                        <label class="toggle-label">
+                                          <ToggleSwitch
+                                            :model-value="isAnyTime(frame)"
+                                            @update:model-value="setAnyTime(fi, $event)"
+                                          />
+                                          Any time
+                                        </label>
+                                        <template v-if="!isAnyTime(frame)">
+                                          <div class="tf-spinner">
+                                            <button
+                                              class="tf-spin-btn"
+                                              @click="adjustTime(fi, 'start', 'h', 1)"
+                                            >
+                                              <i class="pi pi-chevron-up" />
+                                            </button>
+                                            <span />
+                                            <button
+                                              class="tf-spin-btn"
+                                              @click="adjustTime(fi, 'start', 'm', 1)"
+                                            >
+                                              <i class="pi pi-chevron-up" />
+                                            </button>
+                                            <input
+                                              class="tf-time-part"
+                                              maxlength="2"
+                                              :value="
+                                                String(Math.floor(frame.startTime / 60)).padStart(
+                                                  2,
+                                                  '0',
+                                                )
+                                              "
+                                              @change="
+                                                setTimePart(fi, 'start', 'h', $event.target.value)
+                                              "
+                                            />
+                                            <span class="tf-colon">:</span>
+                                            <input
+                                              class="tf-time-part"
+                                              maxlength="2"
+                                              :value="String(frame.startTime % 60).padStart(2, '0')"
+                                              @change="
+                                                setTimePart(fi, 'start', 'm', $event.target.value)
+                                              "
+                                            />
+                                            <button
+                                              class="tf-spin-btn"
+                                              @click="adjustTime(fi, 'start', 'h', -1)"
+                                            >
+                                              <i class="pi pi-chevron-down" />
+                                            </button>
+                                            <span />
+                                            <button
+                                              class="tf-spin-btn"
+                                              @click="adjustTime(fi, 'start', 'm', -1)"
+                                            >
+                                              <i class="pi pi-chevron-down" />
+                                            </button>
+                                          </div>
+                                          <span class="tf-sep">to</span>
+                                          <div class="tf-spinner">
+                                            <button
+                                              class="tf-spin-btn"
+                                              @click="adjustTime(fi, 'end', 'h', 1)"
+                                            >
+                                              <i class="pi pi-chevron-up" />
+                                            </button>
+                                            <span />
+                                            <button
+                                              class="tf-spin-btn"
+                                              @click="adjustTime(fi, 'end', 'm', 1)"
+                                            >
+                                              <i class="pi pi-chevron-up" />
+                                            </button>
+                                            <input
+                                              class="tf-time-part"
+                                              maxlength="2"
+                                              :value="
+                                                String(Math.floor(frame.endTime / 60)).padStart(
+                                                  2,
+                                                  '0',
+                                                )
+                                              "
+                                              @change="
+                                                setTimePart(fi, 'end', 'h', $event.target.value)
+                                              "
+                                            />
+                                            <span class="tf-colon">:</span>
+                                            <input
+                                              class="tf-time-part"
+                                              maxlength="2"
+                                              :value="String(frame.endTime % 60).padStart(2, '0')"
+                                              @change="
+                                                setTimePart(fi, 'end', 'm', $event.target.value)
+                                              "
+                                            />
+                                            <button
+                                              class="tf-spin-btn"
+                                              @click="adjustTime(fi, 'end', 'h', -1)"
+                                            >
+                                              <i class="pi pi-chevron-down" />
+                                            </button>
+                                            <span />
+                                            <button
+                                              class="tf-spin-btn"
+                                              @click="adjustTime(fi, 'end', 'm', -1)"
+                                            >
+                                              <i class="pi pi-chevron-down" />
+                                            </button>
+                                          </div>
+                                        </template>
+                                      </div>
+                                    </div>
+
+                                    <div class="tf-row">
+                                      <span class="field-label">Days of week</span>
+                                      <div class="tf-chips">
+                                        <button
+                                          v-for="d in DOW_OPTIONS"
+                                          :key="d.bit"
+                                          class="tf-chip"
+                                          :class="{ active: frame.dayOfWeek & d.bit }"
+                                          @click="toggleDow(fi, d.bit)"
+                                        >
+                                          {{ d.label }}
+                                        </button>
+                                        <span v-if="!frame.dayOfWeek" class="tf-any">(any)</span>
+                                        <span class="tf-links">
+                                          <button class="tf-link" @click="setAllDow(fi)">
+                                            All
+                                          </button>
+                                          <button class="tf-link" @click="clearAllDow(fi)">
+                                            None
+                                          </button>
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    <div class="tf-row tf-row--top">
+                                      <span class="field-label">Day of month</span>
+                                      <div class="tf-dom">
+                                        <!-- `@mouseenter` is the drag-paint gesture; Enter and Space toggle a
+                                             chip instead. -->
+                                        <div class="tf-dom-grid">
+                                          <!-- eslint-disable-next-line vuejs-accessibility/mouse-events-have-key-events -->
+                                          <button
+                                            v-for="d in 31"
+                                            :key="d"
+                                            type="button"
+                                            class="tf-chip tf-dom-btn"
+                                            :class="{
+                                              active: isDayOfMonthActive(frame.dayOfMonth, d),
+                                            }"
+                                            :aria-pressed="isDayOfMonthActive(frame.dayOfMonth, d)"
+                                            @mousedown.prevent="startDomDrag(fi, d)"
+                                            @mouseenter="applyDomDrag(fi, d)"
+                                            @keydown.enter.prevent="toggleDayOfMonth(fi, d)"
+                                            @keydown.space.prevent="toggleDayOfMonth(fi, d)"
+                                          >
+                                            {{ d }}
+                                          </button>
+                                          <!-- eslint-disable-next-line vuejs-accessibility/mouse-events-have-key-events -->
+                                          <button
+                                            type="button"
+                                            class="tf-chip tf-dom-btn"
+                                            :class="{
+                                              active: isDayOfMonthActive(frame.dayOfMonth, 'L'),
+                                            }"
+                                            :aria-pressed="
+                                              isDayOfMonthActive(frame.dayOfMonth, 'L')
+                                            "
+                                            aria-label="Last day of month"
+                                            @mousedown.prevent="startDomDrag(fi, 'L')"
+                                            @mouseenter="applyDomDrag(fi, 'L')"
+                                            @keydown.enter.prevent="toggleDayOfMonth(fi, 'L')"
+                                            @keydown.space.prevent="toggleDayOfMonth(fi, 'L')"
+                                          >
+                                            L
+                                          </button>
+                                        </div>
+                                        <div class="tf-dom-text">
+                                          <InputText
+                                            v-model="frame.dayOfMonth"
+                                            placeholder="any (e.g. 1-5, 8, L)"
+                                            class="tf-dom-input"
+                                          />
+                                          <span class="field-hint">
+                                            Comma-separated days or ranges. L&nbsp;=&nbsp;last day
+                                            of month.
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div class="tf-row">
+                                      <span class="field-label">Months</span>
+                                      <div class="tf-chips">
+                                        <button
+                                          v-for="m in MONTH_OPTIONS"
+                                          :key="m.bit"
+                                          class="tf-chip"
+                                          :class="{ active: frame.month & m.bit }"
+                                          @click="toggleMonth(fi, m.bit)"
+                                        >
+                                          {{ m.label }}
+                                        </button>
+                                        <span v-if="!frame.month" class="tf-any">(any)</span>
+                                        <span class="tf-links">
+                                          <button class="tf-link" @click="setAllMonths(fi)">
+                                            All
+                                          </button>
+                                          <button class="tf-link" @click="clearAllMonths(fi)">
+                                            None
+                                          </button>
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    <div class="tf-done-row">
+                                      <Button
+                                        label="Done"
+                                        size="small"
+                                        severity="secondary"
+                                        @click="collapseFrame(frame._key)"
+                                      />
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            </template>
+                          </tbody>
+                          <tfoot>
+                            <tr>
+                              <td colspan="2">
+                                <Button
+                                  label="Add time frame"
+                                  icon="pi pi-plus"
+                                  text
+                                  size="small"
+                                  severity="secondary"
+                                  @click="addTimeFrame"
+                                />
+                              </td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionPanel>
+
+                <AccordionPanel value="filter-script" data-rule-section="filter-script">
+                  <AccordionHeader>
+                    <div class="panel-header">
+                      <EppActionIcon v-bind="sectionIcons['filter-script']" tile />
+                      <span>Filter Script</span>
+                      <span class="panel-summary">{{
+                        form.filterScript?.trim() ? 'Configured' : NOT_CONFIGURED
+                      }}</span>
+                    </div>
+                  </AccordionHeader>
+                  <AccordionContent>
+                    <div class="panel-content">
+                      <NxslScriptEditor
+                        v-model="form.filterScript"
+                        :readonly="readonly"
+                        hint-key="epp-filter"
+                        placeholder="// NXSL script&#10;return true;"
+                        showCompile
+                      />
+                    </div>
+                  </AccordionContent>
+                </AccordionPanel>
+              </Accordion>
             </div>
           </TabPanel>
 
           <TabPanel value="action">
-            <div class="action-tab-content">
+            <div class="panel-tab">
               <DetailCard title="General" :wide="true" data-rule-section="action-options">
                 <label class="option-row" for="flag-stop">
                   <span @click.stop>
@@ -1248,6 +1378,7 @@ watch(
                 <AccordionPanel value="chaincalls" data-rule-section="chaincalls">
                   <AccordionHeader>
                     <div class="panel-header">
+                      <EppActionIcon v-bind="sectionIcons.chaincalls" tile />
                       <span>Call Chains</span>
                       <span class="panel-summary">{{ chainCallsPanelSummary }}</span>
                     </div>
@@ -1268,49 +1399,35 @@ watch(
                 <AccordionPanel value="alarm" data-rule-section="alarm">
                   <AccordionHeader>
                     <div class="panel-header">
+                      <EppActionIcon v-bind="sectionIcons.alarm" tile />
                       <span>Alarm</span>
                       <span class="panel-summary">{{ alarmPanelSummary }}</span>
                     </div>
                   </AccordionHeader>
                   <AccordionContent>
                     <div class="panel-content">
-                      <FormField
-                        label="Action"
-                        class="field-col"
-                        style="width: 240px"
-                        v-slot="{ id }"
-                      >
-                        <Select
-                          :input-id="id"
+                      <FormField label="Action" class="field-col" group>
+                        <SelectButton
                           v-model="alarmActionType"
                           :options="ALARM_ACTION_OPTIONS"
                           option-label="label"
                           option-value="value"
-                          style="width: 100%"
+                          :allow-empty="false"
+                          size="small"
                         />
                       </FormField>
 
                       <template v-if="alarmActionType === 'generate'">
-                        <div class="two-col-grid">
-                          <FormField
-                            label="Message"
-                            class="field-col"
-                            style="grid-column: 1 / -1"
-                            v-slot="{ id }"
-                          >
-                            <InputText
-                              :id="id"
-                              v-model="form.alarmMessage"
-                              placeholder="%m"
-                              style="width: 100%"
-                            />
-                          </FormField>
-                          <FormField
-                            label="Alarm Key"
-                            class="field-col"
-                            style="grid-column: 1 / -1"
-                            v-slot="{ id }"
-                          >
+                        <FormField label="Message" class="field-col" v-slot="{ id }">
+                          <InputText
+                            :id="id"
+                            v-model="form.alarmMessage"
+                            placeholder="%m"
+                            style="width: 100%"
+                          />
+                        </FormField>
+                        <div class="field-pair">
+                          <FormField label="Alarm key" class="field-col field-grow" v-slot="{ id }">
                             <InputText
                               :id="id"
                               v-model="form.alarmKey"
@@ -1318,7 +1435,11 @@ watch(
                               style="width: 100%"
                             />
                           </FormField>
-                          <FormField label="Severity" class="field-col" v-slot="{ id }">
+                          <FormField
+                            label="Severity"
+                            class="field-col field-select"
+                            v-slot="{ id }"
+                          >
                             <Select
                               :input-id="id"
                               v-model="alarmGenerateSeverity"
@@ -1328,28 +1449,48 @@ watch(
                               style="width: 100%"
                             />
                           </FormField>
+                        </div>
+                        <div class="field-pair">
                           <FormField
-                            label="Timeout (s, 0 = none)"
-                            class="field-col"
-                            v-slot="{ id }"
+                            label="Timeout"
+                            hint="0 = never"
+                            class="field-col field-number"
+                            v-slot="{ id, describedBy }"
                           >
-                            <InputText
-                              :id="id"
+                            <InputNumber
                               v-model="form.alarmTimeout"
-                              type="number"
-                              min="0"
-                              style="width: 100%"
+                              :input-id="id"
+                              :aria-describedby="describedBy"
+                              :min="0"
+                              :use-grouping="false"
+                              suffix=" s"
+                              fluid
                             />
                           </FormField>
-                          <FormField label="Timeout Event" class="field-col" group>
+                          <FormField label="Timeout event" class="field-col field-grow" group>
                             <EventSelectField
                               v-model="form.alarmTimeoutEvent"
                               clearable
-                              empty-label="(none — expires silently)"
+                              empty-label="(none, expires silently)"
+                            />
+                          </FormField>
+                        </div>
+                        <div class="two-col-grid">
+                          <FormField label="Alarm category" class="field-col" v-slot="{ id }">
+                            <MultiSelect
+                              v-model="form.alarmCategories"
+                              :input-id="id"
+                              :options="alarmCategoryOptions"
+                              option-label="label"
+                              option-value="value"
+                              display="chip"
+                              placeholder="(none)"
+                              filter
+                              style="width: 100%"
                             />
                           </FormField>
                           <FormField
-                            label="Root Cause Analysis Script"
+                            label="Root cause analysis script"
                             class="field-col"
                             v-slot="{ id }"
                           >
@@ -1359,47 +1500,9 @@ watch(
                               :options="scriptOptions"
                               option-label="label"
                               option-value="value"
+                              placeholder="(none)"
                               style="width: 100%"
                             />
-                          </FormField>
-                          <FormField label="Alarm Category" class="field-col" group>
-                            <div class="chip-list">
-                              <Tag
-                                v-for="id in form.alarmCategories"
-                                :key="id"
-                                severity="secondary"
-                                class="item-chip"
-                              >
-                                <template #default>
-                                  <span>{{ alarmCategoryMap[id]?.name ?? `#${id}` }}</span>
-                                  <button
-                                    class="chip-remove"
-                                    aria-label="Remove category"
-                                    @click.stop="removeAlarmCategory(id)"
-                                  >
-                                    <i class="pi pi-times" />
-                                  </button>
-                                </template>
-                              </Tag>
-                              <span v-if="!form.alarmCategories.length" class="empty-chip-hint">
-                                (none)
-                              </span>
-                            </div>
-                            <div class="add-row">
-                              <Select
-                                v-model="selectedCategoryToAdd"
-                                :options="alarmCategoryOptions"
-                                option-label="label"
-                                option-value="value"
-                                aria-label="Add a category"
-                                placeholder="Add category..."
-                                size="small"
-                                :disabled="!alarmCategoryOptions.length"
-                                empty-message="Every category is already added"
-                                style="flex: 1"
-                                @change="addAlarmCategory"
-                              />
-                            </div>
                           </FormField>
                         </div>
                         <div class="flag-checks">
@@ -1412,40 +1515,39 @@ watch(
                               <Checkbox v-model="addAiComment" :binary="true" />
                               Add AI assistant's comment on alarm creation
                             </label>
-                            <Message
-                              v-if="showAiUnavailableNote"
-                              severity="warn"
-                              :closable="false"
-                              class="ai-unavailable-note"
-                            >
-                              The AI assistant is not available on this server.
-                            </Message>
+                            <div v-if="showAiUnavailableNote" class="dependent">
+                              <Message
+                                severity="warn"
+                                size="small"
+                                :closable="false"
+                                class="ai-unavailable-note"
+                              >
+                                The AI assistant is not available on this server.
+                              </Message>
+                            </div>
                           </template>
                         </div>
                       </template>
 
-                      <template
+                      <FormField
                         v-else-if="alarmActionType === 'resolve' || alarmActionType === 'terminate'"
+                        :label="`${alarmActionType === 'resolve' ? 'Resolve' : 'Terminate'} all alarms with key`"
+                        class="field-col"
+                        v-slot="{ id }"
                       >
-                        <FormField
-                          :label="`${alarmActionType === 'resolve' ? 'Resolve' : 'Terminate'} all alarms
-                          with key`"
-                          class="field-col"
-                          style="width: 100%"
-                          v-slot="{ id }"
-                        >
+                        <div class="input-with-check">
                           <InputText
                             :id="id"
                             v-model="form.alarmKey"
                             placeholder="Alarm key pattern"
-                            style="width: 100%"
+                            class="input-with-check__input"
                           />
-                        </FormField>
-                        <label class="toggle-label">
-                          <Checkbox v-model="terminateByRegexp" :binary="true" />
-                          Use regular expression
-                        </label>
-                      </template>
+                          <label class="toggle-label">
+                            <Checkbox v-model="terminateByRegexp" :binary="true" />
+                            Regular expression
+                          </label>
+                        </div>
+                      </FormField>
                     </div>
                   </AccordionContent>
                 </AccordionPanel>
@@ -1453,6 +1555,7 @@ watch(
                 <AccordionPanel value="incident" data-rule-section="incident">
                   <AccordionHeader>
                     <div class="panel-header">
+                      <EppActionIcon v-bind="sectionIcons.incident" tile />
                       <span>Incident</span>
                       <span class="panel-summary">{{ incidentPanelSummary }}</span>
                     </div>
@@ -1464,94 +1567,89 @@ watch(
                         Create incident on alarm creation
                       </label>
 
-                      <template v-if="createIncident">
-                        <div class="two-col-grid">
-                          <FormField
-                            label="Creation Delay (s, 0 = immediate)"
-                            class="field-col"
-                            v-slot="{ id }"
-                          >
-                            <InputText
-                              :id="id"
-                              v-model="form.incidentDelay"
-                              type="number"
-                              min="0"
-                              style="width: 100%"
-                            />
-                          </FormField>
-                          <FormField label="Title" class="field-col" v-slot="{ id }">
-                            <InputText
-                              :id="id"
-                              v-model="form.incidentTitle"
-                              placeholder="Leave empty to use alarm message"
-                              style="width: 100%"
-                            />
-                          </FormField>
-                          <FormField
-                            label="Description"
-                            class="field-col"
-                            style="grid-column: 1 / -1"
-                            v-slot="{ id }"
-                          >
-                            <Textarea
-                              :id="id"
-                              v-model="form.incidentDescription"
-                              rows="3"
-                              style="width: 100%"
-                              auto-resize
-                            />
-                          </FormField>
-                        </div>
-
-                        <label v-if="showAiIncidentAnalysis" class="toggle-label">
-                          <Checkbox v-model="aiAnalyzeIncident" :binary="true" />
-                          Perform AI-based incident analysis
-                        </label>
-                        <Message
-                          v-if="showAiIncidentAnalysis && showAiUnavailableNote"
-                          severity="warn"
-                          :closable="false"
-                          class="ai-unavailable-note"
+                      <div v-if="createIncident" class="dependent">
+                        <FormField
+                          label="Creation delay"
+                          hint="0 = immediately"
+                          class="field-col field-number"
+                          v-slot="{ id, describedBy }"
                         >
-                          The AI assistant is not available on this server.
-                        </Message>
+                          <InputNumber
+                            v-model="form.incidentDelay"
+                            :input-id="id"
+                            :aria-describedby="describedBy"
+                            :min="0"
+                            :use-grouping="false"
+                            suffix=" s"
+                            fluid
+                          />
+                        </FormField>
+                        <FormField label="Title" class="field-col" v-slot="{ id }">
+                          <InputText
+                            :id="id"
+                            v-model="form.incidentTitle"
+                            placeholder="Leave empty to use alarm message"
+                            style="width: 100%"
+                          />
+                        </FormField>
+                        <FormField label="Description" class="field-col" v-slot="{ id }">
+                          <Textarea
+                            :id="id"
+                            v-model="form.incidentDescription"
+                            rows="3"
+                            style="width: 100%"
+                            auto-resize
+                          />
+                        </FormField>
 
-                        <template v-if="showAiIncidentAnalysis && aiAnalyzeIncident">
-                          <div class="two-col-grid">
-                            <FormField label="AI Analysis Depth" class="field-col" v-slot="{ id }">
-                              <Select
-                                :input-id="id"
-                                v-model="form.incidentAIAnalysisDepth"
-                                :options="AI_DEPTH_OPTIONS"
-                                option-label="label"
-                                option-value="value"
-                                style="width: 100%"
-                              />
-                            </FormField>
-                            <div class="field-col" style="align-self: flex-end">
+                        <template v-if="showAiIncidentAnalysis">
+                          <label class="toggle-label">
+                            <Checkbox v-model="aiAnalyzeIncident" :binary="true" />
+                            Perform AI-based incident analysis
+                          </label>
+                          <div v-if="showAiUnavailableNote || aiAnalyzeIncident" class="dependent">
+                            <Message
+                              v-if="showAiUnavailableNote"
+                              severity="warn"
+                              size="small"
+                              :closable="false"
+                              class="ai-unavailable-note"
+                            >
+                              The AI assistant is not available on this server.
+                            </Message>
+                            <template v-if="aiAnalyzeIncident">
+                              <FormField label="Analysis depth" class="field-col" group>
+                                <SelectButton
+                                  v-model="form.incidentAIAnalysisDepth"
+                                  :options="AI_DEPTH_OPTIONS"
+                                  option-label="label"
+                                  option-value="value"
+                                  :allow-empty="false"
+                                  size="small"
+                                />
+                              </FormField>
                               <label class="toggle-label">
                                 <Checkbox v-model="aiAutoAssign" :binary="true" />
                                 Automatically assign incident to suggested owner
                               </label>
-                            </div>
-                            <FormField
-                              label="AI Prompt for Analysis (optional)"
-                              class="field-col"
-                              style="grid-column: 1 / -1"
-                              v-slot="{ id }"
-                            >
-                              <Textarea
-                                :id="id"
-                                v-model="form.incidentAIPrompt"
-                                placeholder="Additional context or instructions for the AI analysis..."
-                                rows="3"
-                                style="width: 100%"
-                                auto-resize
-                              />
-                            </FormField>
+                              <FormField
+                                label="Prompt for analysis (optional)"
+                                class="field-col"
+                                v-slot="{ id }"
+                              >
+                                <Textarea
+                                  :id="id"
+                                  v-model="form.incidentAIPrompt"
+                                  placeholder="Additional context or instructions for the AI analysis..."
+                                  rows="3"
+                                  style="width: 100%"
+                                  auto-resize
+                                />
+                              </FormField>
+                            </template>
                           </div>
                         </template>
-                      </template>
+                      </div>
                     </div>
                   </AccordionContent>
                 </AccordionPanel>
@@ -1559,32 +1657,27 @@ watch(
                 <AccordionPanel value="downtime" data-rule-section="downtime">
                   <AccordionHeader>
                     <div class="panel-header">
+                      <EppActionIcon v-bind="sectionIcons.downtime" tile />
                       <span>Downtime Control</span>
                       <span class="panel-summary">{{ downtimePanelSummary }}</span>
                     </div>
                   </AccordionHeader>
                   <AccordionContent>
                     <div class="panel-content">
-                      <FormField
-                        label="Action"
-                        class="field-col"
-                        style="width: 220px"
-                        v-slot="{ id }"
-                      >
-                        <Select
-                          :input-id="id"
+                      <FormField label="Action" class="field-col" group>
+                        <SelectButton
                           v-model="downtimeControl"
                           :options="DOWNTIME_OPTIONS"
                           option-label="label"
                           option-value="value"
-                          style="width: 100%"
+                          :allow-empty="false"
+                          size="small"
                         />
                       </FormField>
                       <FormField
-                        label="Downtime Tag"
-                        class="field-col"
                         v-if="downtimeControl !== 'none'"
-                        style="width: 320px"
+                        label="Downtime tag"
+                        class="field-col"
                         v-slot="{ id }"
                       >
                         <InputText
@@ -1601,107 +1694,27 @@ watch(
                 <AccordionPanel value="pstorage" data-rule-section="pstorage">
                   <AccordionHeader>
                     <div class="panel-header">
+                      <EppActionIcon v-bind="sectionIcons.pstorage" tile />
                       <span>Persistent Storage</span>
                       <span class="panel-summary">
-                        {{
-                          form.pstorageSetActions.length || form.pstorageDeleteActions.length
-                            ? `${form.pstorageSetActions.length} set, ${form.pstorageDeleteActions.length} delete`
-                            : 'None configured'
-                        }}
+                        {{ setDeleteSummary(form.pstorageSetActions, form.pstorageDeleteActions) }}
                       </span>
                     </div>
                   </AccordionHeader>
                   <AccordionContent>
                     <div class="panel-content">
-                      <div class="kv-subsection">
-                        <div class="field-label mb-1">Set on match:</div>
-                        <div v-if="form.pstorageSetActions.length" class="kv-list">
-                          <div
-                            v-for="entry in form.pstorageSetActions"
-                            :key="entry.key"
-                            class="kv-row"
-                          >
-                            <span class="kv-key">{{ entry.key }}</span>
-                            <i class="pi pi-arrow-right kv-arrow" />
-                            <span class="kv-value">{{ entry.value }}</span>
-                            <Button
-                              :aria-label="`Remove persistent storage entry ${entry.key}`"
-                              icon="pi pi-trash"
-                              text
-                              rounded
-                              severity="danger"
-                              size="small"
-                              @click="removePstorageSet(entry.key)"
-                            />
-                          </div>
-                        </div>
-                        <div class="kv-add-row">
-                          <InputText
-                            v-model="newPstorageKey"
-                            placeholder="Key"
-                            size="small"
-                            style="flex: 1"
-                          />
-                          <span class="kv-equals">=</span>
-                          <InputText
-                            v-model="newPstorageValue"
-                            placeholder="Value"
-                            size="small"
-                            style="flex: 2"
-                            @keyup.enter="addPstorageSet"
-                          />
-                          <Button
-                            aria-label="Add persistent storage entry"
-                            icon="pi pi-plus"
-                            size="small"
-                            severity="secondary"
-                            :disabled="!newPstorageKey.trim()"
-                            @click="addPstorageSet"
-                          />
-                        </div>
-                      </div>
-
-                      <div class="kv-subsection">
-                        <div class="field-label mb-1">Delete on match:</div>
-                        <div class="chip-list">
-                          <Tag
-                            v-for="key in form.pstorageDeleteActions"
-                            :key="key"
-                            severity="warn"
-                            class="item-chip"
-                          >
-                            <template #default>
-                              <span>{{ key }}</span>
-                              <button
-                                class="chip-remove"
-                                aria-label="Remove key"
-                                @click.stop="removePstorageDelete(key)"
-                              >
-                                <i class="pi pi-times" />
-                              </button>
-                            </template>
-                          </Tag>
-                          <span v-if="!form.pstorageDeleteActions.length" class="empty-chip-hint">
-                            (none)
-                          </span>
-                        </div>
-                        <div class="add-row">
-                          <InputText
-                            v-model="newPstorageDeleteKey"
-                            placeholder="Key to delete..."
-                            size="small"
-                            style="flex: 1"
-                            @keyup.enter="addPstorageDelete"
-                          />
-                          <Button
-                            aria-label="Add persistent storage deletion"
-                            icon="pi pi-plus"
-                            size="small"
-                            severity="secondary"
-                            :disabled="!newPstorageDeleteKey.trim()"
-                            @click="addPstorageDelete"
-                          />
-                        </div>
+                      <div class="set-delete">
+                        <EppKeyTable
+                          v-model="form.pstorageSetActions"
+                          title="Set on match"
+                          value-label="Value"
+                          item-name="persistent storage entry"
+                        />
+                        <EppKeyTable
+                          v-model="form.pstorageDeleteActions"
+                          title="Delete on match"
+                          item-name="persistent storage deletion"
+                        />
                       </div>
                     </div>
                   </AccordionContent>
@@ -1710,111 +1723,34 @@ watch(
                 <AccordionPanel value="customattr" data-rule-section="customattr">
                   <AccordionHeader>
                     <div class="panel-header">
+                      <EppActionIcon v-bind="sectionIcons.customattr" tile />
                       <span>Custom Attributes</span>
                       <span class="panel-summary">
                         {{
-                          form.customAttributeSetActions.length ||
-                          form.customAttributeDeleteActions.length
-                            ? `${form.customAttributeSetActions.length} set, ${form.customAttributeDeleteActions.length} delete`
-                            : 'None configured'
+                          setDeleteSummary(
+                            form.customAttributeSetActions,
+                            form.customAttributeDeleteActions,
+                          )
                         }}
                       </span>
                     </div>
                   </AccordionHeader>
                   <AccordionContent>
                     <div class="panel-content">
-                      <div class="kv-subsection">
-                        <div class="field-label mb-1">Set on match:</div>
-                        <div v-if="form.customAttributeSetActions.length" class="kv-list">
-                          <div
-                            v-for="entry in form.customAttributeSetActions"
-                            :key="entry.key"
-                            class="kv-row"
-                          >
-                            <span class="kv-key">{{ entry.key }}</span>
-                            <i class="pi pi-arrow-right kv-arrow" />
-                            <span class="kv-value">{{ entry.value }}</span>
-                            <Button
-                              :aria-label="`Remove custom attribute ${entry.key}`"
-                              icon="pi pi-trash"
-                              text
-                              rounded
-                              severity="danger"
-                              size="small"
-                              @click="removeCustomAttrSet(entry.key)"
-                            />
-                          </div>
-                        </div>
-                        <div class="kv-add-row">
-                          <InputText
-                            v-model="newCustomAttrKey"
-                            placeholder="Key"
-                            size="small"
-                            style="flex: 1"
-                          />
-                          <span class="kv-equals">=</span>
-                          <InputText
-                            v-model="newCustomAttrValue"
-                            placeholder="Value"
-                            size="small"
-                            style="flex: 2"
-                            @keyup.enter="addCustomAttrSet"
-                          />
-                          <Button
-                            aria-label="Add custom attribute"
-                            icon="pi pi-plus"
-                            size="small"
-                            severity="secondary"
-                            :disabled="!newCustomAttrKey.trim()"
-                            @click="addCustomAttrSet"
-                          />
-                        </div>
-                      </div>
-
-                      <div class="kv-subsection">
-                        <div class="field-label mb-1">Delete on match:</div>
-                        <div class="chip-list">
-                          <Tag
-                            v-for="key in form.customAttributeDeleteActions"
-                            :key="key"
-                            severity="warn"
-                            class="item-chip"
-                          >
-                            <template #default>
-                              <span>{{ key }}</span>
-                              <button
-                                class="chip-remove"
-                                aria-label="Remove key"
-                                @click.stop="removeCustomAttrDelete(key)"
-                              >
-                                <i class="pi pi-times" />
-                              </button>
-                            </template>
-                          </Tag>
-                          <span
-                            v-if="!form.customAttributeDeleteActions.length"
-                            class="empty-chip-hint"
-                          >
-                            (none)
-                          </span>
-                        </div>
-                        <div class="add-row">
-                          <InputText
-                            v-model="newCustomAttrDeleteKey"
-                            placeholder="Key to delete..."
-                            size="small"
-                            style="flex: 1"
-                            @keyup.enter="addCustomAttrDelete"
-                          />
-                          <Button
-                            aria-label="Add custom attribute deletion"
-                            icon="pi pi-plus"
-                            size="small"
-                            severity="secondary"
-                            :disabled="!newCustomAttrDeleteKey.trim()"
-                            @click="addCustomAttrDelete"
-                          />
-                        </div>
+                      <div class="set-delete">
+                        <EppKeyTable
+                          v-model="form.customAttributeSetActions"
+                          title="Set on match"
+                          key-label="Name"
+                          value-label="Value"
+                          item-name="custom attribute"
+                        />
+                        <EppKeyTable
+                          v-model="form.customAttributeDeleteActions"
+                          title="Delete on match"
+                          key-label="Name"
+                          item-name="custom attribute deletion"
+                        />
                       </div>
                     </div>
                   </AccordionContent>
@@ -1823,126 +1759,166 @@ watch(
                 <AccordionPanel value="serveractions" data-rule-section="serveractions">
                   <AccordionHeader>
                     <div class="panel-header">
+                      <EppActionIcon v-bind="sectionIcons.serveractions" tile />
                       <span>Server Actions</span>
                       <span class="panel-summary">
                         {{
                           form.actions.length
-                            ? `${form.actions.length} action(s)`
-                            : 'None configured'
+                            ? countLabel(form.actions.length, 'action')
+                            : NOT_CONFIGURED
                         }}
                       </span>
                     </div>
                   </AccordionHeader>
                   <AccordionContent>
                     <div class="panel-content">
-                      <div v-if="form.actions.length" class="server-actions-list">
-                        <div
-                          v-for="(action, i) in form.actions"
-                          :key="i"
-                          class="server-action-item"
-                        >
-                          <div class="server-action-row">
-                            <ToggleSwitch v-model="action.active" size="small" />
-                            <span class="action-name">
-                              {{ serverActionsMap[action.id]?.name ?? `Action #${action.id}` }}
-                            </span>
-                            <span
-                              v-if="!expandedActionRows.has(i) && actionRowHint(action)"
-                              class="action-hint"
-                            >
-                              {{ actionRowHint(action) }}
-                            </span>
-                            <Button
-                              :aria-label="
-                                expandedActionRows.has(i) ? 'Collapse action' : 'Expand action'
-                              "
-                              :aria-expanded="expandedActionRows.has(i)"
-                              :icon="
-                                expandedActionRows.has(i)
-                                  ? 'pi pi-chevron-up'
-                                  : 'pi pi-chevron-down'
-                              "
-                              text
-                              rounded
-                              size="small"
-                              severity="secondary"
-                              @click="toggleActionRow(i)"
-                            />
-                            <Button
-                              aria-label="Remove server action"
-                              icon="pi pi-trash"
-                              text
-                              rounded
-                              severity="danger"
-                              size="small"
-                              @click="removeServerAction(i)"
-                            />
-                          </div>
-                          <div v-if="expandedActionRows.has(i)" class="server-action-details">
-                            <div class="two-col-grid">
-                              <FormField label="Delay (s)" class="field-col" v-slot="{ id }">
-                                <InputText
-                                  :id="id"
-                                  v-model="action.timerDelay"
-                                  placeholder="0"
+                      <div class="edit-table-card">
+                        <table class="edit-table" aria-label="Server actions">
+                          <colgroup>
+                            <col />
+                            <col class="edit-table__actions-col" />
+                          </colgroup>
+                          <thead>
+                            <tr>
+                              <th>Action</th>
+                              <th />
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <template v-for="(action, i) in form.actions" :key="i">
+                              <tr>
+                                <td>
+                                  <div class="server-action-row">
+                                    <ToggleSwitch v-model="action.active" size="small" />
+                                    <span class="action-name">
+                                      {{
+                                        serverActionsMap[action.id]?.name ?? `Action #${action.id}`
+                                      }}
+                                    </span>
+                                    <span
+                                      v-if="!expandedActionRows.has(i) && actionRowHint(action)"
+                                      class="action-hint"
+                                    >
+                                      {{ actionRowHint(action) }}
+                                    </span>
+                                    <Button
+                                      :aria-label="
+                                        expandedActionRows.has(i)
+                                          ? 'Collapse action'
+                                          : 'Expand action'
+                                      "
+                                      :aria-expanded="expandedActionRows.has(i)"
+                                      :icon="
+                                        expandedActionRows.has(i)
+                                          ? 'pi pi-chevron-up'
+                                          : 'pi pi-chevron-down'
+                                      "
+                                      text
+                                      rounded
+                                      size="small"
+                                      severity="secondary"
+                                      @click="toggleActionRow(i)"
+                                    />
+                                  </div>
+                                </td>
+                                <td class="edit-table__actions">
+                                  <Button
+                                    aria-label="Remove server action"
+                                    icon="pi pi-trash"
+                                    text
+                                    rounded
+                                    severity="danger"
+                                    size="small"
+                                    @click="removeServerAction(i)"
+                                  />
+                                </td>
+                              </tr>
+                              <tr v-if="expandedActionRows.has(i)">
+                                <td colspan="2" class="row-details">
+                                  <div class="two-col-grid">
+                                    <FormField label="Delay (s)" class="field-col" v-slot="{ id }">
+                                      <InputText
+                                        :id="id"
+                                        v-model="action.timerDelay"
+                                        placeholder="0"
+                                        size="small"
+                                        style="width: 100%"
+                                      />
+                                    </FormField>
+                                    <FormField
+                                      label="Delay timer key"
+                                      class="field-col"
+                                      v-slot="{ id }"
+                                    >
+                                      <InputText
+                                        :id="id"
+                                        v-model="action.timerKey"
+                                        placeholder="Timer key..."
+                                        size="small"
+                                        style="width: 100%"
+                                      />
+                                    </FormField>
+                                    <FormField
+                                      label="Snooze time (s)"
+                                      class="field-col"
+                                      v-slot="{ id }"
+                                    >
+                                      <InputText
+                                        :id="id"
+                                        v-model="action.snoozeTime"
+                                        placeholder="0"
+                                        size="small"
+                                        style="width: 100%"
+                                      />
+                                    </FormField>
+                                    <FormField
+                                      label="Blocking timer key"
+                                      class="field-col"
+                                      v-slot="{ id }"
+                                    >
+                                      <InputText
+                                        :id="id"
+                                        v-model="action.blockingTimerKey"
+                                        placeholder="Do not run if this timer exists..."
+                                        size="small"
+                                        style="width: 100%"
+                                      />
+                                    </FormField>
+                                  </div>
+                                </td>
+                              </tr>
+                            </template>
+                          </tbody>
+                          <tfoot>
+                            <tr>
+                              <td>
+                                <Select
+                                  v-model="selectedActionToAdd"
+                                  :options="serverActionOptions"
+                                  option-label="label"
+                                  option-value="value"
+                                  aria-label="Server action to add"
+                                  placeholder="Select action to add..."
+                                  filter
                                   size="small"
-                                  style="width: 100%"
+                                  class="edit-table__input"
                                 />
-                              </FormField>
-                              <FormField label="Delay timer key" class="field-col" v-slot="{ id }">
-                                <InputText
-                                  :id="id"
-                                  v-model="action.timerKey"
-                                  placeholder="Timer key..."
+                              </td>
+                              <td class="edit-table__actions">
+                                <Button
+                                  aria-label="Add server action"
+                                  icon="pi pi-plus"
+                                  text
+                                  rounded
+                                  severity="secondary"
                                   size="small"
-                                  style="width: 100%"
+                                  :disabled="selectedActionToAdd == null"
+                                  @click="addServerAction"
                                 />
-                              </FormField>
-                              <FormField label="Snooze time (s)" class="field-col" v-slot="{ id }">
-                                <InputText
-                                  :id="id"
-                                  v-model="action.snoozeTime"
-                                  placeholder="0"
-                                  size="small"
-                                  style="width: 100%"
-                                />
-                              </FormField>
-                              <FormField
-                                label="Blocking timer key"
-                                class="field-col"
-                                v-slot="{ id }"
-                              >
-                                <InputText
-                                  :id="id"
-                                  v-model="action.blockingTimerKey"
-                                  placeholder="Do not run if this timer exists..."
-                                  size="small"
-                                  style="width: 100%"
-                                />
-                              </FormField>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="add-row">
-                        <Select
-                          v-model="selectedActionToAdd"
-                          :options="serverActionOptions"
-                          option-label="label"
-                          option-value="value"
-                          placeholder="Select action to add..."
-                          filter
-                          size="small"
-                          style="flex: 1"
-                        />
-                        <Button
-                          aria-label="Add server action"
-                          icon="pi pi-plus"
-                          size="small"
-                          severity="secondary"
-                          :disabled="selectedActionToAdd == null"
-                          @click="addServerAction"
-                        />
+                              </td>
+                            </tr>
+                          </tfoot>
+                        </table>
                       </div>
                     </div>
                   </AccordionContent>
@@ -1951,9 +1927,10 @@ watch(
                 <AccordionPanel value="script" data-rule-section="script">
                   <AccordionHeader>
                     <div class="panel-header">
+                      <EppActionIcon v-bind="sectionIcons.script" tile />
                       <span>Script</span>
                       <span class="panel-summary">{{
-                        form.actionScript ? 'Configured' : 'Empty'
+                        form.actionScript ? 'Configured' : NOT_CONFIGURED
                       }}</span>
                     </div>
                   </AccordionHeader>
@@ -1972,57 +1949,25 @@ watch(
                 <AccordionPanel value="timers" data-rule-section="timers">
                   <AccordionHeader>
                     <div class="panel-header">
+                      <EppActionIcon v-bind="sectionIcons.timers" tile />
                       <span>Timer Cancellations</span>
                       <span class="panel-summary">
                         {{
                           form.timerCancellations.length
-                            ? `${form.timerCancellations.length} key(s)`
-                            : 'None'
+                            ? countLabel(form.timerCancellations.length, 'key')
+                            : NOT_CONFIGURED
                         }}
                       </span>
                     </div>
                   </AccordionHeader>
                   <AccordionContent>
                     <div class="panel-content">
-                      <div class="chip-list">
-                        <Tag
-                          v-for="key in form.timerCancellations"
-                          :key="key"
-                          severity="secondary"
-                          class="item-chip"
-                        >
-                          <template #default>
-                            <span>{{ key }}</span>
-                            <button
-                              class="chip-remove"
-                              aria-label="Remove timer key"
-                              @click.stop="removeTimerCancellation(key)"
-                            >
-                              <i class="pi pi-times" />
-                            </button>
-                          </template>
-                        </Tag>
-                        <span v-if="!form.timerCancellations.length" class="empty-chip-hint">
-                          (none)
-                        </span>
-                      </div>
-                      <div class="add-row">
-                        <InputText
-                          v-model="newTimerKey"
-                          placeholder="Timer key..."
-                          size="small"
-                          style="flex: 1"
-                          @keyup.enter="addTimerCancellation"
-                        />
-                        <Button
-                          aria-label="Add timer cancellation"
-                          icon="pi pi-plus"
-                          size="small"
-                          severity="secondary"
-                          :disabled="!newTimerKey.trim()"
-                          @click="addTimerCancellation"
-                        />
-                      </div>
+                      <EppKeyTable
+                        v-model="form.timerCancellations"
+                        key-label="Timer key"
+                        item-name="timer cancellation"
+                        class="key-list-narrow"
+                      />
                     </div>
                   </AccordionContent>
                 </AccordionPanel>
@@ -2034,9 +1979,10 @@ watch(
                 >
                   <AccordionHeader>
                     <div class="panel-header">
+                      <EppActionIcon v-bind="sectionIcons.aiagent" tile />
                       <span>AI Assistant Instructions</span>
                       <span class="panel-summary">
-                        {{ form.aiInstructions ? 'Configured' : 'Empty' }}
+                        {{ form.aiInstructions ? 'Configured' : NOT_CONFIGURED }}
                       </span>
                     </div>
                   </AccordionHeader>
@@ -2084,6 +2030,8 @@ watch(
   </div>
 </template>
 
+<style scoped src="./eppEditTable.css"></style>
+
 <style scoped>
 .epp-rule-detail {
   display: flex;
@@ -2119,6 +2067,10 @@ watch(
   margin: 0;
 }
 
+.dependent > .ai-unavailable-note {
+  align-self: flex-start;
+}
+
 :deep(.p-tablist) {
   flex-shrink: 0;
   background: var(--p-tabs-nav-background, var(--p-surface-card));
@@ -2140,20 +2092,9 @@ watch(
   padding: 0;
 }
 
-.detail-cards-grid {
+.panel-tab {
   flex: 1;
-  overflow-y: auto;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-  padding: 1.5rem;
-  align-content: start;
-  background: var(--p-surface-ground);
-}
-
-.action-tab-content {
-  flex: 1;
-  overflow-y: auto;
+  overflow: auto;
   background: var(--p-surface-ground);
   padding: 1.5rem;
   display: flex;
@@ -2161,11 +2102,12 @@ watch(
   gap: 1rem;
 }
 
-.card-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.5rem 0;
+/* The form width of object Properties. Below the minimum the tab scrolls sideways rather than
+   squeezing a field to nothing beside a fixed-width one. */
+.panel-tab > * {
+  width: 100%;
+  min-width: 36rem;
+  max-width: 1000px;
 }
 
 .option-note {
@@ -2197,13 +2139,6 @@ watch(
   font-style: italic;
 }
 
-.field-row {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-}
-
 .field-col {
   display: flex;
   flex-direction: column;
@@ -2226,65 +2161,6 @@ watch(
   user-select: none;
 }
 
-.toggle-label-small {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  cursor: pointer;
-  user-select: none;
-  font-size: 0.85rem;
-  color: var(--p-text-muted-color);
-}
-
-.chip-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  min-height: 28px;
-  align-items: flex-start;
-  padding: 4px 0;
-}
-
-.item-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.chip-remove {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0 2px;
-  color: inherit;
-  opacity: 0.7;
-  font-size: 0.7rem;
-  line-height: 1;
-
-  &:hover {
-    opacity: 1;
-  }
-}
-
-.empty-chip-hint {
-  font-size: 0.85rem;
-  color: var(--p-text-muted-color);
-  font-style: italic;
-  align-self: center;
-}
-
-.add-row {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
-.coming-soon-note {
-  font-size: 0.8rem;
-  color: var(--p-text-muted-color);
-  font-style: italic;
-}
-
 .severity-checkboxes {
   display: flex;
   gap: 1rem;
@@ -2297,26 +2173,6 @@ watch(
   gap: 0.4rem;
   cursor: pointer;
   user-select: none;
-}
-
-.source-sub {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.source-sub-label {
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--p-text-muted-color);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.script-textarea {
-  width: 100%;
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
 }
 
 .action-accordion {
@@ -2359,6 +2215,103 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  container-type: inline-size;
+}
+
+/* Options that apply only while the checkbox above is ticked, lined up with its label. */
+.dependent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-left: 0.5rem;
+  padding-left: calc(1.25rem - 2px);
+  border-left: 2px solid var(--p-content-border-color);
+}
+
+.field-pair {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.field-grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.field-select {
+  flex: none;
+  width: 240px;
+}
+
+.field-number {
+  flex: none;
+  width: 9rem;
+}
+
+.input-with-check {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.input-with-check__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.input-with-check .toggle-label {
+  flex: none;
+  white-space: nowrap;
+}
+
+.set-delete {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.pick-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+@container (max-width: 40rem) {
+  .set-delete,
+  .pick-pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.item-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.item-cell__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.time-frame-actions-col {
+  width: 5rem;
+}
+
+.row-buttons {
+  display: flex;
+  justify-content: center;
+}
+
+/* One column of short keys: as wide as a Delete table beside a Set one. */
+.key-list-narrow {
+  max-width: max(16rem, calc((100% - 1rem) / 3));
 }
 
 .flag-checks {
@@ -2373,23 +2326,10 @@ watch(
   gap: 0.75rem;
 }
 
-.server-actions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.server-action-item {
-  border: 1px solid var(--p-surface-border);
-  border-radius: var(--p-border-radius);
-  overflow: hidden;
-}
-
 .server-action-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
 }
 
 .action-name {
@@ -2403,149 +2343,21 @@ watch(
   font-style: italic;
 }
 
-.server-action-details {
+.edit-table .row-details {
   padding: 0.5rem 0.75rem 0.75rem;
-  border-top: 1px solid var(--p-surface-border);
   background: var(--p-surface-ground);
 }
 
-.kv-subsection {
+.tf-editor {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-
-.kv-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.kv-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 6px;
-  background: var(--p-surface-ground);
-  border-radius: var(--p-border-radius);
-  font-size: 0.875rem;
-}
-
-.kv-key {
-  font-family: var(--font-mono);
-  font-weight: 500;
-  min-width: 100px;
-}
-
-.kv-arrow {
-  font-size: 0.7rem;
-  color: var(--p-text-muted-color);
-  flex-shrink: 0;
-}
-
-.kv-value {
-  flex: 1;
-  font-family: var(--font-mono);
-  color: var(--p-text-muted-color);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.kv-add-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.kv-equals {
-  font-weight: 600;
-  color: var(--p-text-muted-color);
-  flex-shrink: 0;
-}
-
-.mb-1 {
-  margin-bottom: 4px;
-}
-
-.tf-empty-state {
-  font-size: 0.875rem;
-  color: var(--p-text-muted-color);
-  font-style: italic;
-}
-
-.tf-card {
-  border: 1px solid var(--p-surface-border);
-  border-radius: 6px;
-  padding: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  background: var(--p-surface-ground);
-}
-
-.tf-card--collapsed {
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.tf-label {
-  font-size: 0.875rem;
-  color: var(--p-text-color);
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tf-card-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  flex-shrink: 0;
-}
-
-.tf-icon-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.25rem;
-  color: var(--p-text-muted-color);
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  font-size: 0.75rem;
-}
-
-.tf-icon-btn:hover {
-  color: var(--p-primary-color);
-  background: var(--p-surface-hover);
-}
-
-.tf-icon-btn--danger:hover {
-  color: var(--p-red-500);
-  background: var(--p-surface-hover);
-}
-
-.tf-card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.tf-card-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--p-text-muted-color);
+  gap: 1rem;
+  padding: 0.5rem 0.25rem 0.25rem;
 }
 
 .tf-done-row {
   display: flex;
   justify-content: flex-end;
-  padding-top: 0.25rem;
 }
 
 .tf-row {

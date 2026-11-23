@@ -5,6 +5,14 @@ import PrimeVue from 'primevue/config'
 import Tooltip from 'primevue/tooltip'
 import EppRuleDetailView from '@/components/epp/EppRuleDetailView.vue'
 import { SERVER_COMPONENTS } from '@/config/serverComponents'
+import {
+  RF_ALL_SEVERITIES,
+  RF_NEGATED_EVENTS,
+  RF_NEGATED_SOURCE,
+  RF_NEGATED_TIME_FRAMES,
+  RF_SEVERITY_CRITICAL,
+  RF_SEVERITY_MAJOR,
+} from '@/utils/eppRules'
 
 // jsdom has neither; PrimeVue components bind both on mount.
 window.matchMedia =
@@ -38,7 +46,8 @@ vi.mock('@/queries/useServerActionQueries', () => ({ useServerActions: () => ({ 
 vi.mock('@/queries/useAlarmCategoryQueries', () => ({
   useAlarmCategories: () => ({ data: ref([]) }),
 }))
-vi.mock('@/queries/useScriptQueries', () => ({ useScriptLibrary: () => ({ data: ref([]) }) }))
+const scriptLibrary = ref([])
+vi.mock('@/queries/useScriptQueries', () => ({ useScriptLibrary: () => ({ data: scriptLibrary }) }))
 vi.mock('@/queries/useObjectQueries', () => ({
   useObjectsByIds: () => ({ objectsById: ref(new Map()) }),
 }))
@@ -47,6 +56,8 @@ const RF_GENERATE_ALARM = 0x000008
 const RF_ADD_AI_COMMENT = 0x040000
 const RF_CREATE_INCIDENT = 0x080000
 const RF_AI_ANALYZE_INCIDENT = 0x100000
+const RF_START_DOWNTIME = 0x010000
+const SEVERITY_TERMINATE = 6
 
 const AI_COMMENT_LABEL = "Add AI assistant's comment on alarm creation"
 const AI_INCIDENT_LABEL = 'Perform AI-based incident analysis'
@@ -96,6 +107,17 @@ function mountEditor(rule, components, extraProps = {}) {
 }
 
 const noteCount = (wrapper) => wrapper.text().split(UNAVAILABLE_NOTE).length - 1
+
+const section = (wrapper, name) => wrapper.find(`[data-rule-section="${name}"]`)
+const header = (wrapper, name) => section(wrapper, name).find('.panel-header')
+const isOpen = (wrapper, name) =>
+  section(wrapper, name).find('.p-accordionheader').attributes('aria-expanded') === 'true'
+
+async function saveAndGet(wrapper) {
+  const save = wrapper.findAll('button').find((b) => b.text() === 'Save')
+  await save.trigger('click')
+  return wrapper.emitted('saved')[0][0]
+}
 
 describe('EppRuleDetailView AI settings', () => {
   beforeEach(() => {
@@ -171,12 +193,6 @@ describe('EppRuleDetailView AI assistant instructions', () => {
   const textarea = (wrapper) =>
     wrapper.find('textarea[placeholder="Instructions for the AI assistant..."]')
 
-  async function saveAndGet(wrapper) {
-    const save = wrapper.findAll('button').find((b) => b.text() === 'Save')
-    await save.trigger('click')
-    return wrapper.emitted('saved')[0][0]
-  }
-
   it('saves an edit under the name the server reads first, and the old one', async () => {
     const wrapper = mountEditor(makeRule({ aiInstructions: 'Summarize the outage' }), AI)
     expect(textarea(wrapper).element.value).toBe('Summarize the outage')
@@ -215,9 +231,179 @@ describe('EppRuleDetailView section', () => {
     expect(scrollIntoView.mock.contexts[0]).toBe(panel.element)
   })
 
-  it('opens condition sections on the Condition tab', async () => {
+  it('opens condition sections on the Condition tab, expanded', async () => {
     const wrapper = mountEditor(makeRule(), ['CORE'], { section: 'sources' })
     await nextTick()
     expect(selectedTab(wrapper)).toBe('Condition')
+    expect(isOpen(wrapper, 'sources')).toBe(true)
+  })
+})
+
+describe('EppRuleDetailView Action tab', () => {
+  const button = (wrapper, name, label) =>
+    section(wrapper, name)
+      .findAll('button')
+      .find((b) => b.text() === label)
+
+  it('switches the alarm action with the segmented buttons', async () => {
+    const wrapper = mountEditor(makeRule(), ['CORE'])
+    await button(wrapper, 'alarm', 'Terminate').trigger('click')
+    expect(section(wrapper, 'alarm').text()).toContain('Terminate all alarms with key')
+    expect(header(wrapper, 'alarm').text()).toContain('Terminate alarms')
+
+    const saved = await saveAndGet(wrapper)
+    expect(saved.alarmSeverity).toBe(SEVERITY_TERMINATE)
+    expect(saved.flags & RF_GENERATE_ALARM).toBeTruthy()
+  })
+
+  it('switches downtime control with the segmented buttons', async () => {
+    const wrapper = mountEditor(makeRule(), ['CORE'])
+    await button(wrapper, 'downtime', 'Start').trigger('click')
+    const saved = await saveAndGet(wrapper)
+    expect(saved.flags & RF_START_DOWNTIME).toBeTruthy()
+  })
+
+  it('saves a persistent storage entry added in its table', async () => {
+    const wrapper = mountEditor(makeRule(), ['CORE'])
+    const [key, value] = section(wrapper, 'pstorage').findAll('tfoot input')
+    await key.setValue('site')
+    await value.setValue('riga')
+    await value.trigger('keyup', { key: 'Enter' })
+    expect(header(wrapper, 'pstorage').text()).toContain('1 set, 0 delete')
+
+    const saved = await saveAndGet(wrapper)
+    expect(saved.pstorageSetActions).toEqual({ site: 'riga' })
+  })
+
+  it('greys the icon of a section that does nothing and says so', () => {
+    const wrapper = mountEditor(makeRule(), ['CORE'])
+    expect(header(wrapper, 'timers').text()).toContain('Not configured')
+    expect(header(wrapper, 'timers').find('.epp-action-icon--muted').exists()).toBe(true)
+    expect(header(wrapper, 'alarm').find('.epp-action-icon--muted').exists()).toBe(false)
+  })
+
+  describe('root cause analysis script', () => {
+    const shown = (wrapper) =>
+      section(wrapper, 'alarm')
+        .findAll('.p-select-label')
+        .map((label) => label.text())
+
+    beforeEach(() => {
+      scriptLibrary.value = [
+        { id: 5, name: 'BackupVerify' },
+        { id: 6, name: 'HealthCheck' },
+      ]
+    })
+
+    it('shows the script the rule names', () => {
+      const wrapper = mountEditor(makeRule({ rootCauseAnalysisScript: 'HealthCheck' }), ['CORE'])
+      expect(shown(wrapper)).toContain('HealthCheck')
+    })
+
+    it('still shows a script since deleted from the library', () => {
+      const wrapper = mountEditor(makeRule({ rootCauseAnalysisScript: 'Gone' }), ['CORE'])
+      expect(shown(wrapper)).toContain('Gone')
+    })
+
+    it('shows "(none)" for a rule without one, sent as null or empty', () => {
+      for (const value of [null, '']) {
+        const wrapper = mountEditor(makeRule({ rootCauseAnalysisScript: value }), ['CORE'])
+        expect(shown(wrapper)).toContain('(none)')
+      }
+    })
+  })
+
+  it('counts keys and actions in words', () => {
+    const wrapper = mountEditor(
+      makeRule({ timerCancellations: ['t1', 't2'], actions: [{ id: 7, active: true }] }),
+      ['CORE'],
+    )
+    expect(header(wrapper, 'timers').text()).toContain('2 keys')
+    expect(header(wrapper, 'serveractions').text()).toContain('1 action')
+    expect(header(wrapper, 'serveractions').text()).not.toContain('1 actions')
+  })
+})
+
+describe('EppRuleDetailView Condition tab', () => {
+  const FRAME_8_TO_17 = { time: 8001700, date: 0 }
+
+  it('opens only the sections that narrow the match', () => {
+    const wrapper = mountEditor(makeRule({ events: [28] }), ['CORE'])
+    expect(isOpen(wrapper, 'events')).toBe(true)
+    expect(isOpen(wrapper, 'sources')).toBe(false)
+    expect(isOpen(wrapper, 'time')).toBe(false)
+  })
+
+  it('says what an untouched section matches, with a grey icon', () => {
+    const wrapper = mountEditor(makeRule({ flags: RF_GENERATE_ALARM | RF_ALL_SEVERITIES }), [
+      'CORE',
+    ])
+    const expected = {
+      events: 'Any event',
+      sources: 'Any object',
+      severity: 'Any severity',
+      time: 'Any time',
+      'filter-script': 'Not configured',
+    }
+    for (const [name, text] of Object.entries(expected)) {
+      expect(header(wrapper, name).text()).toContain(text)
+      expect(header(wrapper, name).find('.epp-action-icon--muted').exists()).toBe(true)
+    }
+  })
+
+  it('words each list the way the rule summary does', () => {
+    const rule = makeRule({
+      flags:
+        RF_GENERATE_ALARM |
+        RF_NEGATED_SOURCE |
+        RF_NEGATED_TIME_FRAMES |
+        RF_SEVERITY_MAJOR |
+        RF_SEVERITY_CRITICAL,
+      events: [28],
+      sources: [1, 2, 3],
+      sourceExclusions: [4],
+      timeFrames: [FRAME_8_TO_17],
+    })
+    const wrapper = mountEditor(rule, ['CORE'])
+    expect(header(wrapper, 'events').text()).toContain('#28')
+    expect(header(wrapper, 'sources').text()).toContain('Not one of 3 objects, except 1 object')
+    expect(header(wrapper, 'severity').text()).toContain('Major, Critical')
+    expect(header(wrapper, 'time').text()).toContain('Outside 1 time frame')
+    expect(header(wrapper, 'time').find('.epp-action-icon--muted').exists()).toBe(false)
+  })
+
+  it('keeps the inverse option of an empty list that has it, and says nothing matches', () => {
+    const wrapper = mountEditor(makeRule({ flags: RF_GENERATE_ALARM | RF_NEGATED_EVENTS }), [
+      'CORE',
+    ])
+    expect(header(wrapper, 'events').text()).toContain('Nothing matches')
+    expect(section(wrapper, 'events').text()).toContain(
+      'Inverse rule (match events not listed below)',
+    )
+  })
+
+  it('offers no inverse option for an empty list', () => {
+    const wrapper = mountEditor(makeRule(), ['CORE'])
+    expect(section(wrapper, 'events').text()).not.toContain('Inverse rule')
+    expect(section(wrapper, 'events').text()).toContain('Any event')
+  })
+
+  it('draws each event in its table with a severity icon', () => {
+    const wrapper = mountEditor(makeRule({ events: [28, 29] }), ['CORE'])
+    expect(section(wrapper, 'events').findAll('tbody .status-icon')).toHaveLength(2)
+  })
+
+  it('removes an event from its table', async () => {
+    const wrapper = mountEditor(makeRule({ events: [28, 29] }), ['CORE'])
+    await section(wrapper, 'events').find('button[aria-label="Remove event #29"]').trigger('click')
+    const saved = await saveAndGet(wrapper)
+    expect(saved.events).toEqual([28])
+  })
+
+  it('opens a time frame for editing in the row below it', async () => {
+    const wrapper = mountEditor(makeRule({ timeFrames: [FRAME_8_TO_17] }), ['CORE'])
+    expect(section(wrapper, 'time').text()).not.toContain('Days of week')
+    await section(wrapper, 'time').find('button[aria-label="Edit time frame"]').trigger('click')
+    expect(section(wrapper, 'time').text()).toContain('Days of week')
   })
 })

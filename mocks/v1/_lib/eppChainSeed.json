@@ -294,7 +294,7 @@
         "pstorageDeleteActions": [],
         "customAttributeSetActions": {},
         "customAttributeDeleteActions": [],
-        "rootCauseAnalysisScript": 5,
+        "rootCauseAnalysisScript": "BackupVerify",
         "aiInstructions": "Check the backup job log on %n and summarise why it failed.",
         "createIncident": true,
         "incidentCreationDelay": 0,

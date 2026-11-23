@@ -98,8 +98,12 @@ const {
   onChange: (next) => emit('selection-change', next),
 })
 
-function onExpanderClick(event, rule) {
-  event.stopPropagation()
+// Ctrl/cmd- or shift-click selects instead of expanding, as in AppTable.
+function onRowClick(event, rule) {
+  if (event.ctrlKey || event.metaKey || event.shiftKey) {
+    onCheckboxClick(event, rule)
+    return
+  }
   const newSet = new Set(props.expandedIds)
   if (newSet.has(rule.guid)) {
     newSet.delete(rule.guid)
@@ -211,10 +215,7 @@ function onRowContextMenu(event, rule) {
                 </td>
 
                 <td class="epp-table__td-icon">
-                  <button
-                    class="epp-table__expander-btn"
-                    @click.stop="onExpanderClick($event, rule)"
-                  >
+                  <button class="epp-table__expander-btn" @click.stop="onRowClick($event, rule)">
                     <i
                       :class="
                         expandedIds.has(rule.guid) ? 'pi pi-chevron-down' : 'pi pi-chevron-right'
@@ -228,7 +229,7 @@ function onRowContextMenu(event, rule) {
                 </td>
 
                 <!-- Primary expand/collapse click target -->
-                <td class="epp-table__td-desc" @click.stop="onExpanderClick($event, rule)">
+                <td class="epp-table__td-desc" @click.stop="onRowClick($event, rule)">
                   <div class="rule-description-cell">
                     <span
                       class="rule-comments"
@@ -247,7 +248,7 @@ function onRowContextMenu(event, rule) {
                 <td
                   class="epp-table__td-actions"
                   :class="{ 'epp-table__td-actions--disabled': !isEnabled(rule) }"
-                  @click.stop="onExpanderClick($event, rule)"
+                  @click.stop="onRowClick($event, rule)"
                 >
                   <slot name="actions" :rule="rule" />
                 </td>

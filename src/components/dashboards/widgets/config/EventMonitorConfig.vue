@@ -3,6 +3,8 @@ import { computed } from 'vue'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
 import MultiSelect from 'primevue/multiselect'
+import Chip from 'primevue/chip'
+import EventLabel from '@/components/epp/EventLabel.vue'
 import ObjectSelectorField from './shared/ObjectSelectorField.vue'
 import { useWidgetEditor } from './editorContext'
 import { useEventTemplates } from '@/queries/useEventTemplateQueries'
@@ -15,8 +17,14 @@ const eventOptions = computed(() =>
   (eventTemplates.value ?? []).map((template) => ({
     value: template.code,
     label: template.name,
+    severity: template.severity,
   })),
 )
+const eventsByCode = computed(() => new Map(eventOptions.value.map((o) => [o.value, o])))
+
+function eventName(code) {
+  return eventsByCode.value.get(code)?.label ?? `#${code}`
+}
 </script>
 
 <template>
@@ -43,7 +51,22 @@ const eventOptions = computed(() =>
       display="chip"
       filter
       class="wpd-input"
-    />
+    >
+      <template #option="{ option }">
+        <EventLabel :name="option.label" :severity="option.severity" />
+      </template>
+      <!-- MultiSelect's own chip, with the event's icon in front of the name. -->
+      <template #chip="{ value, removeCallback }">
+        <Chip
+          :label="eventName(value)"
+          removable
+          class="p-multiselect-chip"
+          @remove="removeCallback"
+        >
+          <EventLabel :name="eventName(value)" :severity="eventsByCode.get(value)?.severity" />
+        </Chip>
+      </template>
+    </MultiSelect>
     <small class="wpd-hint">Leave empty to show every event.</small>
   </div>
 

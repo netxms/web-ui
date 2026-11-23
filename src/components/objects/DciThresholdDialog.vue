@@ -7,8 +7,7 @@ import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Checkbox from 'primevue/checkbox'
 import NxslScriptEditor from '@/components/common/NxslScriptEditor.vue'
-import EventPickerDialog from '@/components/epp/EventPickerDialog.vue'
-import { useEventTemplates } from '@/queries/useEventTemplateQueries'
+import EventSelectField from '@/components/epp/EventSelectField.vue'
 import FormField from '@/components/common/FormField.vue'
 
 const props = defineProps({
@@ -72,35 +71,6 @@ watch(
 const showConditionValue = computed(
   () => !['script', 'error', 'anomaly'].includes(form.value.function),
 )
-
-// DciThreshold activation/deactivation events are event names, while EventPickerDialog works
-// with codes, so translate both ways through the event template list.
-const { data: eventTemplatesData } = useEventTemplates()
-const eventNameByCode = computed(() => {
-  const map = new Map()
-  for (const t of eventTemplatesData.value ?? []) map.set(t.code, t.name)
-  return map
-})
-const eventCodeByName = computed(() => {
-  const map = new Map()
-  for (const t of eventTemplatesData.value ?? []) map.set(t.name, t.code)
-  return map
-})
-
-function codeFieldFor(fieldName) {
-  return computed({
-    get: () => eventCodeByName.value.get(form.value[fieldName]) ?? 0,
-    set: (code) => {
-      form.value[fieldName] = code ? (eventNameByCode.value.get(code) ?? '') : ''
-    },
-  })
-}
-
-const activationEventCode = codeFieldFor('activationEvent')
-const deactivationEventCode = codeFieldFor('deactivationEvent')
-
-const showActivationEventPicker = ref(false)
-const showDeactivationEventPicker = ref(false)
 
 function save() {
   const result = { ...form.value }
@@ -207,36 +177,10 @@ function cancel() {
 
       <div class="form-row-inline">
         <FormField label="Activation Event" group>
-          <div class="event-picker-field">
-            <span v-if="form.activationEvent" class="event-picker-value">{{
-              form.activationEvent
-            }}</span>
-            <span v-else class="event-picker-empty">(none)</span>
-            <Button
-              label="Select..."
-              icon="pi pi-list"
-              size="small"
-              severity="secondary"
-              outlined
-              @click="showActivationEventPicker = true"
-            />
-          </div>
+          <EventSelectField v-model="form.activationEvent" by="name" />
         </FormField>
         <FormField label="Deactivation Event" group>
-          <div class="event-picker-field">
-            <span v-if="form.deactivationEvent" class="event-picker-value">{{
-              form.deactivationEvent
-            }}</span>
-            <span v-else class="event-picker-empty">(none)</span>
-            <Button
-              label="Select..."
-              icon="pi pi-list"
-              size="small"
-              severity="secondary"
-              outlined
-              @click="showDeactivationEventPicker = true"
-            />
-          </div>
+          <EventSelectField v-model="form.deactivationEvent" by="name" />
         </FormField>
       </div>
 
@@ -253,12 +197,6 @@ function cancel() {
         </div>
       </FormField>
     </div>
-
-    <EventPickerDialog v-model:visible="showActivationEventPicker" v-model="activationEventCode" />
-    <EventPickerDialog
-      v-model:visible="showDeactivationEventPicker"
-      v-model="deactivationEventCode"
-    />
 
     <template #footer>
       <Button label="Cancel" severity="secondary" text @click="cancel" />
@@ -314,22 +252,5 @@ function cancel() {
 .field-hint {
   font-size: 0.8125rem;
   color: var(--p-text-muted-color);
-}
-
-.event-picker-field {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.event-picker-value {
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-}
-
-.event-picker-empty {
-  font-size: 0.8125rem;
-  color: var(--p-text-muted-color);
-  font-style: italic;
 }
 </style>
