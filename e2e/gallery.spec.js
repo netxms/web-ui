@@ -24,6 +24,15 @@ function registryIds(file) {
 const objectView = (target, view) => (targets) =>
   targets[target] ? `/infrastructure/${targets[target]}/${view}` : null
 
+/** Views shown only for a node with an agent; the most-interfaces node can be a switch. */
+const AGENT_VIEWS = [
+  'softwareInventory',
+  'hardwareInventory',
+  'processes',
+  'services',
+  'userSessions',
+]
+
 const SCREENS = [
   ['home', () => '/home'],
   ['preferences', () => '/preferences'],
@@ -54,10 +63,19 @@ const SCREENS = [
   ['access-point-radios', objectView('accessPoint', 'radios')],
   ['access-point-stations', objectView('accessPoint', 'wirelessStations')],
   ['dhcp-server', objectView('dhcpServer', 'dhcp')],
+  ...AGENT_VIEWS.map((view) => [`agent-node-${view}`, objectView('agentNode', view)]),
   ...registryIds('src/config/objectViews.js')
     .filter(
       (view) =>
-        !['statusMap', 'rack', 'chassis', 'radios', 'wirelessStations', 'dhcp'].includes(view),
+        ![
+          'statusMap',
+          'rack',
+          'chassis',
+          'radios',
+          'wirelessStations',
+          'dhcp',
+          ...AGENT_VIEWS,
+        ].includes(view),
     )
     .map((view) => [`node-${view}`, objectView('node', view)]),
   ...registryIds('src/views/configuration/configSections.js').map((section) => [

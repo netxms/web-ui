@@ -76,6 +76,7 @@
   "ipAddress": "192.168.200.1",
   "primaryName": "fw-dmz-01.dc-alpha.example.com",
   "capabilityFlags": 2,
+  "capabilities": { "isSnmp": true, "hasEntityMib": true },
   "stateFlags": 0,
   "type": "network-device",
   "zoneUIN": 100,

@@ -153,6 +153,49 @@ export function getAgentLog(objectId, { sizeLimit = 0 } = {}) {
 }
 
 /**
+ * Current value of a table metric read from its source, without a DCI (agent tables such as
+ * `System.Processes`). The server answers 502/503 for a data source it cannot read or reach,
+ * hence `suppressUnavailable`.
+ *
+ * @param {number} objectId
+ * @param {string} origin - data origin name, e.g. `agent`
+ * @param {string} name - table name
+ * @returns {Promise<{ table: object|null }>} a TableData document
+ */
+export function queryTable(objectId, origin, name) {
+  const qs = new URLSearchParams({ origin, name })
+  return get(`/v1/objects/${objectId}/data-collection/query-table?${qs}`, {
+    suppressUnavailable: true,
+  })
+}
+
+/**
+ * Current value of a single metric read from its source, without a DCI.
+ *
+ * @param {number} objectId
+ * @param {string} origin - data origin name, e.g. `agent`
+ * @param {string} name - metric name
+ * @returns {Promise<{ value: string }>}
+ */
+export function queryMetric(objectId, origin, name) {
+  const qs = new URLSearchParams({ origin, name })
+  return get(`/v1/objects/${objectId}/data-collection/query-metric?${qs}`, {
+    suppressUnavailable: true,
+  })
+}
+
+/**
+ * Runs an agent action (`Process.Terminate 1234`). Needs OBJECT_ACCESS_CONTROL. An agent error
+ * is a 500 whose body carries `agentErrorText`.
+ *
+ * @param {number} objectId - node id.
+ * @param {string} command - built with `agentCommandLine` (`@/utils/agentCommand`)
+ */
+export function executeAgentCommand(objectId, command) {
+  return post(`/v1/objects/${objectId}/execute-agent-command`, { command })
+}
+
+/**
  * Expand text macros server-side: several resolve against state a client cannot see, so this
  * is the only correct expansion.
  *

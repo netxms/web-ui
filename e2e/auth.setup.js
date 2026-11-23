@@ -10,6 +10,7 @@ const MOCK_TARGETS = {
   dashboard: 700,
   dciNode: 502,
   dhcpServer: 395,
+  agentNode: 516,
 }
 
 /**
@@ -68,6 +69,7 @@ async function findTargets(page) {
       dashboard: await first(7, 'Dashboard'),
       businessService: await first(9, 'BusinessService'),
       dhcpServer: (await queryObjects('type == NODE and $node.isDHCPServer'))[0]?.object?.id,
+      agentNode: (await queryObjects('type == NODE and $node.isNativeAgent'))[0]?.object?.id,
     }
   })
 }

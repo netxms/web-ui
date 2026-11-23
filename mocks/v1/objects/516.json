@@ -76,6 +76,7 @@
   "ipAddress": "10.10.1.31",
   "primaryName": "blade-01.dc-alpha.example.com",
   "capabilityFlags": 7,
+  "capabilities": { "isNativeAgent": true, "hasServiceManager": true, "hasEntityMib": true },
   "stateFlags": 0,
   "type": "server",
   "zoneUIN": 0,

@@ -79,6 +79,7 @@
   "ipAddress": "10.10.1.11",
   "primaryName": "web-01.dc-alpha.example.com",
   "capabilityFlags": 5,
+  "capabilities": { "isNativeAgent": true },
   "stateFlags": 0,
   "type": "server",
   "zoneUIN": 0,

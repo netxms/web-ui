@@ -187,6 +187,54 @@ export const OBJECT_VIEW_GROUPS = {
       },
     ],
   },
+  // Mirror the legacy views' isValidForContext; containers' aggregated software inventory is
+  // not ported.
+  system: {
+    label: 'System',
+    views: [
+      {
+        id: 'softwareInventory',
+        label: 'Software Inventory',
+        icon: 'pi pi-box',
+        objectClasses: ['Node'],
+        objectFilter: (obj) => !!obj?.capabilities?.isNativeAgent,
+      },
+      {
+        id: 'hardwareInventory',
+        label: 'Hardware Inventory',
+        icon: 'pi pi-microchip',
+        objectClasses: ['Node'],
+        objectFilter: (obj) =>
+          !!(
+            obj?.capabilities?.isNativeAgent ||
+            obj?.capabilities?.hasEntityMib ||
+            obj?.capabilities?.emulatedEntityMib
+          ),
+      },
+      {
+        id: 'processes',
+        label: 'Processes',
+        icon: 'pi pi-list',
+        objectClasses: ['Node'],
+        objectFilter: (obj) => !!obj?.capabilities?.isNativeAgent,
+      },
+      {
+        id: 'services',
+        label: 'Services',
+        icon: 'pi pi-cog',
+        objectClasses: ['Node'],
+        objectFilter: (obj) =>
+          !!(obj?.capabilities?.isNativeAgent && obj?.capabilities?.hasServiceManager),
+      },
+      {
+        id: 'userSessions',
+        label: 'User Sessions',
+        icon: 'pi pi-users',
+        objectClasses: ['Node'],
+        objectFilter: (obj) => !!obj?.capabilities?.isNativeAgent,
+      },
+    ],
+  },
   configuration: {
     label: 'Configuration',
     views: [
