@@ -31,8 +31,8 @@ export const SEARCH_MODE_OPTIONS = [
 ]
 
 /**
- * NXSL constants the server registers for object queries. Classes without one cannot be queried
- * (notably Circuit, which the legacy filter lists).
+ * NXSL constants the server registers for object queries. Classes without one cannot be queried.
+ * Older servers lack CIRCUIT; NXSL reads an unknown name as null, so that clause matches nothing.
  */
 export const CLASS_CONSTANTS = {
   AccessPoint: 'ACCESSPOINT',
@@ -43,6 +43,7 @@ export const CLASS_CONSTANTS = {
   BusinessServiceProto: 'BUSINESSSERVICEPROTOTYPE',
   BusinessServiceRoot: 'BUSINESSSERVICEROOT',
   Chassis: 'CHASSIS',
+  Circuit: 'CIRCUIT',
   CloudDomain: 'CLOUDDOMAIN',
   Cluster: 'CLUSTER',
   Collector: 'COLLECTOR',

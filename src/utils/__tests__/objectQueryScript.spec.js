@@ -118,12 +118,13 @@ describe('compileObjectFilter — class filter', () => {
   })
 
   it('drops class names that have no NXSL constant', () => {
-    expect(compileObjectFilter({ classes: ['Circuit'] }).script).toBe('true')
+    expect(compileObjectFilter({ classes: ['NoSuchClass'] }).script).toBe('true')
   })
 
   it('offers only classes the server can actually match', () => {
-    expect(CLASS_CONSTANTS.Circuit).toBeUndefined()
+    expect(CLASS_CONSTANTS.Circuit).toBe('CIRCUIT')
     expect(CLASS_CONSTANTS.Node).toBe('NODE')
+    expect(CLASS_CONSTANTS.Unknown).toBeUndefined()
   })
 })
 
