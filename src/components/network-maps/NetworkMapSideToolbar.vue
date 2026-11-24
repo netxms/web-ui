@@ -123,6 +123,7 @@ const emit = defineEmits([
       rounded
       :class="{ 'tool-active': showGrid }"
       :aria-pressed="showGrid"
+      aria-label="Show grid"
       v-tooltip.left="showGrid ? 'Hide grid' : 'Show grid'"
       @click="emit('update:showGrid', !showGrid)"
     >

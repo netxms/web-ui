@@ -360,6 +360,9 @@ function handleZoomOut() {
 // Layout edit mode persists via PUT /v1/objects/{id}/map. Real topology maps only: demo maps
 // are view-only, geo maps position nodes by geolocation.
 const isDemoMap = computed(() => MOCK_MAP_IDS.has(Number(selectedMapId.value)))
+// The demo bar's Drag/Snap/Grid state outlives a switch to another map, and only that bar can
+// turn it off.
+const demoToolsShown = computed(() => isDemoMap.value && DEMO_CONTENT_ENABLED)
 const layoutEditable = computed(() => !isDemoMap.value && !isGeoCanvas.value)
 
 // Save serializes the working copy in one PUT.
@@ -2440,9 +2443,9 @@ function handleEdgeContextMenu(event, edgeData) {
           ref="canvasRef"
           :map-data="displayMapData"
           :emphasized-ids="emphasizedIds"
-          :draggable="demo.draggable || layoutEditMode"
-          :snap-to-grid="mapViewState.snapToGrid || demo.snapToGrid"
-          :show-grid="mapViewState.showGrid || demo.showGrid"
+          :draggable="(demoToolsShown && demo.draggable) || layoutEditMode"
+          :snap-to-grid="mapViewState.snapToGrid || (demoToolsShown && demo.snapToGrid)"
+          :show-grid="mapViewState.showGrid || (demoToolsShown && demo.showGrid)"
           :grid-size="GRID_SIZE"
           :hide-links="mapViewState.hideLinks"
           :hide-link-labels="mapViewState.hideLinkLabels"
