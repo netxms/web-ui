@@ -145,6 +145,19 @@ export function isValidMacAddress(text) {
 }
 
 /**
+ * The server changes only the user flags a PATCH names, so only the changed ones are sent.
+ *
+ * @param {Record<string, boolean>|null|undefined} draft
+ * @param {Record<string, boolean>|null|undefined} original
+ * @returns {Record<string, boolean>|null}
+ */
+function changedUserFlags(draft, original) {
+  if (!draft || !original) return null
+  const changed = Object.entries(draft).filter(([name, value]) => value !== original[name])
+  return changed.length ? Object.fromEntries(changed) : null
+}
+
+/**
  * The server refuses a MAC address on an interface not created manually.
  *
  * @param {object} draft
@@ -157,6 +170,8 @@ export function interfacePropertiesPatch(draft, original) {
   if (draft.requiredPollCount !== original?.requiredPollCount) {
     patch.requiredPollCount = draft.requiredPollCount ?? 0
   }
+  const userFlags = changedUserFlags(draft.userFlags, original?.userFlags)
+  if (userFlags) patch.userFlags = userFlags
   const mac = String(draft.macAddress ?? '').trim()
   if (isCreatedManually(original) && mac !== String(original?.macAddress ?? '').trim()) {
     patch.macAddress = mac

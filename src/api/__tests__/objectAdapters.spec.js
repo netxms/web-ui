@@ -130,7 +130,8 @@ describe('adaptObject', () => {
 })
 
 describe('adaptObject interface fields', () => {
-  it('keeps the vendors, peer update time and parent interface', () => {
+  it('keeps the vendors, peer update time, parent interface and user flags', () => {
+    const userFlags = { excludeFromTopology: true, includeInIcmpPoll: false }
     const iface = adaptObject({
       id: 7,
       class: 'Interface',
@@ -139,12 +140,14 @@ describe('adaptObject interface fields', () => {
       peerVendor: 'Cisco Systems, Inc',
       peerLastUpdated: '2026-11-20T08:15:00Z',
       parentInterfaceId: 6,
+      userFlags,
     })
     expect(iface).toMatchObject({
       vendor: 'Routerboard.com',
       peerVendor: 'Cisco Systems, Inc',
       peerLastUpdated: '2026-11-20T08:15:00Z',
       parentInterfaceId: 6,
+      userFlags,
     })
   })
 
@@ -155,6 +158,7 @@ describe('adaptObject interface fields', () => {
       peerVendor: null,
       peerLastUpdated: null,
       parentInterfaceId: 0,
+      userFlags: null,
     })
   })
 })

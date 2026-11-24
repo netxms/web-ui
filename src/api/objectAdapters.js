@@ -457,6 +457,8 @@ function adaptInterface(base, raw) {
     vendor: raw.vendor ?? null,
     ipAddressList: normalizeIpAddressList(raw),
     flags: raw.flags ?? 0,
+    // The flags PATCH can change, as named booleans; null from a server that cannot.
+    userFlags: raw.userFlags ?? null,
     isPhysicalPort: !!((raw.flags ?? 0) & 0x02),
     parentInterfaceId: raw.parentInterfaceId ?? 0,
     description: raw.description ?? '',

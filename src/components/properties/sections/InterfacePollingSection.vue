@@ -1,5 +1,4 @@
 <script setup>
-// The flags are read-only: `PATCH /v1/objects/{id}` has no field for interface flags.
 import { computed } from 'vue'
 import Checkbox from 'primevue/checkbox'
 import InputNumber from 'primevue/inputnumber'
@@ -29,16 +28,37 @@ const expectedStateOptions = computed(() =>
     : EXPECTED_STATE_OPTIONS,
 )
 
+// `name` is the key in the interface's `userFlags`.
 const FLAGS = [
-  { mask: IF_FLAGS.EXCLUDE_FROM_TOPOLOGY, label: 'Exclude this interface from network topology' },
   {
+    name: 'excludeFromTopology',
+    mask: IF_FLAGS.EXCLUDE_FROM_TOPOLOGY,
+    label: 'Exclude this interface from network topology',
+  },
+  {
+    name: 'includeInIcmpPoll',
     mask: IF_FLAGS.INCLUDE_IN_ICMP_POLL,
     label: 'Collect ICMP response statistic for this interface',
   },
-  { mask: IF_FLAGS.DISABLE_AGENT_STATUS_POLL, label: 'Disable status polling with NetXMS agent' },
-  { mask: IF_FLAGS.DISABLE_SNMP_STATUS_POLL, label: 'Disable status polling with SNMP' },
-  { mask: IF_FLAGS.DISABLE_ICMP_STATUS_POLL, label: 'Disable status polling with ICMP' },
+  {
+    name: 'disableAgentStatusPoll',
+    mask: IF_FLAGS.DISABLE_AGENT_STATUS_POLL,
+    label: 'Disable status polling with NetXMS agent',
+  },
+  {
+    name: 'disableSnmpStatusPoll',
+    mask: IF_FLAGS.DISABLE_SNMP_STATUS_POLL,
+    label: 'Disable status polling with SNMP',
+  },
+  {
+    name: 'disableIcmpStatusPoll',
+    mask: IF_FLAGS.DISABLE_ICMP_STATUS_POLL,
+    label: 'Disable status polling with ICMP',
+  },
 ]
+
+/** A server that does not send `userFlags` cannot change them through PATCH either. */
+const flagsEditable = computed(() => props.draft.userFlags != null)
 
 function hasFlag(mask) {
   return ((props.object.flags ?? 0) & mask) !== 0
@@ -78,9 +98,15 @@ function hasFlag(mask) {
 
     <fieldset class="form-fieldset">
       <legend>Options</legend>
-      <UnderConstructionOverlay message="These options cannot be changed from here yet.">
+      <div v-if="flagsEditable" class="flags-list">
+        <div v-for="flag in FLAGS" :key="flag.name" class="flag-row">
+          <Checkbox v-model="draft.userFlags[flag.name]" :input-id="`if-flag-${flag.name}`" binary />
+          <label :for="`if-flag-${flag.name}`" class="flag-label">{{ flag.label }}</label>
+        </div>
+      </div>
+      <UnderConstructionOverlay v-else message="Changing these options needs a newer server.">
         <div class="flags-list">
-          <label v-for="flag in FLAGS" :key="flag.mask" class="flag-row">
+          <label v-for="flag in FLAGS" :key="flag.name" class="flag-row">
             <Checkbox :model-value="hasFlag(flag.mask)" binary disabled />
             <span class="flag-label">{{ flag.label }}</span>
           </label>

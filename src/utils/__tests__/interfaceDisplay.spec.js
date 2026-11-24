@@ -118,6 +118,25 @@ describe('interfacePropertiesPatch', () => {
     })
   })
 
+  it('sends only the user flags that changed', () => {
+    const original = {
+      ...discovered,
+      userFlags: { excludeFromTopology: false, disableSnmpStatusPoll: true },
+    }
+    const draft = {
+      ...original,
+      userFlags: { excludeFromTopology: true, disableSnmpStatusPoll: true },
+    }
+    expect(interfacePropertiesPatch(draft, original)).toEqual({
+      userFlags: { excludeFromTopology: true },
+    })
+    expect(interfacePropertiesPatch({ ...original }, original)).toEqual({})
+  })
+
+  it('sends no user flags to a server that did not send them', () => {
+    expect(interfacePropertiesPatch({ ...discovered, userFlags: null }, discovered)).toEqual({})
+  })
+
   it('sends a MAC address only for a manually created interface', () => {
     const changed = { macAddress: 'AA:BB:CC:00:00:02' }
     expect(interfacePropertiesPatch({ ...discovered, ...changed }, discovered)).toEqual({})
