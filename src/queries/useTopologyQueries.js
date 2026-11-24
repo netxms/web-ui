@@ -4,11 +4,16 @@ import * as topologyApi from '@/api/topologyApi'
 import { MODERATE_TIER, VOLATILE_TIER } from './config'
 
 export const topologyKeys = {
-  detail: (objectId, type) => ['topology', toValue(objectId), toValue(type)],
+  detail: (objectId, type, options = {}) => [
+    'topology',
+    toValue(objectId),
+    toValue(type),
+    { useL1Topology: !!toValue(options.useL1Topology) },
+  ],
 }
 
 const API_FNS = {
-  l2: (id) => topologyApi.getL2Topology(id),
+  l2: (id, { useL1Topology }) => topologyApi.getL2Topology(id, { useL1Topology }),
   ip: (id) => topologyApi.getIpTopology(id),
   ospf: (id) => topologyApi.getOspfTopology(id),
   internal: (id) => topologyApi.getInternalTopology(id),
@@ -17,18 +22,25 @@ const API_FNS = {
 /**
  * @param {import('vue').MaybeRefOrGetter<number|null>} objectId
  * @param {import('vue').MaybeRefOrGetter<string>} topologyType - 'l2' | 'ip' | 'ospf' | 'internal'
- * @param {{ enabled?: import('vue').MaybeRefOrGetter<boolean> }} [options]
+ * @param {{
+ *   enabled?: import('vue').MaybeRefOrGetter<boolean>,
+ *   useL1Topology?: import('vue').MaybeRefOrGetter<boolean>,
+ * }} [options] - `useL1Topology` applies to 'l2' only
  */
 export function useTopology(objectId, topologyType, options = {}) {
   const baseEnabled = computed(() => !!toValue(objectId) && !!toValue(topologyType))
   return useQuery({
-    queryKey: computed(() => topologyKeys.detail(objectId, topologyType)),
+    queryKey: computed(() =>
+      topologyKeys.detail(objectId, topologyType, {
+        useL1Topology: toValue(topologyType) === 'l2' && toValue(options.useL1Topology),
+      }),
+    ),
     queryFn: () => {
       const id = toValue(objectId)
       const type = toValue(topologyType)
       const fn = API_FNS[type]
       if (!fn) throw new Error(`Unknown topology type: ${type}`)
-      return fn(id)
+      return fn(id, { useL1Topology: !!toValue(options.useL1Topology) })
     },
     enabled:
       options.enabled !== undefined

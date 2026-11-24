@@ -13,17 +13,19 @@ export const TOPOLOGY_TYPE_LABELS = {
 }
 
 export const LAYOUTS = {
+  SPRING: 'spring',
   RADIAL: 'radial',
-  GRID: 'grid',
-  TREE_V: 'tree-v',
   TREE_H: 'tree-h',
+  TREE_V: 'tree-v',
+  GRID: 'grid',
 }
 
 export const LAYOUT_LABELS = {
+  spring: 'Spring',
   radial: 'Radial',
+  'tree-h': 'Horizontal tree',
+  'tree-v': 'Vertical tree',
   grid: 'Grid',
-  'tree-v': 'Tree ↓',
-  'tree-h': 'Tree →',
 }
 
 /** PrimeIcons font codepoints. */
@@ -53,49 +55,6 @@ export function getClassIconCodepoint(objectClass) {
   return CLASS_ICON_CODEPOINTS[objectClass] ?? '\ue9dc'
 }
 
-const TOPO_LINK_COLORS = {
-  0: '#94a3b8', // normal — slate
-  1: '#8b5cf6', // VPN — purple
-  2: '#94a3b8', // multilink — same as normal, but wider
-  3: '#ef4444', // agent tunnel — red
-  4: '#22c55e', // agent proxy — green
-  5: '#06b6d4', // SSH proxy — cyan
-  6: '#eab308', // SNMP proxy — yellow
-  7: '#f97316', // ICMP proxy — orange
-  8: '#10b981', // sensor proxy — emerald
-  9: '#6366f1', // zone proxy — indigo
-  10: '#0ea5e9', // WiFi client — sky blue
-}
-
-const TOPO_LINK_DASH = {
-  1: '8 4', // VPN dashed
-  5: '4 3', // SSH proxy short dash
-}
-
-/**
- * @param {{ type: number }} link
- * @returns {string} hex color
- */
-export function getTopoLinkColor(link) {
-  return TOPO_LINK_COLORS[link.type] ?? '#94a3b8'
-}
-
-/**
- * @param {{ type: number }} link
- * @returns {string} stroke-dasharray
- */
-export function getTopoLinkDash(link) {
-  return TOPO_LINK_DASH[link.type] ?? '0'
-}
-
-/**
- * @param {{ type: number }} link
- * @returns {number}
- */
-export function getTopoLinkWidth(link) {
-  return link.type === 2 ? 4 : 2 // multilink = thicker
-}
-
 /**
  * IPv4 addresses kept as-is, FQDNs cut to the hostname, anything over 20 chars ellipsized.
  * @param {string} name
@@ -106,53 +65,6 @@ export function computeDisplayName(name) {
   const dotIndex = name.indexOf('.')
   const short = dotIndex !== -1 ? name.slice(0, dotIndex) : name
   return short.length > 20 ? short.slice(0, 20) + '...' : short
-}
-
-/**
- * @param {{ objects: object[] }} topologyMap
- * @returns {Record<string, object>}
- */
-export function topologyToNodes(topologyMap) {
-  const nodes = {}
-  for (const obj of topologyMap.objects ?? []) {
-    const displayName = computeDisplayName(obj.name)
-    nodes[String(obj.id)] = {
-      name: obj.name,
-      displayName,
-      objectId: obj.id,
-      objectClass: obj.class,
-      objectStatus: obj.status,
-    }
-  }
-  return nodes
-}
-
-/**
- * Deduplicates bidirectional links (same pair, different direction).
- * @param {{ links: object[] }} topologyMap
- * @returns {Record<string, object>}
- */
-export function topologyToEdges(topologyMap) {
-  const edges = {}
-  const seen = new Set()
-  let counter = 0
-  for (const link of topologyMap.links ?? []) {
-    const a = Math.min(link.object1, link.object2)
-    const b = Math.max(link.object1, link.object2)
-    const key = `${a}-${b}-${link.type}`
-    if (seen.has(key)) continue
-    seen.add(key)
-    const id = `e${++counter}`
-    edges[id] = {
-      source: String(link.object1),
-      target: String(link.object2),
-      type: link.type,
-      label: link.name || null,
-      port1: link.port1 || null,
-      port2: link.port2 || null,
-    }
-  }
-  return edges
 }
 
 /**

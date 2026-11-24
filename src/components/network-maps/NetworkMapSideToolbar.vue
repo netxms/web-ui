@@ -25,6 +25,8 @@ defineProps({
   hasSelection: { type: Boolean, default: false },
   /** Grid tools are hidden on the geographical canvas. */
   geoCanvas: { type: Boolean, default: false },
+  /** False where the map has no geographical canvas to switch to. */
+  geoToggle: { type: Boolean, default: true },
   layersAvailable: { type: Boolean, default: false },
   layersOpen: { type: Boolean, default: false },
 })
@@ -132,6 +134,7 @@ const emit = defineEmits([
       </template>
     </Button>
     <Button
+      v-if="geoToggle"
       severity="secondary"
       text
       rounded

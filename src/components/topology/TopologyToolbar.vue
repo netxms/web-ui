@@ -1,20 +1,27 @@
 <script setup>
 import Button from 'primevue/button'
-import { TOPOLOGY_TYPE_LABELS, LAYOUT_LABELS, LAYOUTS } from '@/utils/topologyUtils'
+import Menu from 'primevue/menu'
+import Select from 'primevue/select'
+import { ref } from 'vue'
+import MapObjectSearch from '@/components/network-maps/MapObjectSearch.vue'
+import { TOPOLOGY_TYPES, TOPOLOGY_TYPE_LABELS, LAYOUT_LABELS, LAYOUTS } from '@/utils/topologyUtils'
 
 const TOPOLOGY_TYPES_ORDER = ['l2', 'ip', 'ospf', 'internal']
 
-const LAYOUT_ICONS = {
-  [LAYOUTS.RADIAL]: 'pi pi-circle-on',
-  [LAYOUTS.GRID]: 'pi pi-th-large',
-  [LAYOUTS.TREE_V]: 'pi pi-sitemap',
-  [LAYOUTS.TREE_H]: 'pi pi-share-alt',
-}
+const LAYOUT_OPTIONS = Object.values(LAYOUTS).map((value) => ({
+  label: LAYOUT_LABELS[value],
+  value,
+}))
 
 defineProps({
   activeType: { type: String, required: true },
   activeLayout: { type: String, required: true },
   searchTerm: { type: String, default: '' },
+  /** Entries from `mapObjectEntries`: what the canvas draws. */
+  objects: { type: Array, default: () => [] },
+  physicalLinks: { type: Boolean, default: false },
+  /** Menu model for the Display button: display mode and status/label/link options. */
+  displayItems: { type: Array, default: () => [] },
   isFetching: { type: Boolean, default: false },
   disabledTypes: { type: Array, default: () => [] },
 })
@@ -23,11 +30,12 @@ const emit = defineEmits([
   'type-change',
   'layout-change',
   'update:searchTerm',
-  'fit',
-  'zoom-in',
-  'zoom-out',
+  'update:physicalLinks',
+  'focus-object',
   'refresh',
 ])
+
+const displayMenuRef = ref(null)
 </script>
 
 <template>
@@ -50,75 +58,57 @@ const emit = defineEmits([
         <i class="pi pi-spin pi-spinner" />
         Refreshing...
       </span>
-      <div class="layout-btns">
-        <Button
-          :aria-label="`${LAYOUT_LABELS[layout]} layout`"
-          v-for="(icon, layout) in LAYOUT_ICONS"
-          :key="layout"
-          :icon="icon"
-          size="small"
-          :severity="activeLayout === layout ? 'primary' : 'secondary'"
-          :text="activeLayout !== layout"
-          rounded
-          :title="LAYOUT_LABELS[layout]"
-          @click="emit('layout-change', layout)"
-        />
-      </div>
+      <Select
+        :model-value="activeLayout"
+        :options="LAYOUT_OPTIONS"
+        option-label="label"
+        option-value="value"
+        size="small"
+        class="layout-select"
+        aria-label="Layout"
+        @update:model-value="emit('layout-change', $event)"
+      />
+      <Button
+        label="Display"
+        icon="pi pi-eye"
+        size="small"
+        severity="secondary"
+        text
+        aria-haspopup="true"
+        @click="displayMenuRef?.toggle($event)"
+      />
+      <Menu ref="displayMenuRef" :model="displayItems" :popup="true" />
     </div>
 
     <div class="toolbar-section toolbar-right">
-      <div class="search-wrap">
-        <i class="pi pi-search search-icon" />
-        <input
-          class="search-input"
-          type="text"
-          data-filter-input
-          placeholder="Search nodes..."
-          :value="searchTerm"
-          @input="emit('update:searchTerm', $event.target.value)"
-        />
-        <button v-if="searchTerm" class="search-clear" @click="emit('update:searchTerm', '')">
-          <i class="pi pi-times" />
-        </button>
-      </div>
       <Button
-        aria-label="Fit to window"
-        icon="pi pi-expand"
+        v-if="activeType === TOPOLOGY_TYPES.L2"
+        label="Physical links"
+        icon="pi pi-link"
         size="small"
         severity="secondary"
         text
-        rounded
-        title="Fit to view"
-        @click="emit('fit')"
+        class="toggle-button"
+        :class="{ 'toggle-button--on': physicalLinks }"
+        :aria-pressed="physicalLinks"
+        v-tooltip.bottom="'Add the known physical (L1) links to the map'"
+        @click="emit('update:physicalLinks', !physicalLinks)"
       />
-      <Button
-        aria-label="Zoom in"
-        icon="pi pi-plus"
-        size="small"
-        severity="secondary"
-        text
-        rounded
-        title="Zoom in"
-        @click="emit('zoom-in')"
+      <MapObjectSearch
+        :search-term="searchTerm"
+        :objects="objects"
+        @update:search-term="emit('update:searchTerm', $event)"
+        @focus-object="emit('focus-object', $event)"
       />
+      <div class="toolbar-tool-divider" />
       <Button
-        aria-label="Zoom out"
-        icon="pi pi-minus"
-        size="small"
-        severity="secondary"
-        text
-        rounded
-        title="Zoom out"
-        @click="emit('zoom-out')"
-      />
-      <Button
-        aria-label="Refresh topology"
         icon="pi pi-refresh"
         size="small"
         severity="secondary"
         text
         rounded
-        title="Refresh"
+        v-tooltip.bottom="'Refresh'"
+        aria-label="Refresh topology"
         @click="emit('refresh')"
       />
     </div>
@@ -184,10 +174,8 @@ const emit = defineEmits([
   gap: 0.5rem;
 }
 
-.layout-btns {
-  display: flex;
-  align-items: center;
-  gap: 0.125rem;
+.layout-select {
+  width: 160px;
 }
 
 .refetch-indicator {
@@ -202,51 +190,25 @@ const emit = defineEmits([
   gap: 0.125rem;
 }
 
-.search-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-  margin-right: 0.25rem;
+.toolbar-tool-divider {
+  width: 1px;
+  height: 1.25rem;
+  background: var(--p-surface-border);
+  margin: 0 0.25rem;
+  flex-shrink: 0;
 }
 
-.search-icon {
-  position: absolute;
-  left: 0.5rem;
-  font-size: 0.7rem;
-  color: var(--p-text-muted-color);
-  pointer-events: none;
+.toggle-button {
+  flex-shrink: 0;
 }
 
-.search-input {
-  font-size: 0.75rem;
-  padding: 0.25rem 1.5rem 0.25rem 1.75rem;
-  border: 1px solid var(--p-surface-border);
-  border-radius: 4px;
-  background: var(--p-surface-ground);
-  color: var(--p-text-color);
-  width: 160px;
-  outline: none;
-  transition: border-color 0.15s;
+.toggle-button :deep(.p-button-label) {
+  white-space: nowrap;
 }
 
-.search-input:focus {
-  border-color: var(--p-primary-color);
-}
-
-.search-clear {
-  position: absolute;
-  right: 0.4rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--p-text-muted-color);
-  padding: 0;
-  font-size: 0.65rem;
-  display: flex;
-  align-items: center;
-}
-
-.search-clear:hover {
-  color: var(--p-text-color);
+/* As the network map toolbar's open Layers button. */
+.toggle-button--on {
+  background: var(--p-highlight-background);
+  color: var(--p-highlight-color);
 }
 </style>
