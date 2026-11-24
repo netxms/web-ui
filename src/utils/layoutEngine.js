@@ -2,14 +2,14 @@ import cytoscape from 'cytoscape'
 
 // The layout extensions load on first use to keep them out of the map route chunk.
 
-let colaRegistered = null
+let fcoseRegistered = null
 let dagreRegistered = null
 
-function ensureCola() {
-  colaRegistered ??= import('cytoscape-cola').then(({ default: cola }) => {
-    cytoscape.use(cola)
+function ensureFcose() {
+  fcoseRegistered ??= import('cytoscape-fcose').then(({ default: fcose }) => {
+    cytoscape.use(fcose)
   })
-  return colaRegistered
+  return fcoseRegistered
 }
 
 function ensureDagre() {
@@ -40,13 +40,16 @@ function runLayout(cy, options) {
  * @returns {Promise<Record<string, {x: number, y: number}>>}
  */
 async function runSpringLayout(cy) {
-  await ensureCola()
+  await ensureFcose()
+  // A random start: started from the current positions fcose leaves far more overlaps and runs
+  // slower.
   return runLayout(cy, {
-    name: 'cola',
-    randomize: false,
-    maxSimulationTime: 1500,
-    nodeSpacing: 20,
-    edgeLength: 120,
+    name: 'fcose',
+    quality: 'default',
+    randomize: true,
+    idealEdgeLength: () => 120,
+    nodeSeparation: 100,
+    nodeRepulsion: () => 20000,
   })
 }
 
