@@ -47,6 +47,7 @@ describe('toRadioRow', () => {
       name: 'wlan1',
       ssid: 'Office-2.4',
       bssid: 'E4:8D:8C:72:CF:F3',
+      vendor: null,
       band: '2.4 GHz',
       bandSort: 1,
       channel: 1,
@@ -66,6 +67,12 @@ describe('toRadioRow', () => {
     expect(row.frequencySort).toBeNull()
     expect(row.ssid).toBeNull()
     expect(row.powerDBm).toBe(0)
+  })
+
+  it('takes the NIC vendor newer servers resolve from a colon-separated BSSID', () => {
+    const row = toRadioRow({ ...radio, bssid: 'E4:8D:8C:72:CF:F3', vendor: 'Routerboard.com' }, 0)
+    expect(row.bssid).toBe('E4:8D:8C:72:CF:F3')
+    expect(row.vendor).toBe('Routerboard.com')
   })
 
   it('labels every documented band', () => {

@@ -14,8 +14,8 @@ export const RADIO_BAND_LABELS = {
 }
 
 /**
- * Radio BSSIDs arrive as 12 bare hex digits, unlike every other MAC in the WebAPI. All zeroes
- * means not reported.
+ * Older servers send radio BSSIDs as 12 bare hex digits, newer ones colon-separated like every
+ * other MAC in the WebAPI. All zeroes means not reported.
  *
  * @param {string|null|undefined} raw
  * @returns {string|null}
@@ -39,6 +39,7 @@ export function toRadioRow(entry, index) {
     name: entry.name || null,
     ssid: entry.ssid || null,
     bssid: formatBssid(entry.bssid),
+    vendor: entry.vendor ?? null,
     band: RADIO_BAND_LABELS[entry.band] ?? null,
     bandSort: RADIO_BAND_LABELS[entry.band] ? entry.band : null,
     channel: entry.channel || null,

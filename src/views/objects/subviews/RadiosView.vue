@@ -1,8 +1,7 @@
 <script setup>
 /**
- * No NIC vendor column: the radios endpoint does not resolve the BSSID's vendor. On a wireless
- * domain the server returns the radios of all its controllers and access points, hence the
- * Owner column (it replaces the legacy controller view).
+ * On a wireless domain the server returns the radios of all its controllers and access points,
+ * hence the Owner column (it replaces the legacy controller view).
  */
 import { computed, inject, watch } from 'vue'
 import AppLink from '@/components/common/AppLink.vue'
@@ -33,6 +32,7 @@ const RADIO_COLUMNS = [
   { id: 'name', field: 'name', label: 'Name', sortable: true, width: 140 },
   { id: 'ssid', field: 'ssid', label: 'SSID', sortable: true, width: 160 },
   { id: 'bssid', field: 'bssid', label: 'BSSID', sortable: true, width: 160 },
+  { id: 'vendor', field: 'vendor', label: 'NIC Vendor', sortable: true, width: 200 },
   { id: 'band', field: 'band', sortField: 'bandSort', label: 'Band', sortable: true, width: 90 },
   { id: 'channel', field: 'channel', label: 'Channel', sortable: true, width: 80 },
   {
@@ -47,7 +47,7 @@ const RADIO_COLUMNS = [
   { id: 'powerMW', field: 'powerMW', label: 'Tx Power (mW)', sortable: true, width: 120 },
 ]
 
-const RADIO_FIELDS = ['index', 'name', 'ssid', 'bssid', 'band', 'channel', 'frequency']
+const RADIO_FIELDS = ['index', 'name', 'ssid', 'bssid', 'vendor', 'band', 'channel', 'frequency']
 const POWER_FIELDS = ['powerDBm', 'powerMW']
 
 const columns = computed(() => (showOwner.value ? [OWNER_COLUMN, ...RADIO_COLUMNS] : RADIO_COLUMNS))
