@@ -13,6 +13,7 @@ const LEGACY_ORDER = [
   'Description',
   'IP Addresses',
   'MAC Address',
+  'NIC Vendor',
   'VLANs',
   'MTU',
   'Speed',
@@ -34,8 +35,10 @@ const LEGACY_ORDER = [
   'Peer Node',
   'Peer Interface',
   'Peer MAC',
+  'Peer NIC Vendor',
   'Peer IP',
   'Peer Protocol',
+  'Peer Last Updated',
 ]
 
 function chooser(page) {

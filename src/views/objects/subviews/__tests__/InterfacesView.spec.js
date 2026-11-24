@@ -6,6 +6,8 @@ import PrimeVue from 'primevue/config'
 import InterfacesView from '../InterfacesView.vue'
 import { useInterfaceTableStore } from '@/stores/interfaceTableStore'
 import { clearWorkingState } from '@/composables/useWorkingState'
+import { userPrefs } from '@/utils/appStorage'
+import { formatDateTime } from '@/utils/timeFormat'
 
 vi.mock('vue-router', () => ({
   useRoute: () => ({ query: {}, params: {} }),
@@ -33,6 +35,7 @@ const interfaces = [
     status: 0,
     flags: PHYSICAL_PORT,
     macAddress: '08:55:31:23:6F:F1',
+    vendor: 'Routerboard.com',
     ipAddressList: [],
     expectedState: 0,
     expectedStateText: 'UP',
@@ -40,6 +43,8 @@ const interfaces = [
     outboundUtilization: -1,
     peerNodeId: 300,
     peerInterfaceId: 301,
+    peerVendor: 'Cisco Systems, Inc',
+    peerLastUpdated: '2026-11-20T08:15:00Z',
   },
   {
     id: 184,
@@ -73,6 +78,25 @@ const interfaces = [
   },
 ]
 
+const subInterface = {
+  id: 186,
+  class: 'Interface',
+  name: 'ether1.10',
+  status: 0,
+  flags: 0,
+  macAddress: '08:55:31:23:6F:F1',
+  ipAddressList: [],
+  expectedState: 0,
+  expectedStateText: 'UP',
+  inboundUtilization: -1,
+  outboundUtilization: -1,
+  peerNodeId: 0,
+  peerInterfaceId: 0,
+  parentInterfaceId: 183,
+}
+
+let children = interfaces
+
 const peers = new Map([
   [300, { id: 300, class: 'Node', name: 'core-switch', ipAddress: { address: '10.0.0.1' } }],
   [301, { id: 301, class: 'Interface', name: 'Gi0/1', macAddress: 'AA:BB:CC:00:00:01' }],
@@ -81,7 +105,7 @@ const peers = new Map([
 vi.mock('@/queries/useObjectQueries', async (importOriginal) => ({
   ...(await importOriginal()),
   useObjectChildren: () => ({
-    data: ref(interfaces),
+    data: ref(children),
     isLoading: ref(false),
     isFetching: ref(false),
     isError: ref(false),
@@ -143,6 +167,7 @@ beforeEach(() => {
   setActivePinia(createPinia())
   localStorage.clear()
   clearWorkingState()
+  children = interfaces
 })
 
 describe('InterfacesView columns', () => {
@@ -156,6 +181,18 @@ describe('InterfacesView columns', () => {
     expect(first).toContain('AA:BB:CC:00:00:01')
     expect(first).toContain('10.0.0.1')
     expect(dataRows(wrapper)[1].text()).toContain('Unmanaged')
+  })
+
+  it('shows the NIC vendors and when the peer was last confirmed', async () => {
+    const wrapper = mountView()
+    useInterfaceTableStore().visibleColumnIds = ['name', 'vendor', 'peerVendor', 'peerLastUpdated']
+    await flushPromises()
+
+    const first = dataRows(wrapper)[0].text()
+    expect(first).toContain('Routerboard.com')
+    expect(first).toContain('Cisco Systems, Inc')
+    expect(first).toContain(formatDateTime('2026-11-20T08:15:00Z'))
+    expect(dataRows(wrapper)[1].text()).toBe(`ether2${'--'.repeat(3)}`)
   })
 
   it('keeps the Name column when every column is turned off', async () => {
@@ -180,6 +217,30 @@ describe('InterfacesView columns', () => {
 
     const headers = wrapper.findAll('thead th[scope="col"]').map((th) => th.text())
     expect(headers).toEqual(['Status', 'Name', 'MAC Address'])
+  })
+})
+
+describe('InterfacesView subinterfaces', () => {
+  const toggle = (wrapper) => wrapper.find('button[aria-label="Hide subinterfaces"]')
+
+  it('offers the toggle only where there are subinterfaces', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+    expect(toggle(wrapper).exists()).toBe(false)
+  })
+
+  it('hides subinterfaces, counts them as hidden, and remembers it for the account', async () => {
+    children = [...interfaces, subInterface]
+    const wrapper = mountView()
+    await flushPromises()
+    expect(dataRows(wrapper)).toHaveLength(4)
+
+    await toggle(wrapper).trigger('click')
+
+    expect(dataRows(wrapper)).toHaveLength(3)
+    expect(wrapper.find('.interfaces-count').text()).toBe('3 interfaces, 1 hidden')
+    expect(toggle(wrapper).attributes('aria-pressed')).toBe('true')
+    expect(userPrefs.get('interfaces.hideSubInterfaces')).toBe(true)
   })
 })
 

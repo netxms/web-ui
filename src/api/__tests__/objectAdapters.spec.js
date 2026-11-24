@@ -129,6 +129,36 @@ describe('adaptObject', () => {
   })
 })
 
+describe('adaptObject interface fields', () => {
+  it('keeps the vendors, peer update time and parent interface', () => {
+    const iface = adaptObject({
+      id: 7,
+      class: 'Interface',
+      name: 'ether1.10',
+      vendor: 'Routerboard.com',
+      peerVendor: 'Cisco Systems, Inc',
+      peerLastUpdated: '2026-11-20T08:15:00Z',
+      parentInterfaceId: 6,
+    })
+    expect(iface).toMatchObject({
+      vendor: 'Routerboard.com',
+      peerVendor: 'Cisco Systems, Inc',
+      peerLastUpdated: '2026-11-20T08:15:00Z',
+      parentInterfaceId: 6,
+    })
+  })
+
+  it('leaves them empty for a server that does not send them', () => {
+    const iface = adaptObject({ id: 7, class: 'Interface', name: 'ether1' })
+    expect(iface).toMatchObject({
+      vendor: null,
+      peerVendor: null,
+      peerLastUpdated: null,
+      parentInterfaceId: 0,
+    })
+  })
+})
+
 describe('adaptObject context view fields', () => {
   it('reads the dashboard object-context flags', () => {
     const dashboard = adaptObject({

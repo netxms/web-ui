@@ -21,6 +21,7 @@ import { useWorkingState } from '@/composables/useWorkingState'
 import { useObjectChildren, useObjectsByIds } from '@/queries/useObjectQueries'
 import { useObjectToolIcons, useObjectToolsForObject } from '@/queries/useObjectToolQueries'
 import { useInterfaceTableStore } from '@/stores/interfaceTableStore'
+import { userPrefs } from '@/utils/appStorage'
 import { downloadCsv, safeFilename, toCsv } from '@/utils/csvExport'
 import {
   dot1xBackendStateText,
@@ -41,6 +42,7 @@ import {
   getStatusInfo,
 } from '@/utils/objectUtils'
 import { configTarget, objectTarget } from '@/utils/routeTargets'
+import { formatDateTime } from '@/utils/timeFormat'
 import { buildToolsContent, injectToolsIntoMenu } from '@/utils/toolMenuUtils'
 
 const props = defineProps({
@@ -67,6 +69,7 @@ const ALL_COLUMNS = [
   { id: 'description', label: 'Description', field: 'description', sortable: true },
   { id: 'ipAddresses', label: 'IP Addresses', field: 'ipText', sortable: false },
   { id: 'mac', label: 'MAC Address', field: 'macText', sortable: true },
+  { id: 'vendor', label: 'NIC Vendor', field: 'vendorText', sortable: true },
   { id: 'vlans', label: 'VLANs', field: 'vlanText', sortable: false },
   { id: 'mtu', label: 'MTU', field: 'mtu', sortable: true },
   { id: 'speed', label: 'Speed', field: 'speedText', sortField: 'speed', sortable: true },
@@ -131,11 +134,19 @@ const ALL_COLUMNS = [
     sortable: true,
   },
   { id: 'peerMac', label: 'Peer MAC', field: 'peerMac', sortable: true },
+  { id: 'peerVendor', label: 'Peer NIC Vendor', field: 'peerVendorText', sortable: true },
   { id: 'peerIp', label: 'Peer IP', field: 'peerIp', sortable: true },
   {
     id: 'peerProtocol',
     label: 'Peer Protocol',
     field: 'peerDiscoveryProtocolText',
+    sortable: true,
+  },
+  {
+    id: 'peerLastUpdated',
+    label: 'Peer Last Updated',
+    field: 'peerLastUpdatedText',
+    sortField: 'peerLastUpdated',
     sortable: true,
   },
 ]
@@ -183,6 +194,7 @@ const rows = computed(() =>
       ...iface,
       ipText: iface.ipAddressList?.join(', ') ?? '',
       macText: iface.macAddress ?? '',
+      vendorText: iface.vendor ?? '',
       statusText: getStatusInfo(iface.status).label,
       speedText: formatSpeed(iface.speed),
       maxSpeedText: formatSpeed(iface.maxSpeed),
@@ -199,16 +211,26 @@ const rows = computed(() =>
       peerNodeName: peerName(iface.peerNodeId),
       peerInterfaceName: peerName(iface.peerInterfaceId),
       peerMac: peerInterface?.macAddress ?? '',
+      peerVendorText: iface.peerVendor ?? '',
       peerIp: formatIpAddress(peerNode?.ipAddress) ?? '',
+      peerLastUpdatedText: formatDateTime(iface.peerLastUpdated) ?? '',
     }
   }),
 )
 
-const FILTER_FIELDS = ['name', 'macText', 'ipText', 'ifAlias', 'description']
+const FILTER_FIELDS = [
+  'name',
+  'macText',
+  'ipText',
+  'ifAlias',
+  'description',
+  'vendorText',
+  'peerVendorText',
+]
 
 const filterText = ref('')
 
-const filteredRows = computed(() => {
+const textMatchedRows = computed(() => {
   const q = filterText.value.trim().toLowerCase()
   if (!q) return rows.value
   return rows.value.filter((row) =>
@@ -219,6 +241,26 @@ const filteredRows = computed(() => {
     ),
   )
 })
+
+// Hide subinterfaces: taste, so it follows the account. The toggle shows only where there are some.
+const HIDE_SUB_INTERFACES_FIELD = 'interfaces.hideSubInterfaces'
+const hideSubInterfaces = ref(userPrefs.get(HIDE_SUB_INTERFACES_FIELD) === true)
+
+watch(hideSubInterfaces, (value) => userPrefs.set(HIDE_SUB_INTERFACES_FIELD, value || undefined))
+watch(userPrefs.revision, () => {
+  hideSubInterfaces.value = userPrefs.get(HIDE_SUB_INTERFACES_FIELD) === true
+})
+
+const hasSubInterfaces = computed(() => interfaces.value.some((iface) => iface.parentInterfaceId))
+
+const filteredRows = computed(() =>
+  hideSubInterfaces.value && hasSubInterfaces.value
+    ? textMatchedRows.value.filter((row) => !row.parentInterfaceId)
+    : textMatchedRows.value,
+)
+
+/** The toggle is remembered, so this explains a list that looks short. */
+const hiddenCount = computed(() => textMatchedRows.value.length - filteredRows.value.length)
 
 const selectedIds = ref(new Set())
 
@@ -238,8 +280,10 @@ watch(filteredRows, (visible) => {
 
 const countText = computed(() => {
   const count = filteredRows.value.length
-  const total = `${count} ${count === 1 ? 'interface' : 'interfaces'}`
-  return selectedRows.value.length ? `${total}, ${selectedRows.value.length} selected` : total
+  let text = `${count} ${count === 1 ? 'interface' : 'interfaces'}`
+  if (hiddenCount.value) text += `, ${hiddenCount.value} hidden`
+  if (selectedRows.value.length) text += `, ${selectedRows.value.length} selected`
+  return text
 })
 
 function onRowClick(row) {
@@ -458,6 +502,20 @@ function cellText(row, col) {
         />
       </IconField>
       <span v-if="!isLoading" class="interfaces-count">{{ countText }}</span>
+      <!-- Lit while subinterfaces are hidden; the accessible name says what pressing does. -->
+      <Button
+        v-if="hasSubInterfaces"
+        v-tooltip.bottom="hideSubInterfaces ? 'Show subinterfaces' : 'Hide subinterfaces'"
+        :icon="hideSubInterfaces ? 'pi pi-eye-slash' : 'pi pi-eye'"
+        label="Subinterfaces"
+        aria-label="Hide subinterfaces"
+        :aria-pressed="hideSubInterfaces"
+        size="small"
+        :severity="hideSubInterfaces ? 'primary' : 'secondary'"
+        :outlined="hideSubInterfaces"
+        class="subinterfaces-toggle"
+        @click="hideSubInterfaces = !hideSubInterfaces"
+      />
       <Button
         icon="pi pi-download"
         :label="selectedRows.length ? 'Export selected' : 'Export'"
@@ -580,6 +638,10 @@ function cellText(row, col) {
   font-size: 0.8125rem;
   color: var(--p-text-muted-color);
   margin-right: auto;
+}
+
+.subinterfaces-toggle {
+  flex-shrink: 0;
 }
 
 .interfaces-app-table {
