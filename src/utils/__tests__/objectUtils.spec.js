@@ -7,7 +7,9 @@ import {
   STATUS_KEYS,
   STATUS_PALETTE,
   getClassIcon,
+  getClassLabel,
   getNavItem,
+  PROTOTYPE_DISCOVERY_METHOD_OPTIONS,
   getDciSeriesKind,
   getReachabilityChips,
   getActiveProblemChips,
@@ -151,6 +153,23 @@ describe('getClassIcon', () => {
 
   it('returns fallback for unknown class', () => {
     expect(getClassIcon('SomeNewClass')).toBe('pi pi-circle')
+  })
+})
+
+describe('getClassLabel', () => {
+  it('spells the business service classes as words', () => {
+    expect(getClassLabel('BusinessService')).toBe('Business Service')
+    expect(getClassLabel('BusinessServiceProto')).toBe('Business Service Prototype')
+  })
+})
+
+describe('PROTOTYPE_DISCOVERY_METHOD_OPTIONS', () => {
+  it('offers the legacy methods under the server values, without None', () => {
+    expect(PROTOTYPE_DISCOVERY_METHOD_OPTIONS).toEqual([
+      { value: 1, label: 'Agent List', dataLabel: 'List name' },
+      { value: 2, label: 'Agent Table', dataLabel: 'Table name' },
+      { value: 5, label: 'Script', dataLabel: 'Script name' },
+    ])
   })
 })
 

@@ -23,7 +23,11 @@ import { usePermissions } from '@/composables/usePermissions'
 import { useSshTerminalStore } from '@/stores/sshTerminalStore'
 import { hasUsablePrimaryIp } from '@/utils/sshTerminalProtocol'
 import { resolveHref } from '@/utils/navigation'
-import { INFRASTRUCTURE_POLLABLE_CLASSES, pollTypesForClass } from '@/utils/pollTypes'
+import {
+  BUSINESS_SERVICE_POLLABLE_CLASSES,
+  INFRASTRUCTURE_POLLABLE_CLASSES,
+  pollTypesForClass,
+} from '@/utils/pollTypes'
 import { setObjectMaintenance, wakeUpObject } from '@/api/objectsApi'
 import { setInterfaceExpectedStateFor, setObjectManagedStateFor } from './objectStateCommands'
 import { downloadAgentLog } from './agentLogCommands'
@@ -372,17 +376,19 @@ function buildOpenItems(ctx) {
   return [...items, ...openInspectionItems]
 }
 
+// The class decides the perspective: business services have their own Polls view.
+function pollTarget(object, pollId) {
+  return objectTarget(object, 'polls', { entityId: pollId, query: { autorun: '1' } })
+}
+
 function buildPollItems(ctx) {
   return pollTypesForClass(ctx.object.class).map(({ id, label, requiredObjectRight }, index) => ({
     id: `object.poll.${id}`,
     label,
     priority: index,
     ...(requiredObjectRight ? { requiredObjectRight } : {}),
-    url: resolveHref(
-      objectViewTarget(ctx.object, 'polls', { entityId: id, query: { autorun: '1' } }),
-    ),
-    command: ({ actionContext }) =>
-      openObjectView(actionContext.object, 'polls', { entityId: id, query: { autorun: '1' } }),
+    url: resolveHref(pollTarget(ctx.object, id)),
+    command: ({ actionContext }) => router.push(pollTarget(actionContext.object, id)),
   }))
 }
 
@@ -416,7 +422,7 @@ const objectActions = [
     group: 'operations',
     priority: 10,
     primary: true,
-    objectClasses: INFRASTRUCTURE_POLLABLE_CLASSES,
+    objectClasses: [...INFRASTRUCTURE_POLLABLE_CLASSES, ...BUSINESS_SERVICE_POLLABLE_CLASSES],
     items: buildPollItems,
   },
   {

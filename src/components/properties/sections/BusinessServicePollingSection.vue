@@ -1,29 +1,37 @@
 <script setup>
 import Checkbox from 'primevue/checkbox'
+import UnderConstructionOverlay from '@/components/common/UnderConstructionOverlay.vue'
 
-/* eslint-disable vue/no-mutating-props */
-defineProps({
+const props = defineProps({
   draft: { type: Object, required: true },
   object: { type: Object, required: true },
   sectionId: { type: String, required: true },
   sectionLabel: { type: String, required: true },
 })
+
+// DCF_DISABLE_STATUS_POLL and DCF_DISABLE_CONF_POLL in the object's flags.
+const FLAGS = [
+  { mask: 0x01, label: 'Disable status polling' },
+  { mask: 0x02, label: 'Disable configuration polling' },
+]
+
+function hasFlag(mask) {
+  return ((props.object.flags ?? 0) & mask) !== 0
+}
 </script>
 
 <template>
   <div class="business-service-polling-section">
     <fieldset class="form-fieldset">
       <legend>Polling</legend>
-      <div class="form-fields">
-        <label class="flag-row">
-          <Checkbox v-model="draft.businessServicePolling.disableStatusPoll" :binary="true" />
-          <span>Disable status polling</span>
-        </label>
-        <label class="flag-row">
-          <Checkbox v-model="draft.businessServicePolling.disableConfPoll" :binary="true" />
-          <span>Disable configuration polling</span>
-        </label>
-      </div>
+      <UnderConstructionOverlay message="The server does not allow changing these options yet.">
+        <div class="form-fields">
+          <label v-for="flag in FLAGS" :key="flag.mask" class="flag-row">
+            <Checkbox :model-value="hasFlag(flag.mask)" binary disabled />
+            <span>{{ flag.label }}</span>
+          </label>
+        </div>
+      </UnderConstructionOverlay>
     </fieldset>
   </div>
 </template>
@@ -40,7 +48,6 @@ defineProps({
   align-items: center;
   gap: 0.5rem;
   font-size: 0.8125rem;
-  cursor: pointer;
   user-select: none;
 }
 </style>

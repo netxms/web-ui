@@ -24,6 +24,7 @@ import { useObjectDeletionNavigation } from '@/composables/useObjectDeletionNavi
 import { useWorkingState } from '@/composables/useWorkingState'
 import { findNodeByPath } from '@/utils/objectTreeNavigation'
 import { filterObjectTree } from '@/utils/objectTreeSort'
+import { BUSINESS_SERVICE_POLLABLE_CLASSES } from '@/utils/pollTypes'
 
 const PERSPECTIVE_ID = 'business-services'
 const DEFAULT_ROOT_ID = 9
@@ -186,13 +187,19 @@ const views = [
     id: 'checks',
     label: 'Checks',
     icon: 'pi pi-check-square',
-    objectClasses: ['BusinessService', 'BusinessServicePrototype'],
+    objectClasses: ['BusinessService', 'BusinessServiceProto'],
   },
   {
     id: 'availability',
     label: 'Availability',
     icon: 'pi pi-chart-line',
     objectClasses: ['BusinessService'],
+  },
+  {
+    id: 'polls',
+    label: 'Polls',
+    icon: 'pi pi-sync',
+    objectClasses: BUSINESS_SERVICE_POLLABLE_CLASSES,
   },
 ]
 
@@ -203,6 +210,7 @@ const viewComponents = {
   alarms: () => import('@/views/objects/subviews/AlarmsView.vue'),
   checks: () => import('@/views/business-services/subviews/ChecksView.vue'),
   availability: () => import('@/views/business-services/subviews/AvailabilityView.vue'),
+  polls: () => import('@/views/objects/subviews/PollsView.vue'),
 }
 
 const placeholderProps = {}

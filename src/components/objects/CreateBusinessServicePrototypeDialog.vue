@@ -6,15 +6,7 @@ import { useRouter } from 'vue-router'
 import { useCreateObjectDialog } from '@/composables/useCreateObjectDialog'
 import CreateDialogShell from '@/components/objects/CreateDialogShell.vue'
 import FormField from '@/components/common/FormField.vue'
-
-// Matches InstanceDiscovery.DISCOVERY_TYPES in the legacy client (indices with
-// no label there are not valid instance discovery methods).
-const DISCOVERY_METHOD_OPTIONS = [
-  { label: 'None', value: 0 },
-  { label: 'Agent List', value: 1 },
-  { label: 'Agent Table', value: 2 },
-  { label: 'Script', value: 5 },
-]
+import { PROTOTYPE_DISCOVERY_METHOD_OPTIONS } from '@/utils/objectUtils'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -28,14 +20,15 @@ const router = useRouter()
 
 const name = ref('')
 const alias = ref('')
-const instanceDiscoveryMethod = ref(0)
+const DEFAULT_DISCOVERY_METHOD = PROTOTYPE_DISCOVERY_METHOD_OPTIONS[0].value
+const instanceDiscoveryMethod = ref(DEFAULT_DISCOVERY_METHOD)
 
 const isValid = computed(() => name.value.trim().length > 0)
 
 function resetForm() {
   name.value = ''
   alias.value = ''
-  instanceDiscoveryMethod.value = 0
+  instanceDiscoveryMethod.value = DEFAULT_DISCOVERY_METHOD
 }
 
 const { isPending, onClose, submitCreate } = useCreateObjectDialog({
@@ -88,7 +81,7 @@ async function onCreate() {
       <Select
         :input-id="id"
         v-model="instanceDiscoveryMethod"
-        :options="DISCOVERY_METHOD_OPTIONS"
+        :options="PROTOTYPE_DISCOVERY_METHOD_OPTIONS"
         option-label="label"
         option-value="value"
         size="small"

@@ -49,3 +49,57 @@ test('a refused poll says why in the output', async ({ page }) => {
   )
   await expect(page.getByRole('button', { name: 'Run Poll' })).toBeEnabled()
 })
+
+test('a business service polls in its own perspective and switches poll tabs', async ({
+  page,
+}) => {
+  // The fixtures have no business service; the tree under root 9 supplies one.
+  await page.route(/\/api\/v1\/objects\/9\/sub-tree/, (route) =>
+    route.fulfill({
+      json: [{ id: 7001, class: 'BusinessService', name: 'e2e-shop', status: 0, children: [] }],
+    }),
+  )
+  await page.route('**/api/v1/objects/7001/poll/status', (route) =>
+    route.fulfill({
+      status: 202,
+      json: { pollType: 'status', token: 't', expiresIn: 30, wsUrl: '/v1/polls/output/bs' },
+    }),
+  )
+  await page.routeWebSocket(/polls\/output/, (socket) => {
+    socket.send(
+      JSON.stringify({ type: 'output', data: 'Starting status poll of business service e2e-shop' }),
+    )
+    socket.send(JSON.stringify({ type: 'completed' }))
+    socket.close()
+  })
+
+  await page.goto('/business-services/7001/polls/status?autorun=1')
+
+  const output = page.getByRole('tabpanel').getByTestId('poll-output')
+  await expect(output).toContainText('Starting status poll of business service e2e-shop')
+  await expect(output).toContainText('Poll completed successfully')
+  await expect(page).toHaveURL(/\/business-services\/7001\/polls\/status$/)
+
+  await page.getByRole('tab', { name: 'Configuration' }).click()
+  await expect(page).toHaveURL(/\/business-services\/7001\/polls\/configuration$/)
+})
+
+test('a business service prototype gets its Polls and Checks tabs', async ({ page }) => {
+  await page.route(/\/api\/v1\/objects\/9\/sub-tree/, (route) =>
+    route.fulfill({
+      json: [{ id: 7002, class: 'BusinessServiceProto', name: 'e2e-proto', status: 0 }],
+    }),
+  )
+  await page.route('**/api/v1/objects/7002/business-service-checks', (route) =>
+    route.fulfill({ json: [] }),
+  )
+
+  await page.goto('/business-services/7002/polls')
+
+  const views = page.getByRole('tablist', { name: 'Views' })
+  await expect(views.getByRole('tab', { name: 'Polls' })).toBeVisible()
+  await expect(page.getByRole('tab', { name: 'Instance Discovery' })).toBeVisible()
+
+  await views.getByRole('tab', { name: 'Checks' }).click()
+  await expect(page.getByText('Checks decide whether this prototype is operational')).toBeVisible()
+})

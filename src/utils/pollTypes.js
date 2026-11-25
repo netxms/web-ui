@@ -43,12 +43,18 @@ const POLLS_BY_CLASS = {
   ObservationPoint: ['status'],
   Rack: ['instance-discovery'],
   Collector: ['instance-discovery', 'autobind'],
+  Facility: ['instance-discovery', 'autobind'],
+  Room: ['instance-discovery', 'autobind'],
+  CoolingZone: ['instance-discovery', 'autobind'],
+  PowerDomain: ['instance-discovery', 'autobind'],
   Circuit: ['instance-discovery', 'autobind'],
   Container: ['autobind'],
   Template: ['autobind'],
   Dashboard: ['autobind'],
   DashboardTemplate: ['autobind'],
   NetworkMap: ['autobind', 'map-update'],
+  BusinessService: ['status', 'configuration'],
+  BusinessServiceProto: ['instance-discovery'],
 }
 
 /** Classes whose Poll menu opens the Infrastructure Polls view. */
@@ -64,9 +70,16 @@ export const INFRASTRUCTURE_POLLABLE_CLASSES = [
   'ObservationPoint',
   'Rack',
   'Collector',
+  'Facility',
+  'Room',
+  'CoolingZone',
+  'PowerDomain',
   'Circuit',
   'Container',
 ]
+
+/** Classes whose Poll menu opens the Business Services Polls view. */
+export const BUSINESS_SERVICE_POLLABLE_CLASSES = ['BusinessService', 'BusinessServiceProto']
 
 /**
  * @param {string} objectClass

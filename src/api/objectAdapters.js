@@ -395,38 +395,15 @@ function adaptTemplate(base, raw) {
   }
 }
 
-function adaptBusinessService(base, raw) {
-  return {
-    ...base,
-    // Scaffolding for "Polling" / "Object Auto Bind" / "DCI Auto Bind" — no WebAPI endpoint yet
-    businessServicePolling: {
-      disableStatusPoll: raw.businessServicePolling?.disableStatusPoll ?? false,
-      disableConfPoll: raw.businessServicePolling?.disableConfPoll ?? false,
-    },
-    objectAutoBind: {
-      autoBind: raw.objectAutoBind?.autoBind ?? false,
-      autoUnbind: raw.objectAutoBind?.autoUnbind ?? false,
-      statusThreshold: raw.objectAutoBind?.statusThreshold ?? -1,
-      source: raw.objectAutoBind?.source ?? '',
-    },
-    dciAutoBind: {
-      autoBind: raw.dciAutoBind?.autoBind ?? false,
-      autoUnbind: raw.dciAutoBind?.autoUnbind ?? false,
-      statusThreshold: raw.dciAutoBind?.statusThreshold ?? -1,
-      source: raw.dciAutoBind?.source ?? '',
-    },
-  }
-}
-
+// The server returns none of these yet; `instanceDiscoveryMethod` is the name it takes on create.
 function adaptBusinessServicePrototype(base, raw) {
   return {
-    ...adaptBusinessService(base, raw),
-    // Scaffolding for "Instance Discovery" — no WebAPI endpoint yet
+    ...base,
     instanceDiscovery: {
-      method: raw.instanceDiscovery?.method ?? 0,
-      source: raw.instanceDiscovery?.source ?? 0,
-      name: raw.instanceDiscovery?.name ?? '',
-      script: raw.instanceDiscovery?.script ?? '',
+      method: raw.instanceDiscoveryMethod ?? null,
+      source: 0,
+      name: '',
+      script: '',
     },
   }
 }
@@ -536,9 +513,7 @@ function adaptByClass(base, raw) {
       return adaptNetworkMap(base, raw)
     case 'Template':
       return adaptTemplate(base, raw)
-    case 'BusinessService':
-      return adaptBusinessService(base, raw)
-    case 'BusinessServicePrototype':
+    case 'BusinessServiceProto':
       return adaptBusinessServicePrototype(base, raw)
     case 'Interface':
       return adaptInterface(base, raw)

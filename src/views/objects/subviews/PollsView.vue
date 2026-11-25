@@ -66,7 +66,7 @@ function lastRunLabel(pollId) {
   return null
 }
 
-// The view also serves the Templates perspective, so the route keeps its own name.
+// More than one perspective hosts this view, so the route keeps its own name.
 function pollRoute(pollId) {
   return { name: route.name, params: { ...route.params, entityId: pollId } }
 }

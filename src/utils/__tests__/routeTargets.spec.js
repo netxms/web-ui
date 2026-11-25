@@ -36,6 +36,8 @@ describe('perspectiveForClass', () => {
     expect(perspectiveForClass('TemplateGroup')).toBe('templates')
     expect(perspectiveForClass('Asset')).toBe('assets')
     expect(perspectiveForClass('BusinessService')).toBe('business-services')
+    // The server's class name, not the legacy client's BusinessServicePrototype.
+    expect(perspectiveForClass('BusinessServiceProto')).toBe('business-services')
     expect(perspectiveForClass('Dashboard')).toBe('dashboards')
     expect(perspectiveForClass('NetworkMap')).toBe('network-maps')
   })

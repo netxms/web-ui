@@ -81,7 +81,7 @@ const router = createRouter({
           meta: { title: 'Assets', sidebar: true },
         },
         {
-          path: 'business-services/:objectId?/:viewId?',
+          path: 'business-services/:objectId?/:viewId?/:entityId?',
           name: 'business-services',
           component: () => import('@/views/business-services/BusinessServicesView.vue'),
           meta: { title: 'Business Services', sidebar: true },

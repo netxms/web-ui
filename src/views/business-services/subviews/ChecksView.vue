@@ -45,7 +45,7 @@ const confirm = useConfirm()
 const toast = useToast()
 
 const objectId = computed(() => props.object.id)
-const isPrototype = computed(() => props.object.class === 'BusinessServicePrototype')
+const isPrototype = computed(() => props.object.class === 'BusinessServiceProto')
 const canModify = computed(() => hasObjectRight(props.object, 'MODIFY'))
 
 const {

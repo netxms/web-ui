@@ -3,6 +3,7 @@ import Checkbox from 'primevue/checkbox'
 import Select from 'primevue/select'
 import DetailCard from '@/components/layout/DetailCard.vue'
 import NxslScriptEditor from '@/components/common/NxslScriptEditor.vue'
+import UnderConstructionOverlay from '@/components/common/UnderConstructionOverlay.vue'
 import { STATUS_THRESHOLD_OPTIONS } from '@/utils/objectUtils'
 
 /* eslint-disable vue/no-mutating-props */
@@ -20,51 +21,58 @@ defineProps({
       <legend>DCI Auto Bind</legend>
       <div class="form-fields">
         <label class="flag-row">
-          <Checkbox v-model="draft.dciAutoBind.autoBind" :binary="true" />
+          <Checkbox v-model="draft.autoBindFilters[1].autoBind" :binary="true" />
           <span>Automatically add DCI selected by filter to this business service as check</span>
         </label>
-        <label class="flag-row" :class="{ 'flag-row--disabled': !draft.dciAutoBind.autoBind }">
+        <label
+          class="flag-row"
+          :class="{ 'flag-row--disabled': !draft.autoBindFilters[1].autoBind }"
+        >
           <Checkbox
-            v-model="draft.dciAutoBind.autoUnbind"
+            v-model="draft.autoBindFilters[1].autoUnbind"
             :binary="true"
-            :disabled="!draft.dciAutoBind.autoBind"
+            :disabled="!draft.autoBindFilters[1].autoBind"
           />
           <span>Automatically remove DCI selected by filter from this business service</span>
         </label>
-        <div class="form-field">
-          <label class="form-label" for="dci-auto-bind-status-threshold"> Status Threshold </label>
-          <Select
-            id="dci-auto-bind-status-threshold"
-            v-model="draft.dciAutoBind.statusThreshold"
-            :options="STATUS_THRESHOLD_OPTIONS"
-            option-label="label"
-            option-value="value"
-            class="form-input"
-          >
-            <template #value="{ value }">
-              <div class="status-option">
-                <span
-                  class="status-dot"
-                  :class="`status-dot--${STATUS_THRESHOLD_OPTIONS.find((o) => o.value === value)?.key}`"
-                />
-                {{ STATUS_THRESHOLD_OPTIONS.find((o) => o.value === value)?.label }}
-              </div>
-            </template>
-            <template #option="{ option }">
-              <div class="status-option">
-                <span class="status-dot" :class="`status-dot--${option.key}`" />
-                {{ option.label }}
-              </div>
-            </template>
-          </Select>
-        </div>
+        <UnderConstructionOverlay message="The server does not provide this setting yet.">
+          <div class="form-field">
+            <label class="form-label" for="dci-auto-bind-status-threshold">
+              Status Threshold
+            </label>
+            <Select
+              id="dci-auto-bind-status-threshold"
+              disabled
+              :options="STATUS_THRESHOLD_OPTIONS"
+              option-label="label"
+              option-value="value"
+              class="form-input"
+            >
+              <template #value="{ value }">
+                <div class="status-option">
+                  <span
+                    class="status-dot"
+                    :class="`status-dot--${STATUS_THRESHOLD_OPTIONS.find((o) => o.value === value)?.key}`"
+                  />
+                  {{ STATUS_THRESHOLD_OPTIONS.find((o) => o.value === value)?.label }}
+                </div>
+              </template>
+              <template #option="{ option }">
+                <div class="status-option">
+                  <span class="status-dot" :class="`status-dot--${option.key}`" />
+                  {{ option.label }}
+                </div>
+              </template>
+            </Select>
+          </div>
+        </UnderConstructionOverlay>
       </div>
     </fieldset>
 
     <DetailCard title="Filtering Script" :wide="true">
       <div class="card-section">
         <NxslScriptEditor
-          v-model="draft.dciAutoBind.source"
+          v-model="draft.autoBindFilters[1].source"
           placeholder="// NXSL script&#10;return true;"
           hint-key="business-service-dci-auto-bind"
           showCompile

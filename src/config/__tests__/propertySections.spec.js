@@ -88,3 +88,16 @@ describe('data center sections', () => {
     expect(sections[firstOther].id).toBe('room')
   })
 })
+
+describe('business service prototype sections', () => {
+  it('keys the prototype pages by the class name the server sends', () => {
+    expect(ids('BusinessServiceProto')).toEqual(
+      expect.arrayContaining(['object-auto-bind', 'dci-auto-bind', 'instance-discovery']),
+    )
+  })
+
+  it('offers Polling on business services only, as legacy does', () => {
+    expect(ids('BusinessService')).toContain('business-service-polling')
+    expect(ids('BusinessServiceProto')).not.toContain('business-service-polling')
+  })
+})

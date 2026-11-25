@@ -23,6 +23,38 @@ describe('adaptObject', () => {
     expect(zone.uin).toBe(0)
   })
 
+  it('adapts a business service prototype under the class name the server sends', () => {
+    const prototype = adaptObject({
+      id: 902,
+      class: 'BusinessServiceProto',
+      name: 'per-site',
+      instanceDiscoveryMethod: 5,
+    })
+    expect(prototype.instanceDiscovery.method).toBe(5)
+    expect(adaptObject({ id: 903, class: 'BusinessServiceProto' }).instanceDiscovery.method).toBe(
+      null,
+    )
+  })
+
+  it('reads business service auto-bind from the filter slots the server sends', () => {
+    const service = adaptObject({
+      id: 896,
+      class: 'BusinessService',
+      autoBindFilters: [
+        { autoBind: true, autoUnbind: false, source: 'return true;' },
+        { autoBind: false, autoUnbind: false, source: null },
+      ],
+    })
+    expect(service.autoBindFilters[0]).toEqual({
+      autoBind: true,
+      autoUnbind: false,
+      source: 'return true;',
+    })
+    expect(service.objectAutoBind).toBeUndefined()
+    expect(service.dciAutoBind).toBeUndefined()
+    expect(service.businessServicePolling).toBeUndefined()
+  })
+
   it('does not surface uin for unrelated classes', () => {
     const container = adaptObject({ id: 4, class: 'Container', name: 'Group' })
     expect(container.uin).toBeUndefined()

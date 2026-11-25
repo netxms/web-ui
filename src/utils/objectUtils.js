@@ -85,6 +85,13 @@ export function getStatusInfo(statusNumber) {
   return STATUS_MAP[statusNumber] ?? STATUS_MAP[5]
 }
 
+/** Business service prototype discovery methods as legacy offers them, under the server values. */
+export const PROTOTYPE_DISCOVERY_METHOD_OPTIONS = [
+  { value: 1, label: 'Agent List', dataLabel: 'List name' },
+  { value: 2, label: 'Agent Table', dataLabel: 'Table name' },
+  { value: 5, label: 'Script', dataLabel: 'Script name' },
+]
+
 export const STATUS_THRESHOLD_OPTIONS = [
   { value: -1, label: 'Default', key: 'default' },
   { value: 1, label: 'Warning', key: 'warning' },
@@ -406,6 +413,7 @@ const CLASS_LABEL_OVERRIDES = {
   ServiceRoot: 'Infrastructure',
   AssetGroup: 'Asset Group',
   AssetRoot: 'Asset Root',
+  BusinessService: 'Business Service',
   BusinessServiceProto: 'Business Service Prototype',
   CloudDomain: 'Cloud Domain',
   CoolingZone: 'Cooling Zone',

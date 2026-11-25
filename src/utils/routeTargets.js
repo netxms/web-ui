@@ -10,7 +10,7 @@ const PERSPECTIVE_BY_CLASS = {
   AssetGroup: 'assets',
   AssetRoot: 'assets',
   BusinessService: 'business-services',
-  BusinessServicePrototype: 'business-services',
+  BusinessServiceProto: 'business-services',
   BusinessServiceRoot: 'business-services',
   Dashboard: 'dashboards',
   DashboardGroup: 'dashboards',

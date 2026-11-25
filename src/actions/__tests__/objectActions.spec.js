@@ -186,6 +186,37 @@ describe('operations slots', () => {
       'object.poll.instance-discovery',
     ])
     expect(pollsOf(INTERFACE)).toBeUndefined()
+
+    const facilityPolls = menuFor({ id: 32, name: 'DC-1', class: 'Facility' }).find(
+      (i) => i.id === 'object.poll',
+    ).items
+    expect(facilityPolls.map((i) => i.id)).toEqual([
+      'object.poll.instance-discovery',
+      'object.poll.autobind',
+    ])
+    for (const item of facilityPolls) expect(item.url).toContain('/infrastructure/32/polls/')
+  })
+
+  it('offers business service polls and opens them in Business Services', () => {
+    const service = { id: 60, name: 'shop', class: 'BusinessService', status: 0 }
+    const poll = menuFor(service).find((i) => i.id === 'object.poll')
+    expect(poll.items.map((i) => i.id)).toEqual(['object.poll.status', 'object.poll.configuration'])
+    for (const item of poll.items) expect(item.url).toContain('/business-services/60/polls/')
+
+    poll.items[0].command({ actionContext: { object: service } })
+    expect(router.push).toHaveBeenCalledWith({
+      name: 'business-services',
+      params: { objectId: 60, viewId: 'polls', entityId: 'status' },
+      query: { autorun: '1' },
+    })
+
+    const prototype = { id: 61, name: 'per-site', class: 'BusinessServiceProto', status: 0 }
+    const prototypePolls = menuFor(prototype).find((i) => i.id === 'object.poll').items
+    expect(prototypePolls.map((i) => i.id)).toEqual(['object.poll.instance-discovery'])
+    expect(prototypePolls[0].url).toContain('/business-services/61/polls/instance-discovery')
+
+    const root = { id: 9, name: 'Business Services', class: 'BusinessServiceRoot', status: 0 }
+    expect(menuFor(root).find((i) => i.id === 'object.poll')).toBeUndefined()
   })
 
   it('keeps the Tools slot alive for injection even with no applicable static child', () => {

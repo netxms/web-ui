@@ -121,9 +121,11 @@ defineExpose({
   color: var(--p-red-500);
 }
 
+/* A submenu is shrink-wrapped next to its parent, so a wrapping label would break into lines. */
 .action-menu-label {
   flex: 1;
   font-size: 0.8125rem;
+  white-space: nowrap;
 }
 
 .action-menu-shortcut {
