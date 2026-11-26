@@ -48,5 +48,17 @@
     "status": 0,
     "isInMaintenanceMode": false,
     "isMaintenanceApplicable": true
+  },
+  {
+    "id": 853,
+    "guid": "e4f5a6b7-c8d9-0123-ef01-234567890123",
+    "class": "Asset",
+    "name": "spare-ssd-01",
+    "alias": "Spare SSD",
+    "category": 0,
+    "timestamp": "2026-10-02T08:30:00Z",
+    "status": 0,
+    "isInMaintenanceMode": false,
+    "isMaintenanceApplicable": true
   }
 ]

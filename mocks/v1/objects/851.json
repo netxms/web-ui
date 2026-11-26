@@ -21,8 +21,6 @@
   "isInMaintenanceMode": false,
   "isMaintenanceApplicable": true,
   "category": 0,
-  "linkedObject": {
-    "id": 504,
-    "name": "srv-dc-02.corp.local"
-  }
+  "linkedObjectId": 502,
+  "componentSerial": ""
 }

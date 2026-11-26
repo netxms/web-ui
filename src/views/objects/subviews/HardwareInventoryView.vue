@@ -2,8 +2,7 @@
 /**
  * Two sources, as legacy HardwareInventoryView: the components the agent reports, or the
  * ENTITY-MIB component tree. A node with only one gets that one; with both the user picks.
- * Assets linked to a component show in the Asset column (linking needs the NXCP-only
- * link/unlink requests, so there are no asset actions).
+ * Assets linked to a component show in the Asset column; the row menu links and unlinks them.
  */
 import { computed, inject, ref, watch } from 'vue'
 import Button from 'primevue/button'
@@ -17,6 +16,8 @@ import {
   usePhysicalComponents,
 } from '@/queries/useNodeInventoryQueries'
 import { useObject } from '@/queries/useObjectQueries'
+import { hasObjectRight } from '@/auth/objectAccessRights'
+import { componentAssetMenuItems } from '@/utils/assetLink'
 import { flattenComponentTree, toHardwareRow, visibleTreeRows } from '@/utils/nodeInventory'
 import { objectTarget } from '@/utils/routeTargets'
 
@@ -29,6 +30,12 @@ const objectId = computed(() => props.object.id)
 // The tree's object carries no capabilities.
 const { data: details } = useObject(objectId)
 const capabilities = computed(() => details.value?.capabilities ?? null)
+
+const canModify = computed(() => hasObjectRight(details.value ?? props.object, 'MODIFY'))
+
+function assetMenuItems(_targets, row) {
+  return componentAssetMenuItems(props.object, row, canModify.value)
+}
 
 const hasAgentSource = computed(() => !!capabilities.value?.isNativeAgent)
 const hasEntityMibSource = computed(
@@ -212,6 +219,7 @@ function collapseAll() {
     empty-message="The node reports no hardware components."
     :copy-fields="AGENT_FIELDS"
     :copy-items="COPY_ITEMS"
+    :menu-items="assetMenuItems"
     @retry="refetch"
   >
     <template v-if="hasEntityMibSource" #toolbar>
@@ -260,6 +268,7 @@ function collapseAll() {
     empty-message="No components match the filter."
     :copy-fields="TREE_FIELDS"
     :copy-items="TREE_COPY_ITEMS"
+    :menu-items="assetMenuItems"
     @retry="refetch"
   >
     <template v-if="hasAgentSource" #toolbar>

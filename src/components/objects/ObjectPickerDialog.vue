@@ -273,6 +273,7 @@ function onCancel() {
     </div>
 
     <template #footer>
+      <span v-if="$slots['footer-hint']" class="footer-hint"><slot name="footer-hint" /></span>
       <Button label="Cancel" text severity="secondary" @click="onCancel" />
       <Button
         :label="
@@ -287,6 +288,14 @@ function onCancel() {
 </template>
 
 <style scoped>
+/* As the DCI and event pickers: muted, left of the buttons. */
+.footer-hint {
+  font-size: 0.8125rem;
+  color: var(--p-text-muted-color);
+  margin-right: auto;
+  align-self: center;
+}
+
 .picker-layout {
   display: flex;
   flex-direction: column;

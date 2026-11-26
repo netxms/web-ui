@@ -356,18 +356,6 @@ export function servicesFor(nodeId) {
   return nodeId === WINDOWS_NODE ? serviceTable(WINDOWS_SERVICES) : null
 }
 
-/** Assets linked to node components, as `POST /v1/objects/query` returns them. */
-export function componentAssets(nodeId) {
-  const links = {
-    [WINDOWS_NODE]: [{ id: 850, name: 'srv-dc-01', serial: 'CZJ0450ABC' }],
-    [FIREWALL_NODE]: [{ id: 852, name: 'sw-core-01', serial: 'FG200FT921900123' }],
-  }
-  return (links[nodeId] ?? []).map(({ id, name, serial }) => ({
-    object: { id, name, class: 'Asset', status: 0 },
-    fields: { serial },
-  }))
-}
-
 /** The node id of a `/v1/objects/{id}/...` request. */
 export function nodeIdOf(req) {
   return Number(new URL(req.url, 'http://mock').pathname.split('/')[3])

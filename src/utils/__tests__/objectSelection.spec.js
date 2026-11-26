@@ -1,6 +1,10 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest'
-import { createClassSelectionFilter, DEFAULT_NAVIGABLE_CLASSES } from '@/utils/objectSelection'
+import {
+  createClassSelectionFilter,
+  DEFAULT_NAVIGABLE_CLASSES,
+  orderPickerRoots,
+} from '@/utils/objectSelection'
 
 describe('createClassSelectionFilter', () => {
   it('selects only the given classes', () => {
@@ -39,5 +43,23 @@ describe('createClassSelectionFilter', () => {
     expect(selectable({})).toBe(false)
     expect(displayFilter({ class: 'Container' })).toBe(true)
     expect(displayFilter(null)).toBe(false)
+  })
+})
+
+describe('orderPickerRoots', () => {
+  const ROOTS = [
+    { id: 1, class: 'Network' },
+    { id: 2, class: 'ServiceRoot' },
+    { id: 3, class: 'TemplateRoot' },
+    { id: 5, class: 'AssetRoot' },
+  ]
+
+  it('puts Infrastructure before Network and keeps the rest in server order', () => {
+    expect(orderPickerRoots(ROOTS).map((r) => r.id)).toEqual([2, 1, 3, 5])
+  })
+
+  it('leaves the input alone', () => {
+    orderPickerRoots(ROOTS)
+    expect(ROOTS.map((r) => r.id)).toEqual([1, 2, 3, 5])
   })
 })

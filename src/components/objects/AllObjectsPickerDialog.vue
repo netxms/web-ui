@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import ObjectPickerDialog from './ObjectPickerDialog.vue'
 import { useObjects } from '@/queries/useObjectQueries'
+import { orderPickerRoots } from '@/utils/objectSelection'
 
 const props = defineProps({
   visible: { type: Boolean, required: true },
@@ -35,7 +36,7 @@ const { data: rootObjects } = useObjects()
 const perspectives = computed(() => {
   const roots = rootObjects.value ?? []
   const allowed = props.perspectiveClasses
-  const found = roots
+  const found = orderPickerRoots(roots)
     .filter((o) => CLASS_PERSPECTIVE_MAP[o.class])
     .filter((o) => allowed.length === 0 || allowed.includes(o.class))
     .map((o) => ({ id: String(o.id), label: CLASS_PERSPECTIVE_MAP[o.class], rootId: o.id }))
@@ -55,5 +56,12 @@ const perspectives = computed(() => {
     :multi-select="multiSelect"
     @update:visible="emit('update:visible', $event)"
     @select="emit('select', $event)"
-  />
+  >
+    <template v-if="$slots.default" #intro>
+      <slot />
+    </template>
+    <template v-if="$slots['footer-hint']" #footer-hint>
+      <slot name="footer-hint" />
+    </template>
+  </ObjectPickerDialog>
 </template>

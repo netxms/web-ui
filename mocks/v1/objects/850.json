@@ -21,8 +21,6 @@
   "isInMaintenanceMode": false,
   "isMaintenanceApplicable": true,
   "category": 0,
-  "linkedObject": {
-    "id": 503,
-    "name": "srv-dc-01.corp.local"
-  }
+  "linkedObjectId": 516,
+  "componentSerial": "CZJ0450ABC"
 }

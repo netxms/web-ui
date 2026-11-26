@@ -46,6 +46,7 @@ import { getViewGroupsForObject, isViewCompatible } from '@/config/objectViews'
 import { notifyNotImplemented } from '@/utils/notImplemented'
 import { getClassIcon, getClassLabel, TEMPLATE_APPLICABLE_CLASSES } from '@/utils/objectUtils'
 import { DEDICATED_CREATE_CLASSES } from '@/utils/createMenuItems'
+import { ASSET_LINK_TARGET_CLASSES } from '@/utils/assetLink'
 
 // Server rejects set-managed for these classes (see H_ObjectSetManaged in objects.cpp)
 const UNMANAGEABLE_CLASSES = ['Template', 'TemplateGroup', 'TemplateRoot']
@@ -657,7 +658,7 @@ const objectActions = [
     icon: 'pi pi-sitemap',
     group: 'state',
     priority: 30,
-    // Binding, unbinding and zone changes are all object modifications.
+    // Binding, unbinding, asset links and zone changes are all object modifications.
     requiredObjectRight: 'MODIFY',
     items: [
       {
@@ -732,8 +733,48 @@ const objectActions = [
         label: 'Link to asset...',
         icon: 'pi pi-link',
         priority: 5,
-        objectClasses: ['Node'],
-        command: () => notifyNotImplemented('Link asset'),
+        objectClasses: ASSET_LINK_TARGET_CLASSES,
+        command: ({ actionContext }) => {
+          dispatchObjectEvent('asset:linkToAsset', { object: actionContext.object })
+        },
+      },
+      {
+        // The object document does not say whether an asset is linked, so this is always
+        // offered and the dialog looks the asset up.
+        id: 'object.organize.unlinkFromAsset',
+        label: 'Unlink from asset',
+        icon: 'pi pi-times-circle',
+        priority: 6,
+        objectClasses: ASSET_LINK_TARGET_CLASSES,
+        command: ({ actionContext }) => {
+          dispatchObjectEvent('asset:unlinkFromAsset', { object: actionContext.object })
+        },
+      },
+      {
+        id: 'object.organize.linkAssetToObject',
+        label: 'Link to object...',
+        icon: 'pi pi-link',
+        priority: 7,
+        objectClasses: ['Asset'],
+        command: ({ actionContext }) => {
+          dispatchObjectEvent('asset:linkToObject', { object: actionContext.object })
+        },
+      },
+      {
+        // Tree rows carry no link fields (null), so only a known "not linked" hides it.
+        id: 'object.organize.unlinkAsset',
+        multiSelect: true,
+        label: 'Unlink from object',
+        icon: 'pi pi-times-circle',
+        priority: 8,
+        objectClasses: ['Asset'],
+        isApplicable: (ctx) =>
+          (ctx.selection ?? [ctx.object]).some((o) => o.linkedObjectId !== 0),
+        command: ({ actionContext }) => {
+          dispatchObjectEvent('asset:unlink', {
+            objects: actionContext.selection ?? [actionContext.object],
+          })
+        },
       },
       {
         // Placement, not a scalar field: PATCH /objects/{id} has no zoneUIN, and the
@@ -741,7 +782,7 @@ const objectActions = [
         id: 'object.organize.changeZone',
         label: 'Change zone...',
         icon: 'pi pi-map',
-        priority: 6,
+        priority: 9,
         objectClasses: ['Node'],
         command: () => notifyNotImplemented('Change zone'),
       },
@@ -751,7 +792,7 @@ const objectActions = [
         id: 'object.organize.setPeer',
         label: 'Set peer...',
         icon: 'pi pi-link',
-        priority: 7,
+        priority: 10,
         objectClasses: ['Interface'],
         command: ({ actionContext }) => {
           dispatchObjectEvent('interface:setPeer', { object: actionContext.object })
@@ -762,7 +803,7 @@ const objectActions = [
         id: 'object.organize.clearPeer',
         label: 'Clear peer',
         icon: 'pi pi-times-circle',
-        priority: 8,
+        priority: 11,
         objectClasses: ['Interface'],
         isApplicable: (ctx) => ctx.object.peerInterfaceId !== 0,
         command: ({ actionContext }) => {

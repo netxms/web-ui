@@ -8,6 +8,7 @@ import { useCreateObjectDialog } from '@/composables/useCreateObjectDialog'
 import CreateDialogShell from '@/components/objects/CreateDialogShell.vue'
 import ObjectPickerInput from '@/components/objects/ObjectPickerInput.vue'
 import FormField from '@/components/common/FormField.vue'
+import { orderPickerRoots } from '@/utils/objectSelection'
 
 // Matches MapType.* / MapCanvasType.* constants in the legacy client
 const MAP_TYPE_OPTIONS = [
@@ -48,10 +49,9 @@ const { data: rootObjects } = useObjects()
 
 const seedNodePerspectives = computed(() => {
   const roots = rootObjects.value ?? []
-  const found = roots
+  const found = orderPickerRoots(roots)
     .filter((o) => SEED_ROOT_LABELS[o.class])
     .map((o) => ({ id: String(o.id), label: SEED_ROOT_LABELS[o.class], rootId: o.id }))
-    .sort((a, b) => (a.label === 'Entire Network' ? -1 : b.label === 'Entire Network' ? 1 : 0))
   return found.length ? found : [{ id: '2', label: 'Infrastructure Services', rootId: 2 }]
 })
 

@@ -10,8 +10,11 @@ import DatePicker from 'primevue/datepicker'
 import Button from 'primevue/button'
 import ProgressSpinner from 'primevue/progressspinner'
 import { useConfirm } from 'primevue/useconfirm'
+import AppLink from '@/components/common/AppLink.vue'
 import QueryErrorState from '@/components/common/QueryErrorState.vue'
 import { useAssetManagementSchema } from '@/queries/useAssetManagementSchemaQueries'
+import { useObject } from '@/queries/useObjectQueries'
+import { objectTarget } from '@/utils/routeTargets'
 import { formatDateMedium } from '@/utils/timeFormat'
 import {
   useAssetProperties,
@@ -24,6 +27,17 @@ const props = defineProps({ object: { type: Object, default: null } })
 const confirm = useConfirm()
 
 const objectId = computed(() => props.object?.id ?? null)
+
+// The tree's object carries no link fields.
+const { data: details } = useObject(objectId)
+const linkedObjectId = computed(() => details.value?.linkedObjectId || null)
+const componentSerial = computed(() => details.value?.componentSerial || '')
+const { data: linkedObjectData } = useObject(linkedObjectId)
+const linkedObject = computed(() =>
+  linkedObjectId.value
+    ? (linkedObjectData.value ?? { id: linkedObjectId.value, name: `[${linkedObjectId.value}]` })
+    : null,
+)
 
 const {
   data: schema,
@@ -157,10 +171,16 @@ function confirmDelete(attr) {
 
 <template>
   <div class="asset-detail-view">
-    <div v-if="object?.linkedObject" class="asset-info-bar">
+    <div v-if="linkedObject" class="asset-info-bar">
       <span class="linked-chip">
-        <i class="pi pi-link" />
-        {{ object.linkedObject.name }}
+        <i class="pi pi-link" aria-hidden="true" />
+        <span class="linked-text"
+          >Linked to
+          <AppLink :to="objectTarget(linkedObject)" class="linked-link">{{
+            linkedObject.name
+          }}</AppLink
+          ><template v-if="componentSerial">, component {{ componentSerial }}</template></span
+        >
       </span>
     </div>
 
@@ -382,11 +402,27 @@ function confirmDelete(attr) {
   gap: 0.35rem;
   padding: 0.125rem 0.625rem;
   border-radius: 999px;
-  background: var(--p-surface-100);
-  border: 1px solid var(--p-surface-200);
+  background: var(--p-content-hover-background);
+  border: 1px solid var(--p-content-border-color);
   color: var(--p-text-color);
   font-size: 0.75rem;
   font-weight: 500;
+  max-width: 100%;
+}
+
+.linked-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linked-link {
+  color: var(--p-primary-color);
+  text-decoration: none;
+}
+
+.linked-link:hover {
+  text-decoration: underline;
 }
 
 .state-overlay {

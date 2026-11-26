@@ -117,6 +117,21 @@ export function adaptBaseObject(raw) {
 }
 
 /**
+ * Asset. `linkedObjectId` is 0 when the asset is not linked and null on a summary, which does
+ * not say; `componentSerial` is empty for a link to the object itself.
+ * @param {object} base - result of adaptBaseObject
+ * @param {object} raw
+ * @returns {object}
+ */
+function adaptAsset(base, raw) {
+  return {
+    ...base,
+    linkedObjectId: raw.linkedObjectId ?? null,
+    componentSerial: raw.componentSerial ?? '',
+  }
+}
+
+/**
  * Zone. `uin` is the zone's own zoneUIN (distinct from the `zoneUIN` field on
  * node-like objects, which references the zone they belong to).
  * @param {object} base - result of adaptBaseObject
@@ -519,6 +534,8 @@ function adaptByClass(base, raw) {
       return adaptInterface(base, raw)
     case 'Zone':
       return adaptZone(base, raw)
+    case 'Asset':
+      return adaptAsset(base, raw)
     case 'Facility':
     case 'PowerDomain':
     case 'CoolingZone':

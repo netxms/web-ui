@@ -20,5 +20,7 @@
   "maintenanceInitiator": 0,
   "isInMaintenanceMode": false,
   "isMaintenanceApplicable": true,
-  "category": 0
+  "category": 0,
+  "linkedObjectId": 522,
+  "componentSerial": "FG200FT921900123"
 }

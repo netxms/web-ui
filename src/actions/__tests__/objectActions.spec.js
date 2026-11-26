@@ -398,6 +398,102 @@ describe('Organize submenu', () => {
   })
 })
 
+describe('asset links in Organize', () => {
+  const organizeIds = (object, viewContext, selection) =>
+    (
+      resolveActions(objectActions, { object, viewContext, selection }).find(
+        (i) => i.id === 'object.organize',
+      )?.items ?? []
+    )
+      .filter((i) => !i.separator)
+      .map((i) => i.id)
+  const ASSET = { id: 851, name: 'srv-dc-02', class: 'Asset', status: 0 }
+
+  it.each(['Node', 'AccessPoint', 'Chassis', 'MobileDevice', 'Rack', 'Sensor'])(
+    'offers Link and Unlink on a %s, a class the server links an asset to',
+    (objectClass) => {
+      const ids = organizeIds({ id: 80, name: 'X', class: objectClass }, 'objectTree')
+      expect(ids).toContain('object.organize.linkAsset')
+      expect(ids).toContain('object.organize.unlinkFromAsset')
+      expect(ids).not.toContain('object.organize.linkAssetToObject')
+    },
+  )
+
+  it.each([CONTAINER, INTERFACE, { id: 81, name: 'C', class: 'Cluster' }])(
+    'offers no asset link on a $class',
+    (object) => {
+      const ids = organizeIds(object, 'objectTree')
+      expect(ids).not.toContain('object.organize.linkAsset')
+      expect(ids).not.toContain('object.organize.unlinkFromAsset')
+    },
+  )
+
+  it('offers Link to object and Unlink from object on an asset', () => {
+    const ids = organizeIds(ASSET, 'assetsTree')
+    expect(ids).toContain('object.organize.linkAssetToObject')
+    expect(ids).toContain('object.organize.unlinkAsset')
+    expect(ids).not.toContain('object.organize.linkAsset')
+  })
+
+  it('hides Unlink from object only on an asset known to be unlinked', () => {
+    // Tree rows carry no link fields; the asset document says 0 when it is not linked.
+    expect(organizeIds({ ...ASSET, linkedObjectId: null }, 'assetsTree')).toContain(
+      'object.organize.unlinkAsset',
+    )
+    expect(organizeIds({ ...ASSET, linkedObjectId: 0 }, 'assetsTree')).not.toContain(
+      'object.organize.unlinkAsset',
+    )
+  })
+
+  it('unlinks several assets at once but links only one', () => {
+    const other = { ...ASSET, id: 852, name: 'sw-core-01' }
+    const ids = organizeIds(ASSET, 'assetsTree', [ASSET, other])
+    expect(ids).toContain('object.organize.unlinkAsset')
+    expect(ids).not.toContain('object.organize.linkAssetToObject')
+  })
+
+  it('is hidden for a user without Modify on the object', () => {
+    const effectiveRights = Object.fromEntries(
+      OBJECT_ACCESS_RIGHTS.map((r) => [r.api, r.key === 'READ']),
+    )
+    const readOnly = { ...ASSET, effectiveRights }
+    expect(organizeIds(readOnly, 'assetsTree')).toEqual([])
+  })
+
+  it('dispatches the object, or every selected asset, to the dialogs', () => {
+    const other = { ...ASSET, id: 852, name: 'sw-core-01' }
+    const items = (object, viewContext, selection) =>
+      resolveActions(objectActions, { object, viewContext, selection }).find(
+        (i) => i.id === 'object.organize',
+      ).items
+    const listener = vi.fn()
+    for (const name of ['asset:linkToAsset', 'asset:unlinkFromAsset', 'asset:unlink']) {
+      document.addEventListener(name, listener)
+    }
+
+    const nodeItems = items(NODE, 'objectTree')
+    nodeItems
+      .find((i) => i.id === 'object.organize.linkAsset')
+      .command({ actionContext: { object: NODE } })
+    nodeItems
+      .find((i) => i.id === 'object.organize.unlinkFromAsset')
+      .command({ actionContext: { object: NODE } })
+    items(ASSET, 'assetsTree', [ASSET, other])
+      .find((i) => i.id === 'object.organize.unlinkAsset')
+      .command({ actionContext: { object: ASSET, selection: [ASSET, other] } })
+
+    for (const name of ['asset:linkToAsset', 'asset:unlinkFromAsset', 'asset:unlink']) {
+      document.removeEventListener(name, listener)
+    }
+    const events = listener.mock.calls.map(([event]) => [event.type, event.detail])
+    expect(events).toEqual([
+      ['asset:linkToAsset', { object: NODE }],
+      ['asset:unlinkFromAsset', { object: NODE }],
+      ['asset:unlink', { objects: [ASSET, other] }],
+    ])
+  })
+})
+
 describe('Maintenance submenu', () => {
   const target = { ...NODE, isMaintenanceApplicable: true }
 

@@ -13,6 +13,7 @@ import RenameObjectDialog from '@/components/objects/RenameObjectDialog.vue'
 import EffectiveRightsDialog from '@/components/objects/EffectiveRightsDialog.vue'
 import ScreenshotDialog from '@/components/objects/ScreenshotDialog.vue'
 import InterfaceActionDialogs from '@/components/objects/InterfaceActionDialogs.vue'
+import AssetLinkDialogs from '@/components/objects/AssetLinkDialogs.vue'
 import DeleteWithDciChoiceDialog from '@/components/objects/DeleteWithDciChoiceDialog.vue'
 import ReconnectingToast from '@/components/layout/ReconnectingToast.vue'
 import AlarmToast from '@/components/layout/AlarmToast.vue'
@@ -349,5 +350,6 @@ onUnmounted(() => {
   />
   <!-- Interface actions (DCIs, peer); it mounts its own dialogs only while they are open. -->
   <InterfaceActionDialogs v-if="authStore.isAuthenticated" />
+  <AssetLinkDialogs v-if="authStore.isAuthenticated" />
   <router-view />
 </template>

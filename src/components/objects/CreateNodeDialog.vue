@@ -16,6 +16,7 @@ import CreateDialogShell from '@/components/objects/CreateDialogShell.vue'
 import ObjectPickerInput from '@/components/objects/ObjectPickerInput.vue'
 import { userPrefs } from '@/utils/appStorage'
 import FormField from '@/components/common/FormField.vue'
+import { orderPickerRoots } from '@/utils/objectSelection'
 
 // Node creation flag bits -- see nxcldefs.h NXC_NCF_xxx
 const CF_DISABLE_ICMP = 0x0001
@@ -116,10 +117,9 @@ const { data: rootObjects } = useObjects()
 
 const proxyPerspectives = computed(() => {
   const roots = rootObjects.value ?? []
-  const found = roots
+  const found = orderPickerRoots(roots)
     .filter((o) => PROXY_ROOT_LABELS[o.class])
     .map((o) => ({ id: String(o.id), label: PROXY_ROOT_LABELS[o.class], rootId: o.id }))
-    .sort((a, b) => (a.label === 'Entire Network' ? -1 : b.label === 'Entire Network' ? 1 : 0))
   return found.length ? found : [{ id: '2', label: 'Infrastructure Services', rootId: 2 }]
 })
 

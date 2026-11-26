@@ -34,3 +34,20 @@ export function createClassSelectionFilter(classNames, options = {}) {
     displayFilter: (node) => navigableSet.has(node?.class),
   }
 }
+
+/** Picker tabs lead with the curated Infrastructure tree, then the flat Network one. */
+const LEADING_ROOT_CLASSES = ['ServiceRoot', 'Network']
+
+/**
+ * Root objects in picker tab order: Infrastructure, Network, then the rest as given.
+ *
+ * @param {Array<{ class: string }>} roots
+ * @returns {Array<{ class: string }>}
+ */
+export function orderPickerRoots(roots) {
+  const rank = (root) => {
+    const index = LEADING_ROOT_CLASSES.indexOf(root.class)
+    return index === -1 ? LEADING_ROOT_CLASSES.length : index
+  }
+  return [...roots].sort((a, b) => rank(a) - rank(b))
+}

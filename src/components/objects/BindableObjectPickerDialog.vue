@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import ObjectPickerDialog from './ObjectPickerDialog.vue'
 import { useObjects } from '@/queries/useObjectQueries'
 import { bindableChildClasses } from '@/utils/objectCreationRules'
+import { orderPickerRoots } from '@/utils/objectSelection'
 
 const props = defineProps({
   visible: { type: Boolean, required: true },
@@ -34,7 +35,7 @@ const { data: rootObjects } = useObjects()
 
 const perspectives = computed(() => {
   const roots = rootObjects.value ?? []
-  const found = roots
+  const found = orderPickerRoots(roots)
     .filter((o) => CLASS_PERSPECTIVE_MAP[o.class])
     .map((o) => ({ ...CLASS_PERSPECTIVE_MAP[o.class], rootId: o.id }))
   return found.length ? found : [{ id: 'infrastructure', label: 'Infrastructure', rootId: 2 }]

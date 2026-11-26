@@ -6,12 +6,13 @@ import { assetsBySerial, componentAssetQuery } from '@/utils/nodeInventory'
 import { MODERATE_TIER, STATIC_TIER } from './config'
 
 /** BUILTIN_OID_ASSETROOT: every asset sits below it, so the query runs on assets only. */
-const ASSET_ROOT_ID = 5
+export const ASSET_ROOT_ID = 5
 
 export const nodeInventoryKeys = {
   softwareInventory: (objectId) => ['node-inventory', 'software', toValue(objectId)],
   hardwareInventory: (objectId) => ['node-inventory', 'hardware', toValue(objectId)],
   physicalComponents: (objectId) => ['node-inventory', 'physical-components', toValue(objectId)],
+  componentAssetsAll: () => ['node-inventory', 'component-assets'],
   componentAssets: (objectId) => ['node-inventory', 'component-assets', toValue(objectId)],
   processes: (objectId) => ['node-inventory', 'processes', toValue(objectId)],
   cpuCount: (objectId) => ['node-inventory', 'cpu-count', toValue(objectId)],

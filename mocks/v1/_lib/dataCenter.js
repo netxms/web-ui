@@ -384,7 +384,16 @@ export function objectHandler(req, res) {
   const id = Number(segments(req).at(-1))
   const object = Number.isInteger(id) ? getObject(id) : null
   if (!object) return MOUNTED_BY_ID.has(id) ? mountedObject(MOUNTED_BY_ID.get(id)) : fail(res, 404)
-  return ROUND_TRIP_CLASSES.has(object.class) ? object : getFixtureObject(id)
+  if (ROUND_TRIP_CLASSES.has(object.class)) return object
+  const fixture = getFixtureObject(id)
+  // Asset links read back, as the asset lookups in objects/query.POST.js do; the rest of an
+  // asset keeps its fixture.
+  if (object.class !== 'Asset') return fixture
+  return {
+    ...fixture,
+    linkedObjectId: object.linkedObjectId,
+    componentSerial: object.componentSerial,
+  }
 }
 
 const nonNegative = (value, fallback) => (isInt(value) && value >= 0 ? value : fallback)

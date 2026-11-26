@@ -12,6 +12,7 @@ import SnmpAgentDialog from '@/components/properties/SnmpAgentDialog.vue'
 import CommunicationPanel from '@/components/properties/communication/CommunicationPanel.vue'
 import NodeProtocolPanels from '@/components/properties/communication/NodeProtocolPanels.vue'
 import { useObjects } from '@/queries/useObjectQueries'
+import { orderPickerRoots } from '@/utils/objectSelection'
 import FormField from '@/components/common/FormField.vue'
 import { NODE_WITHOUT_IP, isValidHostName } from '@/utils/nodeCommunication'
 import {
@@ -55,7 +56,7 @@ const PROXY_PERSPECTIVE_MAP = {
 const { data: rootObjects } = useObjects()
 const proxyPerspectives = computed(() => {
   const roots = rootObjects.value ?? []
-  const found = roots
+  const found = orderPickerRoots(roots)
     .filter((o) => PROXY_PERSPECTIVE_MAP[o.class])
     .map((o) => ({ id: String(o.id), label: PROXY_PERSPECTIVE_MAP[o.class], rootId: o.id }))
   return found.length ? found : [{ id: '2', label: 'Infrastructure', rootId: 2 }]

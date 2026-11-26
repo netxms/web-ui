@@ -159,6 +159,20 @@ describe('adaptObject', () => {
     ).toEqual(states)
     expect(adaptObject({ id: 4, class: 'Container', name: 'Group' }).pollStates).toBeNull()
   })
+
+  it('keeps the link of an asset, and leaves it unknown on a summary', () => {
+    const linked = adaptObject({
+      id: 850,
+      class: 'Asset',
+      name: 'srv-dc-01',
+      linkedObjectId: 516,
+      componentSerial: 'CZJ0450ABC',
+    })
+    expect(linked).toMatchObject({ linkedObjectId: 516, componentSerial: 'CZJ0450ABC' })
+    const unlinked = adaptObject({ id: 853, class: 'Asset', name: 's', linkedObjectId: 0 })
+    expect(unlinked).toMatchObject({ linkedObjectId: 0, componentSerial: '' })
+    expect(adaptObject({ id: 853, class: 'Asset', name: 's' }).linkedObjectId).toBeNull()
+  })
 })
 
 describe('adaptObject interface fields', () => {
