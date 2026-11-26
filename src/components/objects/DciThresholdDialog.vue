@@ -141,6 +141,11 @@ function cancel() {
         </FormField>
       </div>
 
+      <p v-if="form.function === 'anomaly'" class="field-hint anomaly-hint">
+        Matches while anomaly detection reports the last value as an anomaly. Needs Detect
+        anomalies in the Anomaly Detection panel of the Processing tab.
+      </p>
+
       <FormField v-if="form.function === 'script'" label="Script" group>
         <NxslScriptEditor
           v-model="form.script"
@@ -252,5 +257,9 @@ function cancel() {
 .field-hint {
   font-size: 0.8125rem;
   color: var(--p-text-muted-color);
+}
+
+.anomaly-hint {
+  margin: 0;
 }
 </style>

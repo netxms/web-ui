@@ -24,7 +24,14 @@ export default function handler(req) {
       req.on('end', () => {
         const patch = JSON.parse(data || '{}')
         const item = list.find((d) => d.id === dciId)
-        resolve({ ...item, ...patch, id: dciId })
+        const result = { ...item, ...patch, id: dciId }
+        // Merge-patch, as the server: the model and other read-only parts survive a save.
+        if (patch.anomalyDetection) {
+          const merged = { ...item?.anomalyDetection, ...patch.anomalyDetection }
+          if (merged.hardBounds === null) delete merged.hardBounds
+          result.anomalyDetection = merged
+        }
+        resolve(result)
       })
     })
   }

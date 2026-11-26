@@ -2,6 +2,7 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import ConfirmDialog from 'primevue/confirmdialog'
+import ConfirmMessage from '@/components/common/ConfirmMessage.vue'
 import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
@@ -314,7 +315,11 @@ onUnmounted(() => {
   <Toast />
   <!-- New-alarm toasts: own outlet, so their position preference does not move other toasts. -->
   <AlarmToast />
-  <ConfirmDialog />
+  <ConfirmDialog>
+    <template #message="{ message }">
+      <ConfirmMessage :options="message" />
+    </template>
+  </ConfirmDialog>
   <ReconnectingToast />
   <!-- Small confirmations for actions with no visible result of their own (see notifyAction). -->
   <ActionFeedbackPill />

@@ -7,6 +7,7 @@
     "description": "CPU Utilization",
     "origin": "nxagent",
     "status": "active",
+    "flags": 1,
     "dataType": "float",
     "transformedDataType": "float",
     "deltaCalculation": "none",
@@ -17,6 +18,7 @@
     "unitName": "%",
     "multiplier": 0,
     "sampleCount": 0,
+    "sampleSaveInterval": 1,
     "hourlyRetention": 0,
     "dailyRetention": 0,
     "systemTag": "",
@@ -32,6 +34,31 @@
     "predictionEngine": "",
     "allThresholdsRearmEvent": 0,
     "aiHint": "",
+    "anomalyDetection": {
+      "sensitivity": 3.5,
+      "direction": "both",
+      "mode": "auto",
+      "minTrainingDays": 7,
+      "provider": {
+        "id": "slot"
+      },
+      "detector": {
+        "id": "cusum",
+        "k": 1.0,
+        "h": 5.0
+      },
+      "enabled": true,
+      "llmTuning": false,
+      "model": {
+        "timestamp": "2026-11-26T03:00:00Z",
+        "mode": "value",
+        "learning": false,
+        "trainingDays": 30,
+        "trainedFrom": "2026-10-20T00:00:00Z",
+        "trainedTo": "2026-11-19T00:00:00Z",
+        "individualWeekdays": false
+      }
+    },
     "aggregationDisabled": false,
     "instanceDiscoveryMethod": "none",
     "instanceDiscoveryData": "",
@@ -81,6 +108,7 @@
     "description": "Free Physical Memory",
     "origin": "nxagent",
     "status": "active",
+    "flags": 1,
     "dataType": "float",
     "transformedDataType": "float",
     "deltaCalculation": "none",
@@ -91,6 +119,7 @@
     "unitName": "%",
     "multiplier": 0,
     "sampleCount": 0,
+    "sampleSaveInterval": 2,
     "hourlyRetention": 0,
     "dailyRetention": 0,
     "systemTag": "",
@@ -106,6 +135,34 @@
     "predictionEngine": "",
     "allThresholdsRearmEvent": 0,
     "aiHint": "",
+    "anomalyDetection": {
+      "sensitivity": 3.5,
+      "direction": "both",
+      "mode": "auto",
+      "minTrainingDays": 7,
+      "provider": {
+        "id": "slot"
+      },
+      "detector": {
+        "id": "cusum",
+        "k": 1.0,
+        "h": 5.0
+      },
+      "enabled": true,
+      "llmTuning": false,
+      "trainingIssues": [
+        "sparseSamples"
+      ],
+      "model": {
+        "timestamp": "2026-11-26T03:00:00Z",
+        "mode": "value",
+        "learning": true,
+        "trainingDays": 3,
+        "trainedFrom": "2026-11-23T00:00:00Z",
+        "trainedTo": "2026-11-26T00:00:00Z",
+        "individualWeekdays": false
+      }
+    },
     "aggregationDisabled": false,
     "instanceDiscoveryMethod": "none",
     "instanceDiscoveryData": "",
@@ -141,6 +198,7 @@
     "description": "Interface eth0 - Bytes In",
     "origin": "snmp",
     "status": "active",
+    "flags": 0,
     "dataType": "counter64",
     "transformedDataType": "uint64",
     "deltaCalculation": "averagePerSecond",
@@ -151,6 +209,7 @@
     "unitName": "B/s",
     "multiplier": 0,
     "sampleCount": 0,
+    "sampleSaveInterval": 1,
     "hourlyRetention": 0,
     "dailyRetention": 0,
     "systemTag": "",
@@ -166,6 +225,22 @@
     "predictionEngine": "",
     "allThresholdsRearmEvent": 0,
     "aiHint": "",
+    "anomalyDetection": {
+      "sensitivity": 3.5,
+      "direction": "both",
+      "mode": "auto",
+      "minTrainingDays": 7,
+      "provider": {
+        "id": "slot"
+      },
+      "detector": {
+        "id": "cusum",
+        "k": 1.0,
+        "h": 5.0
+      },
+      "enabled": false,
+      "llmTuning": false
+    },
     "aggregationDisabled": false,
     "instanceDiscoveryMethod": "none",
     "instanceDiscoveryData": "",
@@ -187,6 +262,7 @@
     "description": "Root Filesystem Usage",
     "origin": "nxagent",
     "status": "disabled",
+    "flags": 1,
     "dataType": "float",
     "transformedDataType": "float",
     "deltaCalculation": "none",
@@ -197,6 +273,7 @@
     "unitName": "%",
     "multiplier": 0,
     "sampleCount": 0,
+    "sampleSaveInterval": 1,
     "hourlyRetention": 0,
     "dailyRetention": 0,
     "systemTag": "",
@@ -212,6 +289,34 @@
     "predictionEngine": "",
     "allThresholdsRearmEvent": 0,
     "aiHint": "",
+    "anomalyDetection": {
+      "sensitivity": 3.5,
+      "direction": "both",
+      "mode": "auto",
+      "minTrainingDays": 7,
+      "provider": {
+        "id": "slot"
+      },
+      "detector": {
+        "id": "cusum",
+        "k": 1.0,
+        "h": 5.0
+      },
+      "enabled": true,
+      "llmTuning": false,
+      "hardBounds": {
+        "max": 95.0
+      },
+      "model": {
+        "timestamp": "2026-11-26T03:00:00Z",
+        "mode": "value",
+        "learning": false,
+        "trainingDays": 21,
+        "trainedFrom": "2026-10-29T00:00:00Z",
+        "trainedTo": "2026-11-19T00:00:00Z",
+        "individualWeekdays": true
+      }
+    },
     "aggregationDisabled": false,
     "instanceDiscoveryMethod": "none",
     "instanceDiscoveryData": "",
@@ -234,6 +339,20 @@
         "regenerateOnValueChange": false,
         "disabled": false,
         "script": ""
+      },
+      {
+        "id": 402,
+        "function": "anomaly",
+        "condition": "equal",
+        "value": "",
+        "sampleCount": 2,
+        "deactivationSampleCount": 2,
+        "activationEvent": "SYS_THRESHOLD_REACHED",
+        "deactivationEvent": "SYS_THRESHOLD_REARMED",
+        "repeatInterval": -1,
+        "regenerateOnValueChange": false,
+        "disabled": false,
+        "script": ""
       }
     ],
     "templateId": 901,
@@ -247,6 +366,7 @@
     "description": "eth0 - Inbound Traffic",
     "origin": "nxagent",
     "status": "active",
+    "flags": 513,
     "dataType": "uint64",
     "transformedDataType": "uint64",
     "deltaCalculation": "averagePerSecond",
@@ -257,6 +377,7 @@
     "unitName": "B/s",
     "multiplier": 0,
     "sampleCount": 0,
+    "sampleSaveInterval": 1,
     "hourlyRetention": 0,
     "dailyRetention": 0,
     "systemTag": "",
@@ -272,6 +393,41 @@
     "predictionEngine": "",
     "allThresholdsRearmEvent": 0,
     "aiHint": "",
+    "anomalyDetection": {
+      "sensitivity": 3.5,
+      "direction": "both",
+      "mode": "auto",
+      "minTrainingDays": 7,
+      "provider": {
+        "id": "slot"
+      },
+      "detector": {
+        "id": "cusum",
+        "k": 1.0,
+        "h": 5.0
+      },
+      "enabled": true,
+      "llmTuning": true,
+      "baselineStart": "2026-11-02T14:00:00Z",
+      "tuning": {
+        "generatedAt": 1795676400,
+        "sensitivity": 4.5,
+        "direction": "up",
+        "mode": "rate",
+        "hardBounds": {
+          "min": 0.0
+        }
+      },
+      "model": {
+        "timestamp": "2026-11-26T03:00:00Z",
+        "mode": "rate",
+        "learning": false,
+        "trainingDays": 17,
+        "trainedFrom": "2026-11-02T14:00:00Z",
+        "trainedTo": "2026-11-19T00:00:00Z",
+        "individualWeekdays": false
+      }
+    },
     "aggregationDisabled": false,
     "instanceDiscoveryMethod": "none",
     "instanceDiscoveryData": "",

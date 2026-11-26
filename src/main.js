@@ -2,11 +2,11 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import PrimeVue from 'primevue/config'
-import ConfirmationService from 'primevue/confirmationservice'
 import ToastService from 'primevue/toastservice'
 import Tooltip from 'primevue/tooltip'
 import { THEMES, DEFAULT_THEME_ID, applyThemeVars, resolveThemeId } from '@/themes'
 import { userPrefs } from '@/utils/appStorage'
+import { AppConfirmationService } from '@/utils/confirmationService'
 
 import App from './App.vue'
 import router from './router'
@@ -39,7 +39,7 @@ app.use(PrimeVue, {
     },
   },
 })
-app.use(ConfirmationService)
+app.use(AppConfirmationService)
 app.use(ToastService)
 
 app.directive('tooltip', Tooltip)

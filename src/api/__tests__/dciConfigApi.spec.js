@@ -14,8 +14,14 @@ vi.mock('@/stores/authStore', () => ({
   useAuthStore: () => ({ sessionGuid: 'test-session', logout: vi.fn() }),
 }))
 
-const { listDciConfig, getDciConfig, createDci, updateDci, getAvailableMetrics } =
-  await import('../dciConfigApi')
+const {
+  listDciConfig,
+  getDciConfig,
+  createDci,
+  updateDci,
+  getAvailableMetrics,
+  regenerateAnomalyProfile,
+} = await import('../dciConfigApi')
 
 beforeEach(() => {
   get.mockReset()
@@ -75,5 +81,47 @@ describe('agent origin across the rename', () => {
     patch.mockResolvedValueOnce({ id: 9, origin: 'agent', status: 'disabled' })
     await updateDci(7, 9, { status: 'disabled' })
     expect(patch.mock.calls[0][1]).toEqual({ status: 'disabled' })
+  })
+})
+
+describe('anomaly detection', () => {
+  it('writes the editable settings with flag bits that agree', async () => {
+    patch.mockResolvedValueOnce({ id: 9 })
+    await updateDci(7, 9, {
+      type: 'item',
+      origin: 'agent',
+      flags: 0x1,
+      anomalyDetection: {
+        enabled: false,
+        llmTuning: true,
+        sensitivity: 3.5,
+        direction: 'up',
+        mode: 'rate',
+        minTrainingDays: 7,
+        detector: { id: 'cusum', k: 1, h: 5 },
+        model: { learning: true },
+      },
+    })
+    expect(patch.mock.calls[0][1]).toEqual({
+      type: 'item',
+      origin: 1,
+      flags: 0,
+      anomalyDetection: {
+        enabled: false,
+        llmTuning: false,
+        sensitivity: 3.5,
+        direction: 'up',
+        mode: 'rate',
+        minTrainingDays: 7,
+      },
+    })
+  })
+
+  it('posts a profile regeneration to the item', async () => {
+    post.mockResolvedValueOnce(null)
+    await regenerateAnomalyProfile(7, 9)
+    expect(post).toHaveBeenCalledWith(
+      '/v1/objects/7/data-collection/configuration/9/regenerate-anomaly-profile',
+    )
   })
 })

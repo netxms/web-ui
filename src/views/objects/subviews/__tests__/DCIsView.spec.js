@@ -33,8 +33,9 @@ vi.mock('@/router', () => ({
   default: { resolve: () => ({ href: '/' }), push: vi.fn(), replace: vi.fn() },
 }))
 
+const confirmRequire = vi.fn()
 vi.mock('primevue/useconfirm', () => ({
-  useConfirm: () => ({ require: vi.fn() }),
+  useConfirm: () => ({ require: (...args) => confirmRequire(...args) }),
 }))
 
 vi.mock('@/composables/useEntityDetail', async () => {
@@ -113,6 +114,7 @@ const values = [
 ]
 
 const prefetchDciHistory = vi.fn()
+const regenerateProfile = vi.fn()
 // Swapped by a test; the view reads them through the query mocks.
 const liveValues = ref(values)
 const knownObjects = ref(new Map())
@@ -185,6 +187,7 @@ vi.mock('@/queries/useDciConfigQueries', () => ({
   },
   useUpdateDci: () => ({ mutate: vi.fn() }),
   useDeleteDci: () => ({ mutate: vi.fn() }),
+  useRegenerateAnomalyProfile: () => ({ mutateAsync: (...args) => regenerateProfile(...args) }),
 }))
 
 vi.mock('@/queries/useMappingTableQueries', () => ({
@@ -254,6 +257,8 @@ beforeEach(() => {
   entityIdForTest.value = null
   routerPush.mockClear()
   prefetchDciHistory.mockClear()
+  confirmRequire.mockClear()
+  regenerateProfile.mockReset()
   liveValues.value = values
   knownObjects.value = new Map()
   configListOptions = null
@@ -804,5 +809,92 @@ describe('DCIsView group by', () => {
       .findAllComponents({ name: 'AppLink' })
       .find((c) => c.text() === 'eth0')
     expect(Object.values(link.props('to').params)).toContain(55)
+  })
+})
+
+describe('DCIsView anomaly detection', () => {
+  const anomalous = {
+    id: 1218,
+    description: 'E: load average',
+    name: 'System.CPU.LoadAvg',
+    dataType: 5,
+    status: 0,
+    value: '9.5',
+    timestamp: iso(nowSeconds - 60),
+    templateItemId: 0,
+    anomalyDetected: true,
+    anomaly: { learning: false, type: 'range', mode: 'value', expectedLow: 1, expectedHigh: 2 },
+  }
+  const liveRow = (wrapper, description) =>
+    dataRows(wrapper).find((r) => r.text().includes(description))
+  const rowFor = (wrapper, id) =>
+    wrapper.findAll('tbody tr').find((r) => r.find('td').text() === String(id))
+  const menuLabels = (wrapper) => wrapper.findAll('.ctx-item').map((b) => b.text())
+  const REGENERATE = 'Regenerate anomaly profile'
+
+  it('marks a row whose last value is an anomaly', async () => {
+    liveValues.value = [...values, anomalous]
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(liveRow(wrapper, 'E: load average').classes()).toContain('dci-row-anomaly')
+    expect(liveRow(wrapper, 'A: free space').classes()).not.toContain('dci-row-anomaly')
+  })
+
+  it('regenerates the profile of a Live Data row with detection on, after confirming', async () => {
+    liveValues.value = [...values, anomalous]
+    const wrapper = mountView()
+    await flushPromises()
+
+    await liveRow(wrapper, 'A: free space').trigger('contextmenu')
+    expect(menuLabels(wrapper)).not.toContain(REGENERATE)
+
+    await liveRow(wrapper, 'E: load average').trigger('contextmenu')
+    await wrapper
+      .findAll('.ctx-item')
+      .find((b) => b.text() === REGENERATE)
+      .trigger('click')
+    expect(regenerateProfile).not.toHaveBeenCalled()
+    expect(confirmRequire.mock.calls[0][0]).toMatchObject({
+      message: 'Start a new anomaly baseline for',
+      subject: 'E: load average',
+    })
+    await confirmRequire.mock.calls[0][0].accept()
+    expect(regenerateProfile).toHaveBeenCalledWith({ objectId: 100, dciIds: [1218] })
+  })
+
+  describe('in Configuration', () => {
+    const enabled = {
+      ...configList[0],
+      id: 1219,
+      description: 'F: trained',
+      anomalyDetection: { enabled: true },
+    }
+    beforeEach(() => configList.push(enabled))
+    afterEach(() => configList.splice(configList.indexOf(enabled), 1))
+
+    async function configMenu(object) {
+      const wrapper = mountView(object && { object })
+      await flushPromises()
+      const button = wrapper.findAll('button').find((b) => b.text() === 'Configuration')
+      if (button) await button.trigger('click')
+      await flushPromises()
+      return wrapper
+    }
+
+    it('offers it for items with detection on', async () => {
+      const wrapper = await configMenu()
+      await rowFor(wrapper, 1214).trigger('contextmenu')
+      expect(menuLabels(wrapper)).not.toContain(REGENERATE)
+      await rowFor(wrapper, 1219).trigger('contextmenu')
+      expect(menuLabels(wrapper)).toContain(REGENERATE)
+    })
+
+    it('does not offer it on a template, whose items are never trained', async () => {
+      const wrapper = await configMenu({ id: 300, class: 'Template', name: 'template' })
+      await rowFor(wrapper, 1219).trigger('contextmenu')
+      expect(menuLabels(wrapper)).toContain('Delete')
+      expect(menuLabels(wrapper)).not.toContain(REGENERATE)
+    })
   })
 })

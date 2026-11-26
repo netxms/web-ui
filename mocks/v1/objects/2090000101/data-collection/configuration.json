@@ -32,6 +32,22 @@
     "predictionEngine": "",
     "allThresholdsRearmEvent": 0,
     "aiHint": "",
+    "anomalyDetection": {
+      "sensitivity": 3.5,
+      "direction": "both",
+      "mode": "auto",
+      "minTrainingDays": 7,
+      "provider": {
+        "id": "slot"
+      },
+      "detector": {
+        "id": "cusum",
+        "k": 1.0,
+        "h": 5.0
+      },
+      "enabled": false,
+      "llmTuning": false
+    },
     "aggregationDisabled": false,
     "instanceDiscoveryMethod": "none",
     "instanceDiscoveryData": "",
@@ -77,6 +93,22 @@
     "predictionEngine": "",
     "allThresholdsRearmEvent": 0,
     "aiHint": "",
+    "anomalyDetection": {
+      "sensitivity": 3.5,
+      "direction": "both",
+      "mode": "auto",
+      "minTrainingDays": 7,
+      "provider": {
+        "id": "slot"
+      },
+      "detector": {
+        "id": "cusum",
+        "k": 1.0,
+        "h": 5.0
+      },
+      "enabled": false,
+      "llmTuning": false
+    },
     "aggregationDisabled": false,
     "instanceDiscoveryMethod": "none",
     "instanceDiscoveryData": "",
@@ -122,6 +154,22 @@
     "predictionEngine": "",
     "allThresholdsRearmEvent": 0,
     "aiHint": "",
+    "anomalyDetection": {
+      "sensitivity": 3.5,
+      "direction": "both",
+      "mode": "auto",
+      "minTrainingDays": 7,
+      "provider": {
+        "id": "slot"
+      },
+      "detector": {
+        "id": "cusum",
+        "k": 1.0,
+        "h": 5.0
+      },
+      "enabled": false,
+      "llmTuning": false
+    },
     "aggregationDisabled": false,
     "instanceDiscoveryMethod": "none",
     "instanceDiscoveryData": "",
@@ -167,6 +215,22 @@
     "predictionEngine": "",
     "allThresholdsRearmEvent": 0,
     "aiHint": "",
+    "anomalyDetection": {
+      "sensitivity": 3.5,
+      "direction": "both",
+      "mode": "auto",
+      "minTrainingDays": 7,
+      "provider": {
+        "id": "slot"
+      },
+      "detector": {
+        "id": "cusum",
+        "k": 1.0,
+        "h": 5.0
+      },
+      "enabled": false,
+      "llmTuning": false
+    },
     "aggregationDisabled": false,
     "instanceDiscoveryMethod": "none",
     "instanceDiscoveryData": "",

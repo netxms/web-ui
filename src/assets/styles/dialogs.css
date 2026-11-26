@@ -12,6 +12,16 @@
   border: none !important;
 }
 
+/* No dialog runs off a narrow window; widths set per dialog still apply below that. */
+.p-dialog:not(.p-dialog-maximized) {
+  max-width: calc(100vw - 2rem);
+}
+
+/* A confirmation sizes to its message, so a long one would stretch across the screen. */
+.p-dialog.p-confirmdialog {
+  max-width: min(32rem, calc(100vw - 2rem));
+}
+
 .p-dialog .p-dialog-title {
   font-weight: 600;
 }

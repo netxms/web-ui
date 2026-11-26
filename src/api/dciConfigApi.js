@@ -1,5 +1,6 @@
 import { get, post, patch, del } from './client'
 import { dciOriginForWrite, dciOriginName } from '@/utils/dciCodes'
+import { serializeAnomalyDetection } from '@/utils/dciAnomaly'
 
 const base = (objectId) => `/v1/objects/${objectId}/data-collection/configuration`
 
@@ -8,9 +9,15 @@ function adaptDciConfig(config) {
   return config?.origin == null ? config : { ...config, origin: dciOriginName(config.origin) }
 }
 
-/** A DCI configuration (or merge-patch) as written; see `dciOriginForWrite`. */
+/**
+ * A DCI configuration (or merge-patch) as written; see `dciOriginForWrite` and
+ * `serializeAnomalyDetection`.
+ */
 function serializeDciConfig(data) {
-  return data?.origin == null ? data : { ...data, origin: dciOriginForWrite(data.origin) }
+  const written = serializeAnomalyDetection(data)
+  return written?.origin == null
+    ? written
+    : { ...written, origin: dciOriginForWrite(written.origin) }
 }
 
 export async function listDciConfig(objectId) {
@@ -32,6 +39,11 @@ export async function updateDci(objectId, dciId, data) {
 
 export function deleteDci(objectId, dciId) {
   return del(`${base(objectId)}/${dciId}`)
+}
+
+/** Answers 202 and trains in the background; 400 when detection is off or on a template. */
+export function regenerateAnomalyProfile(objectId, dciId) {
+  return post(`${base(objectId)}/${dciId}/regenerate-anomaly-profile`)
 }
 
 /**

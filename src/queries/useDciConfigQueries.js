@@ -4,6 +4,7 @@ import * as dciConfigApi from '@/api/dciConfigApi'
 import * as objectsApi from '@/api/objectsApi'
 import { dciSource, resolveDciSourceRoot } from '@/utils/dciSource'
 import { MODERATE_TIER, NO_RETRY_STATUSES, STATIC_TIER } from './config'
+import { objectKeys } from './useObjectQueries'
 
 export const dciConfigKeys = {
   all: (objectId) => ['dci-config', objectId],
@@ -123,6 +124,20 @@ export function useUpdateDci() {
     mutationFn: ({ objectId, dciId, data }) => dciConfigApi.updateDci(objectId, dciId, data),
     onSuccess: (_, { objectId }) =>
       queryClient.invalidateQueries({ queryKey: dciConfigKeys.all(objectId) }),
+  })
+}
+
+/** One request per DCI, in turn; the profiles are rebuilt in the background. */
+export function useRegenerateAnomalyProfile() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ objectId, dciIds }) => {
+      for (const dciId of dciIds) await dciConfigApi.regenerateAnomalyProfile(objectId, dciId)
+    },
+    onSettled: (_, __, { objectId }) => {
+      queryClient.invalidateQueries({ queryKey: dciConfigKeys.all(objectId) })
+      queryClient.invalidateQueries({ queryKey: objectKeys.dciCurrentValues(objectId) })
+    },
   })
 }
 

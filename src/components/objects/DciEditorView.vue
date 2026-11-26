@@ -19,6 +19,7 @@ import DciOtherOptionsTab from './tabs/DciOtherOptionsTab.vue'
 import DciClassificationTab from './tabs/DciClassificationTab.vue'
 import DciAccessControlTab from './tabs/DciAccessControlTab.vue'
 import { useDciConfig, useCreateDci, useUpdateDci } from '@/queries/useDciConfigQueries'
+import { defaultAnomalyDetection } from '@/utils/dciAnomaly'
 
 const props = defineProps({
   objectId: { type: Number, required: true },
@@ -87,6 +88,7 @@ function emptyForm() {
     predictionEngine: '',
     allThresholdsRearmEvent: 0,
     aiHint: '',
+    anomalyDetection: defaultAnomalyDetection(),
     aggregationDisabled: false,
     instanceDiscoveryMethod: 'none',
     instanceDiscoveryData: '',
@@ -249,6 +251,7 @@ watch(dciType, (type) => {
         <TabPanel value="processing">
           <DciProcessingTab
             :form="form"
+            :saved="isCreate ? null : original"
             :dci-type="dciType"
             :object-id="objectId"
             :owner-object="ownerObject"

@@ -17,6 +17,10 @@ window.matchMedia =
     removeListener: () => {},
   }))
 
+vi.mock('@/composables/useServerComponents', () => ({
+  useServerComponents: () => ({ has: () => false }),
+}))
+
 vi.mock('@/queries/useObjectQueries', async () => {
   const { computed } = await import('vue')
   return { useObjectsByIds: () => ({ objectsById: computed(() => new Map()) }) }

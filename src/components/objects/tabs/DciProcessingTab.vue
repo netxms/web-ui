@@ -7,6 +7,7 @@ import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import DatePicker from 'primevue/datepicker'
 import Tag from 'primevue/tag'
+import Message from 'primevue/message'
 import NxslScriptEditor from '@/components/common/NxslScriptEditor.vue'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -20,11 +21,24 @@ import DciThresholdDialog from '../DciThresholdDialog.vue'
 import { useDciFlags } from '@/composables/useDciFlags'
 import { useObjectsByIds } from '@/queries/useObjectQueries'
 import { thresholdFunctionLabel, thresholdConditionLabel } from '@/utils/dciThresholdUtils'
+import {
+  ANOMALY_DIRECTION_OPTIONS,
+  ANOMALY_MODE_OPTIONS,
+  anomalyModelStatus,
+  anomalyTrainingWarnings,
+  anomalyTuningSummary,
+  hardBoundsError,
+  hasAnomalySettings,
+} from '@/utils/dciAnomaly'
+import { useServerComponents } from '@/composables/useServerComponents'
+import { SERVER_COMPONENTS } from '@/config/serverComponents'
 import FormField from '@/components/common/FormField.vue'
 
 /* eslint-disable vue/no-mutating-props */
 const props = defineProps({
   form: { type: Object, required: true },
+  /** The configuration as last read; null for a new DCI. */
+  saved: { type: Object, default: null },
   dciType: { type: String, default: 'item' },
   /** Node or template. */
   objectId: { type: Number, default: null },
@@ -38,7 +52,49 @@ const fromInstanceDiscovery = computed(
   () => props.objectId != null && props.form.templateId === props.objectId,
 )
 
-const openPanels = ref(['thresholds'])
+const hasAnomalyObject = computed(() => hasAnomalySettings(props.form))
+const anomaly = computed(() => props.form.anomalyDetection)
+const savedAnomaly = computed(() => props.saved?.anomalyDetection ?? null)
+const anomalyOn = computed(() =>
+  hasAnomalyObject.value ? anomaly.value.enabled === true : flags.detectAnomalies.value,
+)
+
+const { has: hasServerComponent } = useServerComponents()
+// Kept while on, so it can still be turned off once the assistant is gone.
+const showAiTuning = computed(
+  () =>
+    hasServerComponent(SERVER_COMPONENTS.AI_ASSISTANT) || savedAnomaly.value?.llmTuning === true,
+)
+
+function setAnomalyEnabled(on) {
+  anomaly.value.enabled = on
+  if (!on) anomaly.value.llmTuning = false
+}
+
+function setHardBound(side, value) {
+  const next = { ...anomaly.value.hardBounds, [side]: value ?? null }
+  for (const key of ['min', 'max']) if (next[key] == null) delete next[key]
+  if (Object.keys(next).length) {
+    anomaly.value.hardBounds = next
+  } else if (savedAnomaly.value?.hardBounds != null) {
+    anomaly.value.hardBounds = null
+  } else {
+    // Never set and still empty: leaves the form clean.
+    delete anomaly.value.hardBounds
+  }
+}
+
+const anomalyWarnings = computed(() =>
+  hasAnomalyObject.value && anomalyOn.value ? anomalyTrainingWarnings(props.form, props.saved) : [],
+)
+const anomalyTuningText = computed(() =>
+  anomaly.value?.llmTuning ? anomalyTuningSummary(savedAnomaly.value?.tuning) : null,
+)
+const anomalyModelText = computed(() =>
+  savedAnomaly.value?.enabled && anomalyOn.value ? anomalyModelStatus(savedAnomaly.value) : null,
+)
+
+const openPanels = ref(['thresholds', ...(anomalyOn.value ? ['anomaly'] : [])])
 
 const DELTA_OPTIONS = [
   { value: 'none', label: 'None' },
@@ -195,18 +251,6 @@ const clusterResourceOptions = computed(() => {
             </FormField>
             <div class="threshold-option">
               <Checkbox
-                v-model="flags.detectAnomaliesIsolationForest.value"
-                input-id="anomaly-if"
-                binary
-              />
-              <label for="anomaly-if">Detect anomalies using isolation forest algorithm</label>
-            </div>
-            <div class="threshold-option">
-              <Checkbox v-model="flags.detectAnomaliesAI.value" input-id="anomaly-ai" binary />
-              <label for="anomaly-ai">Detect anomalies using AI</label>
-            </div>
-            <div class="threshold-option">
-              <Checkbox
                 v-model="flags.processAllThresholds.value"
                 input-id="all-thresholds"
                 binary
@@ -330,6 +374,153 @@ const clusterResourceOptions = computed(() => {
                 >
               </div>
             </FormField>
+          </div>
+        </AccordionContent>
+      </AccordionPanel>
+
+      <AccordionPanel v-if="dciType === 'item'" value="anomaly">
+        <AccordionHeader><span class="panel-title">Anomaly Detection</span></AccordionHeader>
+        <AccordionContent>
+          <div class="accordion-form">
+            <template v-if="hasAnomalyObject">
+              <div class="checkbox-row">
+                <Checkbox
+                  :model-value="anomaly.enabled"
+                  input-id="anomaly-enabled"
+                  binary
+                  @update:model-value="setAnomalyEnabled"
+                />
+                <label for="anomaly-enabled">Detect anomalies</label>
+              </div>
+              <div v-if="showAiTuning" class="checkbox-row">
+                <Checkbox
+                  v-model="anomaly.llmTuning"
+                  input-id="anomaly-llm-tuning"
+                  binary
+                  :disabled="!anomaly.enabled"
+                />
+                <label for="anomaly-llm-tuning">Tune settings using AI</label>
+              </div>
+              <Message
+                v-if="anomalyWarnings.length"
+                severity="warn"
+                size="small"
+                :closable="false"
+                class="anomaly-warning"
+              >
+                <p v-for="w in anomalyWarnings" :key="w.id" class="anomaly-warning-line">
+                  {{ w.text }}
+                </p>
+              </Message>
+              <FormField label="Sensitivity" v-slot="{ id }">
+                <div class="field-with-hint">
+                  <InputNumber
+                    v-model="anomaly.sensitivity"
+                    :input-id="id"
+                    :min="0.1"
+                    :max="100"
+                    :min-fraction-digits="1"
+                    :max-fraction-digits="2"
+                    placeholder="3.5"
+                    :disabled="!anomaly.enabled"
+                    class="form-input-sm"
+                  />
+                  <span class="field-hint-inline"
+                    >Standard deviations from the expected value that are still normal; lower
+                    is more sensitive</span
+                  >
+                </div>
+              </FormField>
+              <FormField label="Report Deviations" v-slot="{ id }">
+                <Select
+                  v-model="anomaly.direction"
+                  :input-id="id"
+                  :options="ANOMALY_DIRECTION_OPTIONS"
+                  option-label="label"
+                  option-value="value"
+                  :disabled="!anomaly.enabled"
+                  class="form-input-md"
+                />
+              </FormField>
+              <FormField label="Analyze" v-slot="{ id }">
+                <Select
+                  v-model="anomaly.mode"
+                  :input-id="id"
+                  :options="ANOMALY_MODE_OPTIONS"
+                  option-label="label"
+                  option-value="value"
+                  :disabled="!anomaly.enabled"
+                  class="form-input-md"
+                />
+              </FormField>
+              <FormField label="Training Days" v-slot="{ id }">
+                <div class="field-with-hint">
+                  <InputNumber
+                    v-model="anomaly.minTrainingDays"
+                    :input-id="id"
+                    :min="1"
+                    :max="365"
+                    suffix=" days"
+                    placeholder="7"
+                    :disabled="!anomaly.enabled"
+                    class="form-input-sm"
+                  />
+                  <span class="field-hint-inline"
+                    >Minimum days with data before anomalies are reported</span
+                  >
+                </div>
+              </FormField>
+              <FormField label="Hard Bounds" group :error="hardBoundsError(anomaly.hardBounds)">
+                <div class="field-with-hint">
+                  <div class="inline-fields">
+                    <InputNumber
+                      :model-value="anomaly.hardBounds?.min ?? null"
+                      :max-fraction-digits="6"
+                      :use-grouping="false"
+                      placeholder="Minimum"
+                      aria-label="Hard bound minimum"
+                      :disabled="!anomaly.enabled"
+                      class="form-input-sm"
+                      @update:model-value="setHardBound('min', $event)"
+                    />
+                    <span class="bounds-separator">..</span>
+                    <InputNumber
+                      :model-value="anomaly.hardBounds?.max ?? null"
+                      :max-fraction-digits="6"
+                      :use-grouping="false"
+                      placeholder="Maximum"
+                      aria-label="Hard bound maximum"
+                      :disabled="!anomaly.enabled"
+                      class="form-input-sm"
+                      @update:model-value="setHardBound('max', $event)"
+                    />
+                  </div>
+                  <span class="field-hint-inline"
+                    >Values outside them are anomalies, also while the model is learning. Empty
+                    for no bound.</span
+                  >
+                </div>
+              </FormField>
+              <FormField v-if="anomalyTuningText" label="AI Suggestion" group>
+                <span class="readonly-text"
+                  >{{ anomalyTuningText }}; used instead of the settings above</span
+                >
+              </FormField>
+              <FormField v-if="anomalyModelText" label="Model" group>
+                <span class="readonly-text">{{ anomalyModelText }}</span>
+              </FormField>
+            </template>
+            <template v-else>
+              <div class="checkbox-row">
+                <Checkbox
+                  v-model="flags.detectAnomalies.value"
+                  input-id="anomaly-enabled"
+                  binary
+                />
+                <label for="anomaly-enabled">Detect anomalies</label>
+              </div>
+              <p class="field-note">Anomaly detection settings need a newer server.</p>
+            </template>
           </div>
         </AccordionContent>
       </AccordionPanel>
@@ -638,6 +829,30 @@ const clusterResourceOptions = computed(() => {
   flex-direction: column;
   gap: 0.25rem;
   flex: 1;
+}
+
+.field-with-hint {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.bounds-separator {
+  color: var(--p-text-muted-color);
+}
+
+.anomaly-warning {
+  margin: 0.5rem 0;
+}
+
+.anomaly-warning-line {
+  margin: 0;
+}
+
+.readonly-text {
+  font-size: 0.8125rem;
+  line-height: 1.4;
 }
 
 .field-hint-inline {

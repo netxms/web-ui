@@ -23,7 +23,12 @@ import {
   useObjectsByIds,
   usePrefetchDciHistory,
 } from '@/queries/useObjectQueries'
-import { useDciConfigList, useUpdateDci, useDeleteDci } from '@/queries/useDciConfigQueries'
+import {
+  useDciConfigList,
+  useUpdateDci,
+  useDeleteDci,
+  useRegenerateAnomalyProfile,
+} from '@/queries/useDciConfigQueries'
 import { useDciValueMapping } from '@/queries/useMappingTableQueries'
 import { useEntityDetail } from '@/composables/useEntityDetail'
 import { useWorkingState } from '@/composables/useWorkingState'
@@ -37,6 +42,11 @@ import { PREVIEW_RANGE_SECONDS, previewWindowEnd } from '@/utils/dciHistoryPrevi
 import { liveThresholdInfo, thresholdExpressionLabel } from '@/utils/dciThresholdUtils'
 import { dciSource, isTemplateItem } from '@/utils/dciSource'
 import {
+  anomalyCellInfo,
+  hasConfiguredAnomalyDetection,
+  hasLiveAnomalyDetection,
+} from '@/utils/dciAnomaly'
+import {
   DCI_GROUP_MODES,
   SOURCE_GROUP_MODES,
   dciGroupObjectIds,
@@ -45,7 +55,7 @@ import {
 } from '@/utils/dciGrouping'
 import { objectTarget, dciTarget } from '@/utils/routeTargets'
 import { resolveHref, isPlainLeftClick } from '@/utils/navigation'
-import { notify } from '@/utils/notify'
+import { notify, notifyAction } from '@/utils/notify'
 import {
   DCI_TARGET_CLASSES,
   getDciStatusInfo,
@@ -164,6 +174,7 @@ const configById = computed(
 
 const updateDci = useUpdateDci()
 const deleteDci = useDeleteDci()
+const regenerateAnomalyProfile = useRegenerateAnomalyProfile()
 const confirm = useConfirm()
 
 const { entityId, isDetailView, detailTarget, openDetail, closeDetail } = useEntityDetail()
@@ -223,6 +234,7 @@ const LIVE_COLUMNS = [
   { id: 'message', field: null, label: 'Message', width: 260 },
   { id: 'tag', field: 'userTag', label: 'Tag', sortable: true, width: 110 },
   { id: 'comments', field: 'comments', label: 'Comments', width: 220 },
+  { id: 'anomaly', field: '_anomalyRank', label: 'Anomaly Detection', sortable: true, width: 260 },
 ]
 
 const CONFIG_COLUMNS = [
@@ -275,6 +287,7 @@ const dciValues = computed(() => {
   const raw = dciCurrentValues.value?.values ?? []
   return raw.map((dci) => {
     const threshold = liveThresholdInfo(dci)
+    const anomaly = anomalyCellInfo(dci)
     return {
       ...dci,
       mappedValue: mappedValue(dci),
@@ -283,6 +296,8 @@ const dciValues = computed(() => {
       _threshold: threshold,
       // Fired thresholds above suspended ones, worst severity first.
       _thresholdRank: !threshold ? 0 : threshold.kind === 'disabled' ? 1 : 2 + threshold.severity,
+      _anomaly: anomaly,
+      _anomalyRank: anomaly.rank,
     }
   })
 })
@@ -465,6 +480,40 @@ function confirmDeleteDci(dci) {
     acceptLabel: 'Delete',
     rejectLabel: 'Cancel',
     accept: () => deleteDci.mutate({ objectId: objectId.value, dciId: dci.id }),
+  })
+}
+
+function confirmRegenerateAnomalyProfile(dcis) {
+  const single = dcis.length === 1
+  confirm.require({
+    header: 'Regenerate Anomaly Profile',
+    message: single
+      ? 'Start a new anomaly baseline for'
+      : `Start a new anomaly baseline for ${dcis.length} data collection items?`,
+    subject: single ? dcis[0].description || dcis[0].name : undefined,
+    details: [
+      'Data from before the current level shift (or before now, if there is none) is no longer used for learning.',
+      'Anomalies are not reported until enough new data is collected.',
+    ],
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: 'Regenerate',
+    rejectLabel: 'Cancel',
+    accept: async () => {
+      try {
+        await regenerateAnomalyProfile.mutateAsync({
+          objectId: objectId.value,
+          dciIds: dcis.map((dci) => dci.id),
+        })
+        notifyAction('Anomaly profile regeneration started', 'pi pi-refresh')
+      } catch (err) {
+        notify({
+          severity: 'error',
+          summary: 'Cannot start anomaly profile regeneration',
+          detail: err?.message,
+          life: 6000,
+        })
+      }
+    },
   })
 }
 
@@ -686,6 +735,14 @@ const contextMenuItems = computed(() => {
         command: () => enableDci(data),
       })
     }
+    // A template's items are never trained.
+    if (props.object.class !== 'Template' && hasConfiguredAnomalyDetection(data)) {
+      items.push({
+        label: 'Regenerate anomaly profile',
+        icon: 'pi pi-refresh',
+        command: () => confirmRegenerateAnomalyProfile([data]),
+      })
+    }
     items.push({
       label: 'Delete',
       icon: 'pi pi-trash',
@@ -708,6 +765,15 @@ const contextMenuItems = computed(() => {
       label: 'Quick preview',
       icon: 'pi pi-eye',
       command: () => previewDcis(chartSubjects(data).filter((dci) => !dci._isTable)),
+    })
+  }
+
+  const withAnomalyDetection = chartSubjects(data).filter(hasLiveAnomalyDetection)
+  if (withAnomalyDetection.length) {
+    items.push({
+      label: 'Regenerate anomaly profile',
+      icon: 'pi pi-refresh',
+      command: () => confirmRegenerateAnomalyProfile(withAnomalyDetection),
     })
   }
 
@@ -762,6 +828,7 @@ function getRowClass(dci) {
   if (dci.errorCount > 0) {
     return [valueErrorInfo(dci).severity === 'warn' ? 'dci-row-invalid' : 'dci-row-error', inactive]
   }
+  if (dci.anomalyDetected) return ['dci-row-anomaly', inactive]
   return inactive
 }
 
@@ -1052,6 +1119,18 @@ function sourceDciTarget(row) {
             class="cell-ellipsis"
           >
             {{ commentLine(row.comments) }}
+          </span>
+          <span
+            v-else-if="col.id === 'anomaly'"
+            v-tooltip.left="row._anomaly.tooltip || null"
+            :class="['dci-anomaly', `dci-anomaly--${row._anomaly.kind}`]"
+          >
+            <StatusIcon v-if="row._anomaly.kind === 'anomaly'" :status="3" />
+            <i
+              v-else-if="row._anomaly.kind === 'blocked'"
+              class="pi pi-exclamation-triangle error-icon"
+            />
+            <span class="cell-ellipsis">{{ row._anomaly.text }}</span>
           </span>
           <template v-else-if="col.id === 'actions'">
             <Button
@@ -1500,6 +1579,25 @@ function sourceDciTarget(row) {
 
 :deep(.dci-row-invalid) {
   border-left: 3px solid var(--p-yellow-500);
+}
+
+:deep(.dci-row-anomaly) {
+  border-left: 3px solid var(--netxms-status-major);
+}
+
+.dci-anomaly {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.dci-anomaly--learning {
+  color: var(--p-text-muted-color);
+}
+
+.dci-anomaly--blocked {
+  color: var(--p-yellow-600);
 }
 
 :deep(.dci-row-inactive) td {

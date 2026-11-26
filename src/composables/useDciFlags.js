@@ -1,10 +1,10 @@
 import { computed } from 'vue'
+import { DCF_DETECT_ANOMALIES } from '@/utils/dciAnomaly'
 
 /**
  * DCF_* from include/nxcldefs.h. The server sends and accepts the raw `flags` integer, which
  * openapi.yaml does not decompose; unmapped bits survive because form.flags round-trips as is.
  */
-const DCF_DETECT_ANOMALIES_IFOREST = 0x000001
 const DCF_ALL_THRESHOLDS = 0x000002
 const DCF_RAW_VALUE_OCTET_STRING = 0x000004
 const DCF_SHOW_ON_OBJECT_TOOLTIP = 0x000008
@@ -12,7 +12,6 @@ const DCF_AGGREGATE_FUNCTION_MASK = 0x000070
 const DCF_AGGREGATE_FUNCTION_SHIFT = 4
 const DCF_AGGREGATE_ON_CLUSTER = 0x000080
 const DCF_TRANSFORM_AGGREGATED = 0x000100
-const DCF_DETECT_ANOMALIES_AI = 0x000200
 export const DCF_CALCULATE_NODE_STATUS = 0x000400
 const DCF_SHOW_IN_OBJECT_OVERVIEW = 0x000800
 const DCF_CACHE_MODE_MASK = 0x003000
@@ -51,8 +50,8 @@ function maskedValue(form, mask, shift) {
 /** @param {object} form - DCI form with a `flags` integer */
 export function useDciFlags(form) {
   return {
-    detectAnomaliesIsolationForest: bitFlag(form, DCF_DETECT_ANOMALIES_IFOREST),
-    detectAnomaliesAI: bitFlag(form, DCF_DETECT_ANOMALIES_AI),
+    // Servers without `anomalyDetection` on the DCI; newer ones edit that object instead.
+    detectAnomalies: bitFlag(form, DCF_DETECT_ANOMALIES),
     processAllThresholds: bitFlag(form, DCF_ALL_THRESHOLDS),
     aggregateOnCluster: bitFlag(form, DCF_AGGREGATE_ON_CLUSTER),
     aggregateWithErrors: bitFlag(form, DCF_AGGREGATE_WITH_ERRORS),

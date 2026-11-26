@@ -187,6 +187,14 @@ a.p-button {
   line-height: normal;
 }
 
+/* A width class sizes InputNumber's wrapper, but the <input> inside keeps its `size`-based width
+   and spills over whatever sits to its right. DatePicker and AutoComplete already shrink theirs
+   this way (PrimeVue does it for InputNumber only with `fluid`). Vertical buttons stack, so the
+   input there is not the row's flex item. */
+.p-inputnumber:not(.p-inputnumber-vertical) .p-inputnumber-input {
+  width: 1%;
+}
+
 *,
 *::before,
 *::after {
