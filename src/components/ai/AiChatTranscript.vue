@@ -9,7 +9,7 @@ import { renderCommentsMarkdown } from '@/utils/commentsUtils'
 import {
   confirmationLabels,
   formatCountdown,
-  functionDisplayName,
+  toolDisplayName,
   secondsLeft,
 } from '@/utils/aiChatDisplay'
 
@@ -18,7 +18,7 @@ const props = defineProps({
   messages: { type: Array, required: true },
   isThinking: { type: Boolean, default: false },
   pendingQuestion: { type: Object, default: null },
-  currentFunction: { type: String, default: null },
+  currentTool: { type: String, default: null },
   error: { type: String, default: null },
 })
 
@@ -35,9 +35,9 @@ watch(
   },
 )
 
-/** "Getting alarm list..." while a function runs, "Thinking..." between calls. */
+/** "Getting alarm list..." while a tool runs, "Thinking..." between calls. */
 const thinkingLabel = computed(() =>
-  props.currentFunction ? `${functionDisplayName(props.currentFunction)}...` : 'Thinking...',
+  props.currentTool ? `${toolDisplayName(props.currentTool)}...` : 'Thinking...',
 )
 
 // The server drops an unanswered question at `expiresAt` and the run carries on without the

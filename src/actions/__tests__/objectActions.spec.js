@@ -284,12 +284,20 @@ describe('Take screenshot', () => {
     expect(toolIds(WINDOWS_AGENT_NODE)).toContain('object.tools.screenshot')
   })
 
-  // The capture goes to the agent's session agent, which is Windows-only; offering it
-  // anywhere else produces a request that can only fail.
-  it('is hidden on a non-Windows platform', () => {
-    expect(toolIds({ ...WINDOWS_AGENT_NODE, platformName: 'linux-x86_64' })).not.toContain(
+  it('is offered on a Linux node running the agent', () => {
+    expect(toolIds({ ...WINDOWS_AGENT_NODE, platformName: 'linux-x86_64' })).toContain(
       'object.tools.screenshot',
     )
+  })
+
+  // The capture goes to the agent's session agent, which captures only on Windows and Linux;
+  // offering it anywhere else produces a request that can only fail.
+  it('is hidden on other platforms', () => {
+    for (const platformName of ['freebsd-amd64', 'darwin-arm64', 'unknown']) {
+      expect(toolIds({ ...WINDOWS_AGENT_NODE, platformName })).not.toContain(
+        'object.tools.screenshot',
+      )
+    }
   })
 
   it('is hidden when the node has no native agent', () => {

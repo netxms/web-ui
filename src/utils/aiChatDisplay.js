@@ -1,7 +1,7 @@
 // AI assistant chat wording, ported from the legacy client so both consoles read the same.
 import { formatDateTime } from '@/utils/timeFormat'
 
-/** Legacy `AiFunctionCall.getDisplayName`: a leading verb, turned progressive. */
+/** Legacy `AiToolCall.getDisplayName`: a leading verb, turned progressive. */
 const PROGRESSIVE_VERBS = {
   get: 'Getting',
   read: 'Reading',
@@ -20,12 +20,12 @@ const PROGRESSIVE_VERBS = {
 }
 
 /**
- * `currentFunction` from `/status`: `get-alarm-list` reads "Getting alarm list".
+ * `currentTool` from `/status`: `get-alarm-list` reads "Getting alarm list".
  *
  * @param {string|null|undefined} name
  * @returns {string}
  */
-export function functionDisplayName(name) {
+export function toolDisplayName(name) {
   if (!name) return 'Processing'
   const readable = name.replace(/[-_]/g, ' ')
   const space = readable.indexOf(' ')

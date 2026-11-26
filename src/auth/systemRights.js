@@ -125,7 +125,7 @@ export const SYSTEM_RIGHTS_CATEGORIES = Object.freeze([
       { bit: 12, label: 'Manage script library' },
       { bit: 53, label: 'Use AI assistant' },
       { bit: 26, label: 'Manage AI tasks' },
-      { bit: 54, label: 'Manage AI skills and functions' },
+      { bit: 54, label: 'Manage AI skills and tools' },
       { bit: 58, label: 'Manage AI operators' },
       { bit: 60, label: 'Manage AI memory' },
     ],

@@ -4,7 +4,7 @@ import { MODERATE_TIER, VOLATILE_TIER } from './config'
 
 export const aiKeys = {
   all: () => ['ai'],
-  skillsAndFunctions: () => ['ai', 'skills-and-functions'],
+  skillsAndTools: () => ['ai', 'skills-and-tools'],
   savedPrompts: () => ['ai', 'saved-prompts'],
   memory: () => ['ai', 'memory'],
   messages: () => ['ai', 'messages'],
@@ -58,11 +58,11 @@ export function useDeleteAiMessage() {
   })
 }
 
-/** Skills, functions and disabled extras. */
-export function useAiSkillsAndFunctions() {
+/** Skills, tools and disabled extras. */
+export function useAiSkillsAndTools() {
   return useQuery({
-    queryKey: aiKeys.skillsAndFunctions(),
-    queryFn: () => aiApi.getAiSkillsAndFunctions(),
+    queryKey: aiKeys.skillsAndTools(),
+    queryFn: () => aiApi.getAiSkillsAndTools(),
     ...MODERATE_TIER,
   })
 }
@@ -70,7 +70,7 @@ export function useAiSkillsAndFunctions() {
 export function useDisableAiItem() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ type, name }) => aiApi.disableAiItem(type, name),
+    mutationFn: ({ typeCode, name }) => aiApi.disableAiItem(typeCode, name),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: aiKeys.all() }),
   })
 }
@@ -78,7 +78,7 @@ export function useDisableAiItem() {
 export function useEnableAiItem() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ type, name }) => aiApi.enableAiItem(type, name),
+    mutationFn: ({ typeCode, name }) => aiApi.enableAiItem(typeCode, name),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: aiKeys.all() }),
   })
 }

@@ -7,6 +7,8 @@ import {
   valueForDisplay,
   currentValueForDisplay,
   defaultValueForDisplay,
+  sortedPossibleValues,
+  SECRET_PLACEHOLDER,
   UNGROUPED_NAMESPACE,
 } from '../serverConfigDisplay'
 
@@ -81,6 +83,12 @@ describe('isDefaultValue', () => {
   it('treats a variable with no default as modified, since there is nothing to reset to', () => {
     expect(isDefaultValue(variable({ value: 'custom', defaultValue: '' }))).toBe(false)
   })
+
+  it('reads an unset secret as default and a set one as modified', () => {
+    const secret = (value) => variable({ dataType: 'PASSWORD', value, defaultValue: '' })
+    expect(isDefaultValue(secret(''))).toBe(true)
+    expect(isDefaultValue(secret(SECRET_PLACEHOLDER))).toBe(false)
+  })
 })
 
 describe('valueForDisplay', () => {
@@ -88,6 +96,12 @@ describe('valueForDisplay', () => {
     expect(currentValueForDisplay(variable({ dataType: 'PASSWORD', value: 'hunter2' }))).toBe(
       '********',
     )
+  })
+
+  it('shows the placeholder of a set secret masked, and an unset one as empty', () => {
+    const secret = (value) => variable({ dataType: 'PASSWORD', value })
+    expect(currentValueForDisplay(secret(SECRET_PLACEHOLDER))).toBe('********')
+    expect(currentValueForDisplay(secret(''))).toBe('')
   })
 
   it('renders booleans as true/false', () => {
@@ -136,5 +150,40 @@ describe('valueForDisplay', () => {
 
   it('passes strings through untouched', () => {
     expect(valueForDisplay(variable(), 'plain text')).toBe('plain text')
+  })
+})
+
+describe('sortedPossibleValues', () => {
+  const option = (value) => ({ value, description: `d${value}` })
+
+  // Objects.StatusCalculation.Shift, in the order an index on var_value returns it.
+  it('sorts integer choices numerically', () => {
+    const values = ['-1', '-2', '-3', '-4', '0', '1', '2', '3', '4'].map(option)
+    expect(sortedPossibleValues(values).map((v) => v.value)).toEqual([
+      '-4',
+      '-3',
+      '-2',
+      '-1',
+      '0',
+      '1',
+      '2',
+      '3',
+      '4',
+    ])
+  })
+
+  it('keeps the server order when any choice is not an integer', () => {
+    const values = ['b', '2', 'a'].map(option)
+    expect(sortedPossibleValues(values).map((v) => v.value)).toEqual(['b', '2', 'a'])
+  })
+
+  it('does not reorder its input', () => {
+    const values = ['2', '1'].map(option)
+    sortedPossibleValues(values)
+    expect(values.map((v) => v.value)).toEqual(['2', '1'])
+  })
+
+  it('returns nothing for a missing list', () => {
+    expect(sortedPossibleValues(undefined)).toEqual([])
   })
 })

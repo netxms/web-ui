@@ -124,9 +124,9 @@ export function startObjectPoll(objectId, pollType) {
 }
 
 /**
- * Screenshot of a remote Windows desktop through the agent, as `image/png` bytes. Needs
- * OBJECT_ACCESS_SCREENSHOT (`openapi.yaml` wrongly says read access). The server raises the
- * agent command timeout to 60s, so the request can stay open a while.
+ * Screenshot of a remote Windows or Linux desktop through the agent, as `image/png` bytes.
+ * Needs OBJECT_ACCESS_SCREENSHOT (`openapi.yaml` wrongly says read access). The server raises
+ * the agent command timeout to 60s, so the request can stay open a while.
  *
  * @param {number} objectId - node id.
  * @param {{ sessionName?: string }} [options] - session to capture; the server falls back

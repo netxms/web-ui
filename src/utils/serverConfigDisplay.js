@@ -21,6 +21,12 @@ export const MAX_VARIABLE_NAME_LENGTH = 63
 export const MAX_VARIABLE_VALUE_LENGTH = 2000
 
 /**
+ * A PASSWORD variable's `value` when a secret is set ("" when not). Sent back on PUT it keeps
+ * the stored secret; any other value, "" included, replaces it.
+ */
+export const SECRET_PLACEHOLDER = '********'
+
+/**
  * Everything before the first dot.
  *
  * @param {string} name
@@ -55,7 +61,8 @@ export function namespacesOf(variables) {
 
 /**
  * Matches `ServerVariable.isDefault()`; a variable created here has no default and reads as
- * modified.
+ * modified, and so does a set secret with a non-empty default, since the server only reports
+ * {@link SECRET_PLACEHOLDER}.
  *
  * @param {{ value: string, defaultValue: string }} variable
  * @returns {boolean}
@@ -74,7 +81,7 @@ export function valueForDisplay(variable, value) {
 
   switch (variable?.dataType) {
     case 'PASSWORD':
-      return '********'
+      return SECRET_PLACEHOLDER
     case 'BOOLEAN':
       return Number.parseInt(value, 10) ? 'true' : 'false'
     case 'CHOICE': {
@@ -86,6 +93,19 @@ export function valueForDisplay(variable, value) {
     default:
       return value
   }
+}
+
+/**
+ * Choice options in numeric order when every value is an integer, as legacy sorts them; the
+ * server answers in database order.
+ *
+ * @param {Array<{ value: string, description: string }>} possibleValues
+ * @returns {Array<{ value: string, description: string }>}
+ */
+export function sortedPossibleValues(possibleValues) {
+  const values = [...(possibleValues ?? [])]
+  if (!values.every((v) => /^[+-]?\d+$/.test(v?.value ?? ''))) return values
+  return values.sort((a, b) => Number.parseInt(a.value, 10) - Number.parseInt(b.value, 10))
 }
 
 export function currentValueForDisplay(variable) {

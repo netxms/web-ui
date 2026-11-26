@@ -28,7 +28,7 @@ const route = useRoute()
 const router = useRouter()
 
 /**
- * The section works without an initialized assistant, but then no skill or function is
+ * The section works without an initialized assistant, but then no skill or tool is
  * registered and no operator runs, so it says so rather than leaving empty lists to explain
  * it. The provider lives in the server configuration file's `[AI/Provider/*]` sections.
  */
@@ -144,7 +144,7 @@ function onOperatorCreated(id) {
       :closable="false"
       class="not-initialized-notice"
     >
-      The AI assistant is not initialized on this server, so no skill or function is registered and
+      The AI assistant is not initialized on this server, so no skill or tool is registered and
       no operator runs. Settings below can still be prepared. To start it, configure an AI provider
       in the server configuration file and restart the server.
     </Message>
@@ -161,7 +161,7 @@ function onOperatorCreated(id) {
         </Tab>
         <Tab value="skills">
           <i class="pi pi-cog tab-icon" />
-          Skills &amp; Functions
+          Skills &amp; Tools
         </Tab>
         <Tab value="memory">
           <i class="pi pi-database tab-icon" />

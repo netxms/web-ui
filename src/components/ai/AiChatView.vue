@@ -27,7 +27,7 @@ const {
   messages,
   isThinking,
   pendingQuestion,
-  currentFunction,
+  currentTool,
   contextUsage,
   error,
   hasConversation,
@@ -93,7 +93,7 @@ onMounted(() => {
       :messages="messages"
       :is-thinking="isThinking"
       :pending-question="pendingQuestion"
-      :current-function="currentFunction"
+      :current-tool="currentTool"
       :error="error"
       @answer="answerQuestion"
     />

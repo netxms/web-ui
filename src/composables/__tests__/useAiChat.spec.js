@@ -25,7 +25,7 @@ const QUESTION = {
 }
 
 /** `/status` while a run is blocked on `QUESTION`. */
-const ASKING = { status: 'processing', pendingQuestion: QUESTION, currentFunction: null }
+const ASKING = { status: 'processing', pendingQuestion: QUESTION, currentTool: null }
 
 async function freshModule() {
   vi.resetModules()
@@ -175,17 +175,26 @@ describe('useAiChat pending questions', () => {
 })
 
 describe('useAiChat run status', () => {
-  it('reports the function the assistant is running, and forgets it when done', async () => {
+  it('reports the tool the assistant is running, and forgets it when done', async () => {
+    const chat = await freshChat()
+    api.getAiChatStatus.mockResolvedValue({ status: 'processing', currentTool: 'get-alarms' })
+
+    await chat.sendMessage('any alarms?')
+    await tick()
+    expect(chat.currentTool.value).toBe('get-alarms')
+
+    api.getAiChatStatus.mockResolvedValue({ status: 'completed', response: 'None.' })
+    await tick()
+    expect(chat.currentTool.value).toBeNull()
+  })
+
+  it('reads the tool under its old name from servers before the rename', async () => {
     const chat = await freshChat()
     api.getAiChatStatus.mockResolvedValue({ status: 'processing', currentFunction: 'get-alarms' })
 
     await chat.sendMessage('any alarms?')
     await tick()
-    expect(chat.currentFunction.value).toBe('get-alarms')
-
-    api.getAiChatStatus.mockResolvedValue({ status: 'completed', response: 'None.' })
-    await tick()
-    expect(chat.currentFunction.value).toBeNull()
+    expect(chat.currentTool.value).toBe('get-alarms')
   })
 
   it('keeps the context window usage of the last call, and drops it on clear', async () => {

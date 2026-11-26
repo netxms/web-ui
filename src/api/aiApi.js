@@ -14,7 +14,8 @@ export function sendAiMessage(chatId, message, context) {
  * Poll a chat. While `status` is `processing` the answer carries `pendingQuestion` (a question
  * the assistant is blocked on: `{ id, type: 'confirmation'|'multipleChoice', confirmationType,
  * text, context, expiresAt, options?: string[] }`, Chat::getPendingQuestion) and
- * `currentFunction`; every answer carries `contextUsage` (`{ tokens, window }` or null).
+ * `currentTool` (`currentFunction` before netxms 2a49dc61c1); every answer carries
+ * `contextUsage` (`{ tokens, window }` or null).
  */
 export function getAiChatStatus(chatId) {
   return get(`/v1/ai/chat/${chatId}/status`)
@@ -59,16 +60,66 @@ export function deleteAiMessage(messageId) {
   return del(`/v1/ai/messages/${messageId}`)
 }
 
-export function getAiSkillsAndFunctions() {
-  return get('/v1/ai/skills-and-functions')
+const LEGACY_MODES = { loaded: 'load', delegated: 'worker' }
+const LEGACY_TYPES = { S: 'skill', F: 'tool' }
+
+/**
+ * @typedef {object} AiSkillsAndTools
+ * @property {Array<{ name: string, description: string, disabled: boolean,
+ *   supportsWorker: boolean, defaultMode: 'load'|'worker' }>} skills
+ * @property {Array<{ name: string, description: string, disabled: boolean,
+ *   parameters: Array<{ name: string, type: string, description: string }> }>} tools
+ * @property {Array<{ type: 'skill'|'tool', name: string }>} disabledExtras
+ * @property {{ skill: string, tool: string }} typeCodes - item types the stop-list routes of
+ *   this server take
+ */
+
+/**
+ * Servers before netxms 2a49dc61c1 (7.1 included) answer `skills-and-functions`: `functions`,
+ * `supportsDelegation`, modes loaded/delegated, item types S/F.
+ *
+ * @param {object} raw
+ * @param {boolean} legacy - the answer came from `skills-and-functions`
+ * @returns {AiSkillsAndTools}
+ */
+export function adaptAiSkillsAndTools(raw, legacy) {
+  const skills = (raw?.skills ?? []).map((skill) => {
+    const mode = skill.defaultMode ?? 'load'
+    return {
+      ...skill,
+      supportsWorker: !!(skill.supportsWorker ?? skill.supportsDelegation),
+      defaultMode: LEGACY_MODES[mode] ?? mode,
+    }
+  })
+  return {
+    skills,
+    tools: raw?.tools ?? raw?.functions ?? [],
+    disabledExtras: (raw?.disabledExtras ?? []).map((item) => ({
+      ...item,
+      type: LEGACY_TYPES[item.type] ?? item.type,
+    })),
+    typeCodes: legacy ? { skill: 'S', tool: 'F' } : { skill: 'skill', tool: 'tool' },
+  }
 }
 
-export function disableAiItem(type, name) {
-  return post('/v1/ai/disabled-items', { type, name })
+/** @returns {Promise<AiSkillsAndTools>} */
+export async function getAiSkillsAndTools() {
+  try {
+    return adaptAiSkillsAndTools(await get('/v1/ai/skills-and-tools'), false)
+  } catch (err) {
+    if (err?.status !== 404) throw err
+  }
+  return adaptAiSkillsAndTools(await get('/v1/ai/skills-and-functions'), true)
 }
 
-export function enableAiItem(type, name) {
-  return del(`/v1/ai/disabled-items/${encodeURIComponent(type)}/${encodeURIComponent(name)}`)
+/** @param {string} typeCode - from {@link AiSkillsAndTools} `typeCodes` */
+export function disableAiItem(typeCode, name) {
+  return post('/v1/ai/disabled-items', { type: typeCode, name })
+}
+
+/** @param {string} typeCode - from {@link AiSkillsAndTools} `typeCodes` */
+export function enableAiItem(typeCode, name) {
+  return del(`/v1/ai/disabled-items/${encodeURIComponent(typeCode)}/${encodeURIComponent(name)}`)
 }
 
 export function getSavedPrompts() {

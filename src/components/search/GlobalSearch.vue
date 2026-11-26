@@ -108,9 +108,9 @@ const CONFIG_SECTIONS = [
     id: 'ai-assistant/skills',
     sectionId: 'ai-assistant',
     tabId: 'skills',
-    label: 'Skills & Functions',
+    label: 'Skills & Tools',
     icon: 'pi pi-cog',
-    keywords: ['ai skills'],
+    keywords: ['ai skills', 'ai tools'],
   },
   {
     id: 'ai-assistant/prompts',

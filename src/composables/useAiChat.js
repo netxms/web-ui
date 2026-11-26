@@ -46,7 +46,7 @@ function createChat({ incidentId = null } = {}) {
   /** The question the assistant is blocked on; status stays `processing` until answered. */
   const pendingQuestion = ref(null)
 
-  const currentFunction = ref(null)
+  const currentTool = ref(null)
 
   /** `{ tokens, window }` after the last LLM call. */
   const contextUsage = ref(null)
@@ -101,7 +101,7 @@ function createChat({ incidentId = null } = {}) {
   function finishRun() {
     isThinking.value = false
     pendingQuestion.value = null
-    currentFunction.value = null
+    currentTool.value = null
   }
 
   async function poll() {
@@ -129,7 +129,8 @@ function createChat({ incidentId = null } = {}) {
       }
 
       pendingQuestion.value = status.pendingQuestion ?? null
-      currentFunction.value = status.currentFunction ?? null
+      // Servers before netxms 2a49dc61c1 call it `currentFunction`.
+      currentTool.value = status.currentTool ?? status.currentFunction ?? null
       pollingTimer = setTimeout(poll, POLL_INTERVAL_MS)
     } catch (e) {
       error.value = e.message || 'Failed to get response'
@@ -243,7 +244,7 @@ function createChat({ incidentId = null } = {}) {
     messages,
     isThinking,
     pendingQuestion,
-    currentFunction,
+    currentTool,
     contextUsage,
     error,
     hasConversation,

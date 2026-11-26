@@ -1,0 +1,52 @@
+{
+  "skills": [
+    {
+      "name": "alarm-management",
+      "description": "Review, acknowledge and resolve alarms, and explain what raised them",
+      "disabled": false,
+      "supportsWorker": true,
+      "defaultMode": "load"
+    },
+    {
+      "name": "log-analysis",
+      "description": "Search the event, syslog and SNMP trap logs and summarize what they show",
+      "disabled": false,
+      "supportsWorker": true,
+      "defaultMode": "worker"
+    },
+    {
+      "name": "dashboard-building",
+      "description": "Create and change dashboards",
+      "disabled": true,
+      "supportsWorker": false,
+      "defaultMode": "load"
+    }
+  ],
+  "tools": [
+    {
+      "name": "get-alarm-list",
+      "description": "Get the list of active alarms",
+      "disabled": false,
+      "parameters": [{ "name": "object", "type": "string", "description": "Object ID or name" }]
+    },
+    {
+      "name": "search-objects",
+      "description": "Find objects by name, class or address",
+      "disabled": false,
+      "parameters": [
+        { "name": "query", "type": "string", "description": "Search text" },
+        { "name": "limit", "type": "integer", "description": "Maximum results" }
+      ]
+    },
+    {
+      "name": "run-workers",
+      "description": "Run tasks in parallel workers, each with an optional skill",
+      "disabled": true,
+      "parameters": [{ "name": "workers", "type": "array", "description": "Workers to run" }]
+    }
+  ],
+  "disabledExtras": [
+    { "type": "tool", "name": "delete-objects" },
+    { "type": "skill", "name": "network-reconfiguration" }
+  ]
+}

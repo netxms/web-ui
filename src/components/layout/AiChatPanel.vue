@@ -16,7 +16,7 @@ const {
   messages,
   isThinking,
   pendingQuestion,
-  currentFunction,
+  currentTool,
   contextUsage,
   error,
   hasConversation,
@@ -111,7 +111,7 @@ const { isResizing, handleBindings: resizeBindings } = useResizeHandle({
       :messages="messages"
       :is-thinking="isThinking"
       :pending-question="pendingQuestion"
-      :current-function="currentFunction"
+      :current-tool="currentTool"
       :error="error"
       @answer="answerQuestion"
     />

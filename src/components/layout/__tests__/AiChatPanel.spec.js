@@ -25,7 +25,7 @@ vi.mock('@/composables/useAiChat', () => ({
     messages: ref([]),
     isThinking: ref(false),
     pendingQuestion: ref(null),
-    currentFunction: ref(null),
+    currentTool: ref(null),
     contextUsage: ref(null),
     error: ref(null),
     hasConversation: ref(false),

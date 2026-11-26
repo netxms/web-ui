@@ -501,10 +501,10 @@ const objectActions = [
         // says otherwise and is wrong.
         requiredObjectRight: 'SCREENSHOT',
         // Same condition as the legacy context menu: it goes to the agent's session agent,
-        // which only exists on Windows.
+        // which captures the desktop on Windows and Linux (X11 or Wayland) only.
         isApplicable: (ctx) =>
           !!ctx.object?.capabilities?.isNativeAgent &&
-          String(ctx.object?.platformName ?? '').startsWith('windows-'),
+          /^(windows|linux)-/.test(String(ctx.object?.platformName ?? '')),
         command: ({ actionContext }) =>
           dispatchObjectEvent('object:screenshot', { object: actionContext.object }),
       },

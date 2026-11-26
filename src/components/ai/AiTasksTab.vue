@@ -1,5 +1,5 @@
 <script setup>
-// AI agent tasks exist only over NXCP, with no WebAPI route, so this shows the legacy view's
+// AI tasks exist only over NXCP, with no WebAPI route, so this shows the legacy view's
 // shape behind the under-construction overlay.
 import Button from 'primevue/button'
 import AppTable from '@/components/common/AppTable.vue'

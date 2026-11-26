@@ -191,11 +191,11 @@ test.describe('Event Processing', () => {
   })
 })
 
-test.describe('AI skills and functions', () => {
+test.describe('AI skills and tools', () => {
   test('without Manage AI skills the stop list cannot be changed', async ({ page }) => {
     await signInWithRights(page, USE_AI_ASSISTANT)
     await page.goto('/configuration/ai-assistant?tab=skills')
-    await expect(page.getByRole('tab', { name: 'Skills & Functions' })).toBeVisible()
+    await expect(page.getByRole('tab', { name: 'Skills & Tools' })).toBeVisible()
 
     for (const name of ['Add', 'Disable', 'Enable', 'Remove']) {
       await expect(button(page, name), name).toHaveCount(0)

@@ -61,7 +61,7 @@ describe('observationReferences', () => {
 })
 
 describe('aiOperatorState', () => {
-  it('reports a currently executing instance as running, even when disabled mid-iteration', () => {
+  it('reports a currently executing instance as running, even when disabled mid-cycle', () => {
     expect(aiOperatorState({ enabled: false, executing: true }).label).toBe('Running')
     expect(aiOperatorState({ enabled: true, executing: true }).label).toBe('Running')
   })

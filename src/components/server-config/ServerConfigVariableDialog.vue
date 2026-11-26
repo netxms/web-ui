@@ -14,8 +14,10 @@ import MutationErrorState from '@/components/common/MutationErrorState.vue'
 import {
   MAX_VARIABLE_NAME_LENGTH,
   MAX_VARIABLE_VALUE_LENGTH,
+  SECRET_PLACEHOLDER,
   defaultValueForDisplay,
   isDefaultValue,
+  sortedPossibleValues,
 } from '@/utils/serverConfigDisplay'
 
 // The server stores every value as a string, so the form keeps one `value` string and each
@@ -75,8 +77,14 @@ const colorValue = computed({
   },
 })
 
+// Revealing the placeholder would only show asterisks the server made up.
+const holdsPlaceholder = computed(
+  () => dataType.value === 'PASSWORD' && value.value === SECRET_PLACEHOLDER,
+)
+const hasSecret = computed(() => isEdit.value && props.variable.value === SECRET_PLACEHOLDER)
+
 const choiceOptions = computed(() =>
-  (props.variable?.possibleValues ?? []).map((option) => ({
+  sortedPossibleValues(props.variable?.possibleValues).map((option) => ({
     value: option.value,
     label: option.description || option.value,
   })),
@@ -204,14 +212,24 @@ function onHide() {
         </div>
       </FormField>
 
-      <FormField v-else-if="dataType === 'PASSWORD'" label="Value" v-slot="{ id }">
+      <FormField
+        v-else-if="dataType === 'PASSWORD'"
+        label="Value"
+        :hint="
+          hasSecret
+            ? 'The current secret is not shown. Leave the field as it is to keep it, or clear it to remove the secret.'
+            : ''
+        "
+        v-slot="{ id, describedBy }"
+      >
         <Password
           :input-id="id"
           v-model="value"
           :disabled="saving"
           :feedback="false"
-          toggle-mask
+          :toggle-mask="!holdsPlaceholder"
           :maxlength="MAX_VARIABLE_VALUE_LENGTH"
+          :input-props="{ 'aria-describedby': describedBy }"
           class="w-full"
           input-class="w-full"
         />

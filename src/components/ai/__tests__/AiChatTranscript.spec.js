@@ -24,8 +24,8 @@ afterEach(() => {
 })
 
 describe('AiChatTranscript', () => {
-  it('names the function the assistant is running', () => {
-    const wrapper = mountTranscript({ currentFunction: 'get-alarm-list' })
+  it('names the tool the assistant is running', () => {
+    const wrapper = mountTranscript({ currentTool: 'get-alarm-list' })
     expect(wrapper.find('.ai-thinking-label').text()).toBe('Getting alarm list...')
   })
 

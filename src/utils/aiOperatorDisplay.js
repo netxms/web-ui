@@ -193,7 +193,7 @@ const CHECK_FIELDS = Object.keys(DEFAULT_CHECK)
 
 /**
  * An existing check sends only what changed: the operator edits its own checks between
- * iterations, and resending an unchanged field would undo its edit.
+ * cycles, and resending an unchanged field would undo its edit.
  *
  * @param {object} form
  * @param {object|null} original - null for a new check
@@ -216,7 +216,7 @@ export function buildAiOperatorCheckPayload(form, original) {
 
 /**
  * `instructions` goes out only when the user edited them: the operator rewrites them between
- * iterations, and a stale copy would revert that.
+ * cycles, and a stale copy would revert that.
  *
  * `ownerUserId` goes out only when picked or changed; absent, the server keeps the owner (or
  * uses the built-in "ai-operator" account), and it refuses 0, so form value 0 means "default".

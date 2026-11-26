@@ -1,7 +1,8 @@
 <script setup>
 /**
- * Screenshot of a node's Windows desktop, taken through the agent. Unlike the legacy view the
- * session is typed, not discovered: the WebAPI cannot read the `Agent.SessionAgents` table.
+ * Screenshot of a node's Windows or Linux desktop, taken through the agent. Unlike the legacy
+ * view the session is typed, not discovered: the WebAPI cannot read the `Agent.SessionAgents`
+ * table.
  */
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import Button from 'primevue/button'

@@ -101,7 +101,7 @@ const columns = [
     sortable: true,
     width: 110,
   },
-  { id: 'iteration', field: 'iteration', label: 'Iteration', sortable: true, width: 90 },
+  { id: 'cycle', field: 'cycle', label: 'Cycle', sortable: true, width: 90 },
   {
     id: 'lastExecutionTime',
     field: 'lastExecutionTime',
@@ -186,7 +186,7 @@ function confirmDelete(operator) {
 
 function confirmReset(operator) {
   confirm.require({
-    message: `Accumulated state (memento, current focus, watch list, and iteration counter) of "${operator.name}" will be cleared. Are you sure?`,
+    message: `Accumulated state (memento, current focus, watch list, standing instructions, and cycle counter) of "${operator.name}" will be cleared. Standing checks are kept. Are you sure?`,
     header: 'Confirm Reset',
     icon: 'pi pi-exclamation-triangle',
     rejectLabel: 'Cancel',
@@ -359,7 +359,7 @@ function onRowContextMenu({ event, row }) {
           <span v-else-if="col.id === 'tokensUsedToday'">{{
             (row.tokensUsedToday ?? 0).toLocaleString()
           }}</span>
-          <span v-else-if="col.id === 'iteration'">{{ row.iteration ?? 0 }}</span>
+          <span v-else-if="col.id === 'cycle'">{{ row.cycle ?? 0 }}</span>
           <span
             v-else-if="col.id === 'lastExecutionTime'"
             v-tooltip.top="formatDateTime(row.lastExecutionTime)"

@@ -2,12 +2,26 @@ import { get, post, patch, put, del } from './client'
 
 // AI operator instances (perpetual monitoring loops); the interactive assistant is in aiApi.js.
 
-export function getAiOperators() {
-  return get('/v1/ai/operators')
+/**
+ * Servers before netxms 2a49dc61c1 (7.1 included) call the cycle count of an operator and of an
+ * instructions history record `iteration`.
+ *
+ * @template {object} T
+ * @param {T} item
+ * @returns {T & { cycle: number }}
+ */
+export function withCycle(item) {
+  if (!item || item.cycle != null) return item
+  return { ...item, cycle: item.iteration ?? 0 }
 }
 
-export function getAiOperator(operatorId) {
-  return get(`/v1/ai/operators/${operatorId}`)
+export async function getAiOperators() {
+  const operators = await get('/v1/ai/operators')
+  return Array.isArray(operators) ? operators.map(withCycle) : operators
+}
+
+export async function getAiOperator(operatorId) {
+  return withCycle(await get(`/v1/ai/operators/${operatorId}`))
 }
 
 export function createAiOperator(data) {
@@ -23,7 +37,7 @@ export function deleteAiOperator(operatorId) {
   return del(`/v1/ai/operators/${operatorId}`)
 }
 
-/** Clear memento, current focus, watch list and iteration counter. */
+/** Clear memento, current focus, watch list, standing instructions and cycle counter. */
 export function resetAiOperatorMemento(operatorId) {
   return post(`/v1/ai/operators/${operatorId}/reset-memento`)
 }
@@ -48,8 +62,9 @@ export function deleteAiOperatorCheck(operatorId, checkId) {
   return del(`/v1/ai/operators/${operatorId}/checks/${checkId}`)
 }
 
-export function getAiOperatorInstructionsHistory(operatorId) {
-  return get(`/v1/ai/operators/${operatorId}/instructions-history`)
+export async function getAiOperatorInstructionsHistory(operatorId) {
+  const records = await get(`/v1/ai/operators/${operatorId}/instructions-history`)
+  return Array.isArray(records) ? records.map(withCycle) : records
 }
 
 // Observations: reading needs "view event log"; changing state needs "update alarms" on the

@@ -6,21 +6,21 @@ import {
   contextUsageInfo,
   formatCountdown,
   formatTokenCount,
-  functionDisplayName,
+  toolDisplayName,
   secondsLeft,
 } from '@/utils/aiChatDisplay'
 
-describe('functionDisplayName', () => {
-  it('turns a known leading verb progressive, as legacy AiFunctionCall does', () => {
-    expect(functionDisplayName('get-alarm-list')).toBe('Getting alarm list')
-    expect(functionDisplayName('search_objects')).toBe('Searching objects')
-    expect(functionDisplayName('query-dci-history')).toBe('Querying dci history')
+describe('toolDisplayName', () => {
+  it('turns a known leading verb progressive, as legacy AiToolCall does', () => {
+    expect(toolDisplayName('get-alarm-list')).toBe('Getting alarm list')
+    expect(toolDisplayName('search_objects')).toBe('Searching objects')
+    expect(toolDisplayName('query-dci-history')).toBe('Querying dci history')
   })
 
   it('capitalizes anything else and names an unknown run', () => {
-    expect(functionDisplayName('delegate-to-skill')).toBe('Delegate to skill')
-    expect(functionDisplayName('get')).toBe('Get')
-    expect(functionDisplayName(null)).toBe('Processing')
+    expect(toolDisplayName('run-workers')).toBe('Run workers')
+    expect(toolDisplayName('get')).toBe('Get')
+    expect(toolDisplayName(null)).toBe('Processing')
   })
 })
 

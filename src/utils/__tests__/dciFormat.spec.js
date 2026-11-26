@@ -117,6 +117,15 @@ describe('formatDataValue: NetXMS extensions', () => {
     expect(format('-172800', DT.INT64, 'TimeSpan')).toBe('-2 days, 00:00:00')
   })
 
+  it('prints a time span or epoch value that does not parse as it is', () => {
+    expect(format('n/a', DT.STRING, 'TimeSpan')).toBe('n/a')
+    expect(format('12 seconds', DT.STRING, 'Uptime')).toBe('12 seconds')
+    expect(format('', DT.INT32, 'TimeSpan')).toBe('')
+    expect(format('NaN', DT.FLOAT, 'TimeSpan')).toBe('NaN')
+    expect(format('soon', DT.STRING, 'Epoch time')).toBe('soon')
+    expect(format('Infinity', DT.FLOAT, 'Epoch time')).toBe('Infinity')
+  })
+
   it('reads the pre-7.1 unit name Uptime as a time span', () => {
     expect(format('93784', DT.INT32, 'Uptime')).toBe('1 day, 02:03:04')
     expect(format('-43', DT.INT32, 'Uptime')).toBe('-00:00:43')

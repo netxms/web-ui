@@ -184,7 +184,9 @@ function formatConversion(ctx, spec, conversion, multipliers, units) {
   const isTimeSpan = units && TIME_SPAN_UNITS.has(ctx.unit.name)
   if (isTimeSpan || (units && ctx.unit.name === 'Epoch time')) {
     const seconds = Math.trunc(parseJavaDouble(ctx.text) ?? Number.NaN)
-    if (!Number.isFinite(seconds)) return invalidFormat(spec)
+    // Raw, as legacy DataFormatter prints an unparseable value; NaN and Infinity too, as the
+    // server's FormatDCIValue does (Java would turn them into 0 or a clamped long).
+    if (!Number.isFinite(seconds)) return ctx.text
     if (isTimeSpan) return formatTimeSpan(seconds)
     return formatDateTime(seconds, { unixSeconds: true }) ?? ''
   }

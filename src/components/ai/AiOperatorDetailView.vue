@@ -168,7 +168,7 @@ function discard() {
 function confirmReset() {
   confirm.require({
     message:
-      'Accumulated state (memento, current focus, watch list, and iteration counter) will be cleared. The next execution starts from a clean slate. Are you sure?',
+      'Accumulated state (memento, current focus, watch list, standing instructions, and cycle counter) will be cleared. Standing checks are kept. The next execution starts from a clean slate. Are you sure?',
     header: 'Confirm Reset',
     icon: 'pi pi-exclamation-triangle',
     rejectLabel: 'Cancel',
@@ -404,7 +404,7 @@ const title = computed(() =>
           />
           <small class="hint-text">
             Free-form instructions that shape how this operator reasons. Appended to the system
-            prompt on every iteration.
+            prompt on every cycle.
           </small>
         </div>
       </DetailCard>
@@ -427,8 +427,8 @@ const title = computed(() =>
               {{ state.label }}
             </span>
           </FormField>
-          <FormField class="detail-field" label="Iteration" group>
-            <span class="field-value">{{ operator.iteration ?? 0 }}</span>
+          <FormField class="detail-field" label="Cycle" group>
+            <span class="field-value">{{ operator.cycle ?? 0 }}</span>
           </FormField>
           <FormField class="detail-field" label="Consecutive failures" group>
             <span

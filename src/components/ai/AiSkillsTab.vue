@@ -10,7 +10,7 @@ import { useToast } from 'primevue/usetoast'
 import AppTable from '@/components/common/AppTable.vue'
 import RefetchIndicator from '@/components/common/RefetchIndicator.vue'
 import QueryErrorState from '@/components/common/QueryErrorState.vue'
-import { useAiSkillsAndFunctions, useDisableAiItem, useEnableAiItem } from '@/queries/useAiQueries'
+import { useAiSkillsAndTools, useDisableAiItem, useEnableAiItem } from '@/queries/useAiQueries'
 import { usePermissions } from '@/composables/usePermissions'
 
 const toast = useToast()
@@ -18,34 +18,37 @@ const toast = useToast()
 // Listing also takes the right to use the assistant; the stop list takes this one (`ai.cpp`).
 const { can } = usePermissions()
 
-const { data, isLoading, isFetching, isError, error, refetch } = useAiSkillsAndFunctions()
+const { data, isLoading, isFetching, isError, error, refetch } = useAiSkillsAndTools()
 const { mutate: disableItem, isPending: isDisabling } = useDisableAiItem()
 const { mutate: enableItem, isPending: isEnabling } = useEnableAiItem()
 
 defineExpose({ refetch })
 
-// Registered on the server (present in skills[] or functions[])
+const TYPE_LABELS = { skill: 'Skill', tool: 'Tool' }
+const MODE_LABELS = { load: 'Load', worker: 'Worker' }
+
+// Registered on the server (present in skills[] or tools[])
 const registeredItems = computed(() => {
   const skills = (data.value?.skills ?? []).map((s) => ({
     ...s,
-    itemType: 'S',
-    typeLabel: 'Skill',
+    itemType: 'skill',
+    typeLabel: TYPE_LABELS.skill,
     registered: true,
-    _key: `S:${s.name}`,
+    _key: `skill:${s.name}`,
   }))
-  const funcs = (data.value?.functions ?? []).map((f) => ({
-    ...f,
-    itemType: 'F',
-    typeLabel: 'Function',
+  const tools = (data.value?.tools ?? []).map((t) => ({
+    ...t,
+    itemType: 'tool',
+    typeLabel: TYPE_LABELS.tool,
     registered: true,
-    _key: `F:${f.name}`,
+    _key: `tool:${t.name}`,
   }))
-  return [...skills, ...funcs]
+  return [...skills, ...tools]
 })
 
-// Pre-registered future items: only in disabledExtras, not in skills[]/functions[]
+// Pre-registered future items: only in disabledExtras, not in skills[]/tools[]
 const futureItems = computed(() => {
-  const regKeys = new Set(registeredItems.value.map((i) => `${i.itemType}:${i.name}`))
+  const regKeys = new Set(registeredItems.value.map((i) => i._key))
   return (data.value?.disabledExtras ?? [])
     .filter((e) => !regKeys.has(`${e.type}:${e.name}`))
     .map((e) => ({
@@ -53,11 +56,16 @@ const futureItems = computed(() => {
       description: null,
       disabled: true,
       itemType: e.type,
-      typeLabel: e.type === 'S' ? 'Skill' : 'Function',
+      typeLabel: TYPE_LABELS[e.type] ?? e.type,
       registered: false,
       _key: `${e.type}:${e.name}`,
     }))
 })
+
+/** What this server's stop-list routes take for an item type. */
+function typeCode(itemType) {
+  return data.value?.typeCodes?.[itemType] ?? itemType
+}
 
 // Selecting in one table clears the other
 const selectedRegistered = ref(null)
@@ -84,16 +92,16 @@ const canRemove = computed(
 
 // For adding a pre-disabled future item
 const TYPE_OPTIONS = [
-  { value: 'S', label: 'Skill' },
-  { value: 'F', label: 'Function' },
+  { value: 'skill', label: TYPE_LABELS.skill },
+  { value: 'tool', label: TYPE_LABELS.tool },
 ]
 
 const showDisableDialog = ref(false)
-const disableForm = ref({ type: 'S', name: '' })
+const disableForm = ref({ type: 'skill', name: '' })
 const disableNameError = ref(false)
 
 function openDisableDialog() {
-  disableForm.value = { type: 'S', name: '' }
+  disableForm.value = { type: 'skill', name: '' }
   disableNameError.value = false
   showDisableDialog.value = true
 }
@@ -104,7 +112,7 @@ function confirmDisable() {
   const type = disableForm.value.type
   const name = disableForm.value.name.trim()
   disableItem(
-    { type, name },
+    { typeCode: typeCode(type), name },
     {
       onSuccess: () => {
         showDisableDialog.value = false
@@ -131,7 +139,7 @@ function disableSelected() {
   const item = selectedItem.value
   if (!item?.registered || item.disabled) return
   disableItem(
-    { type: item.itemType, name: item.name },
+    { typeCode: typeCode(item.itemType), name: item.name },
     {
       onSuccess: () => {
         toast.add({
@@ -157,7 +165,7 @@ function enableSelected() {
   const item = selectedItem.value
   if (!item?.registered || !item.disabled) return
   enableItem(
-    { type: item.itemType, name: item.name },
+    { typeCode: typeCode(item.itemType), name: item.name },
     {
       onSuccess: () => {
         toast.add({
@@ -183,7 +191,7 @@ function removeSelected() {
   const item = selectedItem.value
   if (!item || item.registered) return
   enableItem(
-    { type: item.itemType, name: item.name },
+    { typeCode: typeCode(item.itemType), name: item.name },
     {
       onSuccess: () => {
         selectedFuture.value = null
@@ -227,7 +235,7 @@ function futureRowClass(row) {
     <RefetchIndicator :is-fetching="isFetching && !isLoading" />
 
     <div class="tab-toolbar">
-      <span class="tab-toolbar-title">Skills &amp; Functions</span>
+      <span class="tab-toolbar-title">Skills &amp; Tools</span>
       <div class="tab-toolbar-actions">
         <Button
           v-tooltip.bottom="'Refresh'"
@@ -304,7 +312,7 @@ function futureRowClass(row) {
           <span
             v-if="col.id === 'typeLabel'"
             class="type-chip"
-            :class="row.itemType === 'S' ? 'type-skill' : 'type-function'"
+            :class="row.itemType === 'skill' ? 'type-skill' : 'type-tool'"
             >{{ row.typeLabel }}</span
           >
           <span v-else-if="col.id === 'name'" class="item-name">{{ row.name }}</span>
@@ -317,11 +325,11 @@ function futureRowClass(row) {
             </span>
           </template>
           <template v-else-if="col.id === 'mode'">
-            <span v-if="row.itemType === 'S'" class="mode-cell">
-              {{ row.defaultMode || 'loaded' }}
+            <span v-if="row.itemType === 'skill'" class="mode-cell">
+              {{ MODE_LABELS[row.defaultMode] ?? row.defaultMode }}
               <i
-                v-if="row.supportsDelegation"
-                v-tooltip.top="'Supports delegation'"
+                v-if="row.supportsWorker"
+                v-tooltip.top="'Can run in a worker'"
                 class="pi pi-sitemap mode-icon"
               />
             </span>
@@ -335,7 +343,7 @@ function futureRowClass(row) {
           />
         </template>
         <template #empty>
-          <div class="table-empty">No skills or functions registered.</div>
+          <div class="table-empty">No skills or tools registered.</div>
         </template>
       </AppTable>
 
@@ -357,7 +365,7 @@ function futureRowClass(row) {
             <span
               v-if="col.id === 'typeLabel'"
               class="type-chip"
-              :class="row.itemType === 'S' ? 'type-skill' : 'type-function'"
+              :class="row.itemType === 'skill' ? 'type-skill' : 'type-tool'"
               >{{ row.typeLabel }}</span
             >
             <span v-else-if="col.id === 'name'" class="item-name text-muted">
@@ -399,7 +407,7 @@ function futureRowClass(row) {
           id="disable-name"
           v-model="disableForm.name"
           :class="{ 'p-invalid': disableNameError }"
-          placeholder="Exact skill or function name"
+          placeholder="Exact skill or tool name"
           fluid
         />
         <small v-if="disableNameError" class="error-text">Name is required.</small>
@@ -455,7 +463,7 @@ function futureRowClass(row) {
   color: var(--p-blue-700);
 }
 
-.type-function {
+.type-tool {
   background: var(--p-purple-100);
   color: var(--p-purple-700);
 }

@@ -1,7 +1,7 @@
 <script setup>
 /**
  * Standing instructions of an AI operator instance (legacy AiOperatorInstructions property
- * page): text the operator writes for itself and reads back on every iteration. An
+ * page): text the operator writes for itself and reads back on every cycle. An
  * administrator can edit it, lock it so updates from the model are ignored, and restore an
  * earlier version from the history. Edits are part of the operator form and apply on Save.
  */
@@ -29,7 +29,7 @@ const rows = computed(() => data.value ?? [])
 
 const columns = [
   { id: 'timestamp', field: 'timestamp', label: 'Changed', width: 170 },
-  { id: 'iteration', field: 'iteration', label: 'Iteration', width: 90 },
+  { id: 'cycle', field: 'cycle', label: 'Cycle', width: 90 },
   { id: 'previousText', field: 'previousText', label: 'Previous text', width: 360 },
   { id: 'actions', field: 'actions', label: '', width: 90 },
 ]
@@ -92,7 +92,7 @@ function restore(row) {
       >
         <template #cell="{ col, row }">
           <span v-if="col.id === 'timestamp'">{{ formatDateTime(row.timestamp) || '-' }}</span>
-          <span v-else-if="col.id === 'iteration'">{{ row.iteration }}</span>
+          <span v-else-if="col.id === 'cycle'">{{ row.cycle }}</span>
           <span
             v-else-if="col.id === 'previousText'"
             class="previous-text"
@@ -136,7 +136,7 @@ function restore(row) {
       :draggable="false"
     >
       <p v-if="viewed" class="viewed-meta">
-        {{ formatDateTime(viewed.timestamp) || '-' }}, iteration {{ viewed.iteration }}
+        {{ formatDateTime(viewed.timestamp) || '-' }}, cycle {{ viewed.cycle }}
       </p>
       <pre class="viewed-text" :class="{ 'text-muted': !viewed?.previousText }">{{
         viewed?.previousText || '(empty)'
