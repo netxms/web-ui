@@ -155,10 +155,13 @@ export const test = base.extend({
           expect(response.ok(), `GET ${path}`).toBe(true)
           return response.json()
         },
-        /** Creates an object of this test's own, which it may change and which is removed after. */
-        createObject: async (objectClass, parentId, label) => {
+        /**
+         * Creates an object of this test's own, which it may change and which is removed after.
+         * `fields` go into the creation body as well (an asset's mandatory `assetProperties`).
+         */
+        createObject: async (objectClass, parentId, label, fields = {}) => {
           const name = `${TEST_PREFIX}${label}-${Date.now()}`
-          const { id } = await post('/v1/objects', { class: objectClass, parentId, name })
+          const { id } = await post('/v1/objects', { ...fields, class: objectClass, parentId, name })
           guard.owned.add(`/v1/objects/${id}`)
           return { id, name }
         },
