@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import Skeleton from 'primevue/skeleton'
 import QueryErrorState from '@/components/common/QueryErrorState.vue'
 import { useIncidentActivity } from '@/queries/useIncidentQueries'
-import { useUsers } from '@/queries/useUserQueries'
+import { useUserDirectory } from '@/queries/useUserQueries'
 import { describeIncidentActivity, getIncidentActivity } from '@/utils/incidentDisplay'
 import { formatDateTimeMedium } from '@/utils/timeFormat'
 
@@ -16,11 +16,10 @@ const { data, isLoading, isError, error, refetch } = useIncidentActivity(() => p
 
 const entries = computed(() => data.value ?? [])
 
-// Assignment entries carry raw user ids; without "manage users" the user list 403s and the
-// entries show bare ids.
-const { data: users } = useUsers()
+// Assignment entries carry raw user ids.
+const { users } = useUserDirectory()
 
-const userNames = computed(() => new Map((users.value ?? []).map((user) => [user.id, user.name])))
+const userNames = computed(() => new Map(users.value.map((user) => [user.id, user.name])))
 
 function resolveUserName(id) {
   return userNames.value.get(id)

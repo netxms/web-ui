@@ -1,7 +1,7 @@
 import { computed, toValue } from 'vue'
 import { adaptBaseObject } from '@/api/objectAdapters'
 import { useObjectsByIds, useZoneNames } from '@/queries/useObjectQueries'
-import { useUsers } from '@/queries/useUserQueries'
+import { useUserDirectory } from '@/queries/useUserQueries'
 import { useEventTemplates } from '@/queries/useEventTemplateQueries'
 import { COLUMN_KIND, getColumnKind } from '@/utils/logColumnTypes'
 
@@ -11,9 +11,8 @@ const MAX_RESOLVED_OBJECTS = 200
 /**
  * Resolve the coded ids in log records to names.
  *
- * The server names objects and users in each page's `resolvedValues` (including users the
- * caller cannot read through `/v1/users`). Older servers lack it, so this falls back to
- * per-object fetches and the privileged user list.
+ * The server names objects and users in each page's `resolvedValues`. Older servers lack it, so
+ * this falls back to per-object fetches and the user directory.
  *
  * @param {import('vue').MaybeRefOrGetter<object[]>} records
  * @param {import('vue').MaybeRefOrGetter<import('@/api/logsApi').LogColumn[]>} columns
@@ -58,7 +57,7 @@ export function useLogValueResolver(records, columns, resolvedPages) {
 
   const { objectsById: fetchedObjectsById } = useObjectsByIds(objectIds)
   const zonesByUin = useZoneNames()
-  const { data: users } = useUsers()
+  const { users } = useUserDirectory()
   const { data: eventTemplates } = useEventTemplates()
 
   const objectsById = computed(() => {
@@ -69,7 +68,7 @@ export function useLogValueResolver(records, columns, resolvedPages) {
 
   const usersById = computed(() => {
     const map = new Map()
-    for (const user of users.value ?? []) map.set(user.id, user.name)
+    for (const user of users.value) map.set(user.id, user.name)
     for (const [id, name] of serverResolved.value.users) map.set(id, name)
     return map
   })

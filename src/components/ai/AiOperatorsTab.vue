@@ -15,7 +15,7 @@ import {
   useDeleteAiOperator,
   useResetAiOperator,
 } from '@/queries/useAiOperatorQueries'
-import { useUsers } from '@/queries/useUserQueries'
+import { useUserDirectory } from '@/queries/useUserQueries'
 import { usePermissions } from '@/composables/usePermissions'
 import { useServerComponents } from '@/composables/useServerComponents'
 import { useWorkingState } from '@/composables/useWorkingState'
@@ -51,10 +51,10 @@ defineExpose({ refetch })
 const operators = computed(() => data.value ?? [])
 
 // Owner names are not in the operator payload, only ownerUserId.
-const { data: usersData } = useUsers()
+const { users: usersData } = useUserDirectory()
 const userNameById = computed(() => {
   const map = new Map()
-  for (const user of usersData.value ?? []) map.set(user.id, user.name)
+  for (const user of usersData.value) map.set(user.id, user.name)
   return map
 })
 

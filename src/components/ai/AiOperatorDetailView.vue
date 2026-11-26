@@ -18,7 +18,7 @@ import {
   useUpdateAiOperator,
   useResetAiOperator,
 } from '@/queries/useAiOperatorQueries'
-import { useUsers } from '@/queries/useUserQueries'
+import { useUserDirectory } from '@/queries/useUserQueries'
 import { labelForRight } from '@/auth/systemRights'
 import { KNOWN_PROVIDER_SLOTS } from '@/utils/chatBotDisplay'
 import {
@@ -89,22 +89,21 @@ watch(
 
 // The instance runs with its owner's rights. The server checks the owner (an enabled user with
 // the AI assistant right) and names the rule it breaks; the right is not checked here because
-// systemRights arrives as a JSON number that cannot carry 64 bits exactly. Without "Manage
-// users" the select keeps the current owner, disabled.
+// systemRights arrives as a JSON number that cannot carry 64 bits exactly.
 
-const { data: usersData, error: usersError, isLoading: isLoadingUsers } = useUsers()
+const { users: usersData, error: usersError, isLoading: isLoadingUsers } = useUserDirectory()
 const usersRefused = computed(() => !!usersError.value)
 
 function ownerLabel(id) {
-  const user = (usersData.value ?? []).find((u) => u.id === id)
+  const user = usersData.value.find((u) => u.id === id)
   if (!user) return `[${id}]`
-  return user.flags?.disabled ? `${user.name} (disabled)` : user.name
+  return user.isDisabled ? `${user.name} (disabled)` : user.name
 }
 
 const ownerOptions = computed(() => {
   const options = isNew.value ? [{ value: 0, label: 'Default (ai-operator account)' }] : []
-  const users = (usersData.value ?? [])
-    .filter((u) => u.id !== 0 && !u.flags?.disabled)
+  const users = usersData.value
+    .filter((u) => u.id !== 0 && !u.isDisabled)
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
   for (const user of users) options.push({ value: user.id, label: user.name })
   // The current owner stays selectable when it is disabled, deleted or cannot be listed.
@@ -116,9 +115,6 @@ const ownerOptions = computed(() => {
 })
 
 const ownerHint = computed(() => {
-  if (usersError.value?.status === 403) {
-    return `Choosing an owner requires the "${labelForRight('manageUsers')}" system right.`
-  }
   if (usersRefused.value) return 'Users could not be loaded.'
   return `Runs with this account's rights. It needs the "${labelForRight('useAiAssistant')}" right.`
 })

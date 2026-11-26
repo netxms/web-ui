@@ -4,7 +4,7 @@ import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Skeleton from 'primevue/skeleton'
-import { useUsers } from '@/queries/useUserQueries'
+import { useUserDirectory } from '@/queries/useUserQueries'
 
 // Users only: CMD_ASSIGN_INCIDENT takes a user id.
 const props = defineProps({
@@ -16,7 +16,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:visible', 'assign'])
 
-const { data: usersData, isLoading } = useUsers()
+const { users: usersData, isLoading } = useUserDirectory()
 
 const filter = ref('')
 const selectedId = ref(null)
@@ -32,7 +32,7 @@ watch(
 
 const users = computed(() => {
   const search = filter.value.trim().toLowerCase()
-  const list = usersData.value ?? []
+  const list = usersData.value
   if (!search) return list
   return list.filter(
     (u) => u.name?.toLowerCase().includes(search) || u.fullName?.toLowerCase().includes(search),
@@ -40,7 +40,7 @@ const users = computed(() => {
 })
 
 const selectedUser = computed(
-  () => (usersData.value ?? []).find((u) => u.id === selectedId.value) ?? null,
+  () => usersData.value.find((u) => u.id === selectedId.value) ?? null,
 )
 
 function close() {

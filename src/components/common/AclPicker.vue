@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
-import { useUsers, useUserGroups } from '@/queries/useUserQueries'
+import { useUserDirectory } from '@/queries/useUserQueries'
 
 const props = defineProps({
   modelValue: {
@@ -13,16 +13,15 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-const { data: usersData } = useUsers()
-const { data: groupsData } = useUserGroups()
+const { users: usersData, groups: groupsData } = useUserDirectory()
 
 const filter = ref('')
 
 const currentSet = computed(() => new Set(props.modelValue))
 
 const allEntities = computed(() => {
-  const groups = (groupsData.value ?? []).map((g) => ({ ...g, kind: 'group' }))
-  const users = (usersData.value ?? []).map((u) => ({ ...u, kind: 'user' }))
+  const groups = groupsData.value.map((g) => ({ ...g, kind: 'group' }))
+  const users = usersData.value.map((u) => ({ ...u, kind: 'user' }))
   return [...groups, ...users]
 })
 

@@ -4,7 +4,7 @@ import InputText from 'primevue/inputtext'
 import Checkbox from 'primevue/checkbox'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
-import { useUsers, useUserGroups } from '@/queries/useUserQueries'
+import { useUserDirectory } from '@/queries/useUserQueries'
 import { EPP_CHAIN_ACCESS_EDIT, EPP_CHAIN_ACCESS_READ } from '@/utils/eppChains'
 
 /**
@@ -22,15 +22,14 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-const { data: usersData } = useUsers()
-const { data: groupsData } = useUserGroups()
+const { users: usersData, groups: groupsData } = useUserDirectory()
 
 const addMode = ref(false)
 const filter = ref('')
 
 const allEntities = computed(() => [
-  ...(groupsData.value ?? []).map((g) => ({ ...g, kind: 'group' })),
-  ...(usersData.value ?? []).map((u) => ({ ...u, kind: 'user' })),
+  ...groupsData.value.map((g) => ({ ...g, kind: 'group' })),
+  ...usersData.value.map((u) => ({ ...u, kind: 'user' })),
 ])
 
 const entityMap = computed(() => new Map(allEntities.value.map((e) => [e.id, e])))

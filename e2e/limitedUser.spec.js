@@ -30,6 +30,15 @@ test('a new account with default rights sees neither the sections nor an error',
   await guardServer(context)
   const page = await context.newPage()
   const problems = watchProblems(page)
+  // Names and pickers read the user directory; the user and group lists need "manage users".
+  const userListRefusals = () =>
+    problems.failedRequests.filter((entry) => /^\d+ GET \/v1\/(users|user-groups)$/.test(entry))
+  const directoryStatuses = []
+  page.on('response', (response) => {
+    if (new URL(response.url()).pathname.endsWith('/v1/user-directory')) {
+      directoryStatuses.push(response.status())
+    }
+  })
   fs.mkdirSync(SHOTS, { recursive: true })
 
   await page.goto('/login')
@@ -41,6 +50,7 @@ test('a new account with default rights sees neither the sections nor an error',
   })
   await settle(page)
   await page.screenshot({ path: `${SHOTS}/home.png` })
+  const homeRefusals = userListRefusals()
 
   // R3.9, R3.18, R8.1: not offered.
   await page.goto('/configuration')
@@ -66,6 +76,7 @@ test('a new account with default rights sees neither the sections nor an error',
   }
   fs.writeFileSync(`${SHOTS}/sections.json`, JSON.stringify(results, null, 1))
 
+  problems.failedRequests.length = 0
   for (const [name, url] of [
     ['infrastructure', '/infrastructure'],
     ['alarms', '/alarms'],
@@ -78,6 +89,10 @@ test('a new account with default rights sees neither the sections nor an error',
     await page.screenshot({ path: `${SHOTS}/${name}.png` })
   }
 
+  // Servers before netxms 26123a3541 answer 404, and the console falls back to the user lists.
+  expect(directoryStatuses, 'GET /v1/user-directory').toContain(200)
+  expect(homeRefusals, 'home').toEqual([])
+  expect(userListRefusals(), 'perspectives').toEqual([])
   expect(problems.errors).toEqual([])
   await context.close()
 })

@@ -40,7 +40,7 @@ vi.mock('@/queries/useAiOperatorQueries', () => ({
 }))
 
 vi.mock('@/queries/useUserQueries', () => ({
-  useUsers: () => ({ data: ref([{ id: 1, name: 'admin' }]) }),
+  useUserDirectory: () => ({ users: ref([{ id: 1, name: 'admin' }]) }),
 }))
 
 vi.mock('primevue/usetoast', () => ({ useToast: () => ({ add: vi.fn() }) }))

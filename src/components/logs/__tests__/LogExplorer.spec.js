@@ -95,7 +95,7 @@ vi.mock('@/queries/useObjectQueries', () => ({
   useZoneNames: () => ref(new Map()),
   useObjectsByIds: () => ({ objectsById: ref(new Map()) }),
 }))
-vi.mock('@/queries/useUserQueries', () => ({ useUsers: () => ({ data: ref([]) }) }))
+vi.mock('@/queries/useUserQueries', () => ({ useUserDirectory: () => ({ users: ref([]) }) }))
 vi.mock('@/queries/useEventTemplateQueries', () => ({
   useEventTemplates: () => ({ data: ref([]) }),
 }))

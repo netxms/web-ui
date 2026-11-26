@@ -4,7 +4,7 @@ import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
-import { useUsers } from '@/queries/useUserQueries'
+import { useUserDirectory } from '@/queries/useUserQueries'
 import { PEER_ID_MAX_LENGTH } from '@/utils/chatBotDisplay'
 
 const props = defineProps({
@@ -28,9 +28,9 @@ const emit = defineEmits(['update:visible', 'save'])
 
 const isEdit = computed(() => !!props.mapping)
 
-const { data: usersData } = useUsers()
+const { users: usersData } = useUserDirectory()
 const userOptions = computed(() =>
-  (usersData.value ?? [])
+  usersData.value
     .map((u) => ({ label: u.fullName ? `${u.name} (${u.fullName})` : u.name, value: u.id }))
     .sort((a, b) => a.label.localeCompare(b.label)),
 )

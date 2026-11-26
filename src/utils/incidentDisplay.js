@@ -108,8 +108,8 @@ export function getIncidentActivity(entry) {
 }
 
 /**
- * The server logs raw user ids, 0 meaning unassigned. `[id]` without a name: `GET /v1/users`
- * requires "manage users" rights.
+ * The server logs raw user ids, 0 meaning unassigned. `[id]` for a user the directory does not
+ * name (deleted, or an older server without "manage users").
  *
  * @param {string|number|null} value
  * @param {(id: number) => string|null|undefined} [resolveUserName]

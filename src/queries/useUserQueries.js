@@ -6,6 +6,7 @@ import { MODERATE_TIER } from './config'
 export const userKeys = {
   all: () => ['users'],
   list: () => ['users', 'list'],
+  directory: () => ['users', 'directory'],
   detail: (id) => ['users', 'detail', id],
 }
 
@@ -15,17 +16,25 @@ export const userGroupKeys = {
   detail: (id) => ['userGroups', 'detail', id],
 }
 
-/**
- * Display code reads this too, but the server gates it behind "manage users": a 403 is a normal
- * outcome (no toast, no retries).
- */
+/** Needs "manage users" (403 otherwise). Names and pickers read `useUserDirectory`. */
 export function useUsers() {
   return useQuery({
     queryKey: userKeys.list(),
-    queryFn: () => usersApi.getUsers({ suppressForbidden: true }),
-    retry: (failureCount, error) => error?.status !== 403 && failureCount < 2,
+    queryFn: () => usersApi.getUsers(),
     ...MODERATE_TIER,
   })
+}
+
+/** Users and groups, id/name/fullName/isDisabled only, for any session. */
+export function useUserDirectory() {
+  const query = useQuery({
+    queryKey: userKeys.directory(),
+    queryFn: () => usersApi.getUserDirectory(),
+    ...MODERATE_TIER,
+  })
+  const users = computed(() => (query.data.value ?? []).filter((entry) => !entry.isGroup))
+  const groups = computed(() => (query.data.value ?? []).filter((entry) => entry.isGroup))
+  return { ...query, users, groups }
 }
 
 /**
@@ -91,11 +100,16 @@ export function useUserGroup(groupId) {
   })
 }
 
+function invalidateGroups(queryClient) {
+  queryClient.invalidateQueries({ queryKey: userGroupKeys.all() })
+  queryClient.invalidateQueries({ queryKey: userKeys.directory() })
+}
+
 export function useCreateUserGroup() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (name) => usersApi.createUserGroup(name),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: userGroupKeys.all() }),
+    onSuccess: () => invalidateGroups(queryClient),
   })
 }
 
@@ -103,7 +117,7 @@ export function useUpdateUserGroup() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ groupId, data }) => usersApi.updateUserGroup(groupId, data),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: userGroupKeys.all() }),
+    onSuccess: () => invalidateGroups(queryClient),
   })
 }
 
@@ -111,7 +125,7 @@ export function useDeleteUserGroup() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (groupId) => usersApi.deleteUserGroup(groupId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: userGroupKeys.all() }),
+    onSuccess: () => invalidateGroups(queryClient),
   })
 }
 

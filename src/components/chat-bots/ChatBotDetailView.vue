@@ -25,7 +25,7 @@ import {
   useRenameChatBot,
 } from '@/queries/useChatBotQueries'
 import { useNotificationChannels } from '@/queries/useNotificationChannelQueries'
-import { useUsers } from '@/queries/useUserQueries'
+import { useUserDirectory } from '@/queries/useUserQueries'
 import {
   chatBotStatus,
   normalizeMappings,
@@ -121,10 +121,10 @@ const channelConflictOnRename = computed(
 const status = computed(() => chatBotStatus(props.bot))
 const lastInbound = computed(() => formatAgeCompact(props.bot?.lastInboundMessageTime))
 
-const { data: usersData } = useUsers()
+const { users: usersData } = useUserDirectory()
 const userNameById = computed(() => {
   const map = new Map()
-  for (const user of usersData.value ?? []) map.set(user.id, user.name)
+  for (const user of usersData.value) map.set(user.id, user.name)
   return map
 })
 

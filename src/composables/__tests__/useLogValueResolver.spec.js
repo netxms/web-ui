@@ -16,7 +16,7 @@ vi.mock('@/queries/useObjectQueries', () => ({
   },
   useZoneNames: () => ref(new Map([[7, 'DMZ']])),
 }))
-vi.mock('@/queries/useUserQueries', () => ({ useUsers: () => ({ data: ref(userList) }) }))
+vi.mock('@/queries/useUserQueries', () => ({ useUserDirectory: () => ({ users: ref(userList) }) }))
 vi.mock('@/queries/useEventTemplateQueries', () => ({
   useEventTemplates: () => ({ data: ref([{ code: 4, name: 'SYS_NODE_DOWN' }]) }),
 }))

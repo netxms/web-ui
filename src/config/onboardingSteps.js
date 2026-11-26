@@ -144,7 +144,6 @@ export const ONBOARDING_STEPS = [
       icon: 'pi pi-users',
       target: () => configTarget('users-groups'),
     },
-    // Non-admins get an empty users list, so this stays persisted-only for them.
     isDone: (ctx) => ctx.users.length > 1,
     requiredRight: 'manageUsers',
   },

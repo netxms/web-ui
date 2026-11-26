@@ -22,7 +22,7 @@ import {
   useSaveAiMemoryEntry,
 } from '@/queries/useAiQueries'
 import { useObjectsByIds } from '@/queries/useObjectQueries'
-import { useUsers } from '@/queries/useUserQueries'
+import { useUserDirectory } from '@/queries/useUserQueries'
 import { useAuthStore } from '@/stores/authStore'
 import { memoryScopeLabel, memorySourceLabel } from '@/utils/aiMemoryDisplay'
 import { formatDateTime } from '@/utils/timeFormat'
@@ -41,22 +41,22 @@ defineExpose({ refetch })
 
 const entries = computed(() => data.value ?? [])
 
-// Listing users needs "Manage users" (`useUsers` treats the 403 as normal); without it the
-// caller's own name is still known, and everyone else reads as [id], as in legacy.
+// On a server without the user directory and without "Manage users", the caller's own name is
+// still known and everyone else reads as [id].
 
-const { data: usersData } = useUsers()
+const { users: usersData } = useUserDirectory()
 const currentUserId = computed(() => authStore.user?.id ?? null)
 
 function userName(id) {
-  const user = (usersData.value ?? []).find((u) => u.id === id)
+  const user = usersData.value.find((u) => u.id === id)
   if (user) return user.name
   if (id === currentUserId.value && authStore.user?.username) return authStore.user.username
   return `[${id}]`
 }
 
 const userOptions = computed(() => {
-  const users = (usersData.value ?? [])
-    .filter((u) => u.id !== 0 && !u.flags?.disabled)
+  const users = usersData.value
+    .filter((u) => u.id !== 0 && !u.isDisabled)
     .map((u) => ({ value: u.id, label: u.name }))
   if (currentUserId.value != null && !users.some((u) => u.value === currentUserId.value)) {
     users.push({ value: currentUserId.value, label: userName(currentUserId.value) })

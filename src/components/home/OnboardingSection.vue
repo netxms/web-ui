@@ -6,7 +6,7 @@ import { useToast } from 'primevue/usetoast'
 import OnboardingStepCard from './OnboardingStepCard.vue'
 import { useObjects, useObjectsByClass } from '@/queries/useObjectQueries'
 import { useNotificationChannels } from '@/queries/useNotificationChannelQueries'
-import { useUsers } from '@/queries/useUserQueries'
+import { useUserDirectory } from '@/queries/useUserQueries'
 import { useOnboardingStore } from '@/stores/onboardingStore'
 import { useGuidedTour } from '@/composables/useGuidedTour'
 import { ONBOARDING_STEPS, STEP_GROUPS, GROUP_LABELS } from '@/config/onboardingSteps'
@@ -31,10 +31,10 @@ const { data: nodesAndDashboards, isFetched: nodesFetched } = useObjectsByClass(
   'Dashboard',
 ])
 const { data: channels, isFetched: channelsFetched } = useNotificationChannels()
-const { data: users, isFetched: usersFetched } = useUsers()
+const { users, isFetched: usersFetched } = useUserDirectory()
 
-// Settled includes errors (non-admins get 403 on users); before that, an empty node list
-// would flash the panel on an established system.
+// Settled includes errors; before that, an empty node list would flash the panel on an
+// established system.
 const signalsReady = computed(
   () => rootsFetched.value && nodesFetched.value && channelsFetched.value && usersFetched.value,
 )
@@ -54,7 +54,7 @@ const stepContext = computed(() => ({
   targetNode: targetNode.value,
   dashboards: (nodesAndDashboards.value ?? []).filter((o) => o.class === 'Dashboard'),
   channels: channels.value ?? [],
-  users: users.value ?? [],
+  users: users.value,
   infrastructureRoot: (rootObjects.value ?? []).find((o) => o.class === 'ServiceRoot') ?? null,
   dashboardRoot: (rootObjects.value ?? []).find((o) => o.class === 'DashboardRoot') ?? null,
 }))

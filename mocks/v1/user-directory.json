@@ -1,0 +1,61 @@
+[
+  {
+    "id": 1,
+    "name": "admin",
+    "fullName": "System Administrator",
+    "isGroup": false,
+    "isDisabled": false
+  },
+  {
+    "id": 2,
+    "name": "jsmith",
+    "fullName": "John Smith",
+    "isGroup": false,
+    "isDisabled": false
+  },
+  {
+    "id": 3,
+    "name": "mjones",
+    "fullName": "Mary Jones",
+    "isGroup": false,
+    "isDisabled": false
+  },
+  {
+    "id": 4,
+    "name": "bwilson",
+    "fullName": "Bob Wilson",
+    "isGroup": false,
+    "isDisabled": true
+  },
+  {
+    "id": 5,
+    "name": "api-monitor",
+    "fullName": "API Monitor Service",
+    "isGroup": false,
+    "isDisabled": false
+  },
+  {
+    "id": 1073741825,
+    "name": "Everyone",
+    "isGroup": true,
+    "isDisabled": false
+  },
+  {
+    "id": 1073741826,
+    "name": "Admins",
+    "isGroup": true,
+    "isDisabled": false
+  },
+  {
+    "id": 1073741827,
+    "name": "NOC Operators",
+    "isGroup": true,
+    "isDisabled": false
+  },
+  {
+    "id": 1073741828,
+    "name": "Read-Only",
+    "isGroup": true,
+    "isDisabled": false
+  }
+]

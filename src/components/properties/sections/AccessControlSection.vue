@@ -3,7 +3,7 @@ import { computed, ref, toRef } from 'vue'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import Checkbox from 'primevue/checkbox'
-import { useUsers, useUserGroups } from '@/queries/useUserQueries'
+import { useUserDirectory } from '@/queries/useUserQueries'
 import { useInheritedAccessRights } from '@/composables/useInheritedAccessRights'
 import {
   groupObjectAccessRights,
@@ -24,8 +24,7 @@ const props = defineProps({
   sectionLabel: { type: String, required: true },
 })
 
-const { data: usersData } = useUsers()
-const { data: groupsData } = useUserGroups()
+const { users: usersData, groups: groupsData } = useUserDirectory()
 
 const selectedUserId = ref(null)
 const addMode = ref(false)
@@ -35,13 +34,12 @@ const canInherit = computed(() => (props.object.parents ?? []).length > 0)
 
 const rightsGroups = computed(groupObjectAccessRights)
 
-// The user/group directory comes back empty on 403.
 const entityMap = computed(() => {
   const map = new Map()
-  for (const g of groupsData.value ?? []) {
+  for (const g of groupsData.value) {
     map.set(g.id, { id: g.id, name: g.name, kind: 'group' })
   }
-  for (const u of usersData.value ?? []) {
+  for (const u of usersData.value) {
     map.set(u.id, { id: u.id, name: u.fullName || u.name, kind: 'user' })
   }
   return map

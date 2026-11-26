@@ -1,13 +1,55 @@
 import { get, post, put, del } from './client'
 
 /**
- * Needs "manage users"; callers that only want names for display pass `suppressForbidden` and
- * fall back to raw ids on 403.
- *
- * @param {{ suppressForbidden?: boolean }} [options]
+ * @typedef {object} UserDirectoryEntry
+ * @property {number} id
+ * @property {string} name
+ * @property {string} [fullName] - users only
+ * @property {boolean} isGroup
+ * @property {boolean} isDisabled
  */
-export function getUsers(options) {
-  return get('/v1/users', options)
+
+/** Needs "manage users". Display code reads `getUserDirectory` instead. */
+export function getUsers() {
+  return get('/v1/users')
+}
+
+function emptyOnForbidden(error) {
+  if (error?.status === 403) return []
+  throw error
+}
+
+/**
+ * Users and groups for any session. Servers before netxms 26123a3541 lack the route (404); the
+ * "manage users" lists stand in there, empty for everyone else.
+ *
+ * @returns {Promise<UserDirectoryEntry[]>}
+ */
+export async function getUserDirectory() {
+  try {
+    return await get('/v1/user-directory')
+  } catch (error) {
+    if (error?.status !== 404) throw error
+  }
+  const [users, groups] = await Promise.all([
+    getUsers().catch(emptyOnForbidden),
+    getUserGroups().catch(emptyOnForbidden),
+  ])
+  return [
+    ...users.map((user) => ({
+      id: user.id,
+      name: user.name,
+      fullName: user.fullName ?? '',
+      isGroup: false,
+      isDisabled: !!user.flags?.disabled,
+    })),
+    ...groups.map((group) => ({
+      id: group.id,
+      name: group.name,
+      isGroup: true,
+      isDisabled: !!group.flags?.disabled,
+    })),
+  ]
 }
 
 export function getUser(userId) {

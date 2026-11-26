@@ -8,7 +8,7 @@ import Select from 'primevue/select'
 import ObjectPickerDialog from '@/components/objects/ObjectPickerDialog.vue'
 import EventLabel from '@/components/epp/EventLabel.vue'
 import { useZoneNames } from '@/queries/useObjectQueries'
-import { useUsers } from '@/queries/useUserQueries'
+import { useUserDirectory } from '@/queries/useUserQueries'
 import { useEventTemplates } from '@/queries/useEventTemplateQueries'
 import {
   COLUMN_KIND,
@@ -44,7 +44,7 @@ const CALENDAR_PERIODS = TIME_PRESETS.filter((preset) => preset.period).map((pre
   label: preset.label,
 }))
 
-const { data: users } = useUsers()
+const { users } = useUserDirectory()
 const { data: eventTemplates } = useEventTemplates()
 const zonesByUin = useZoneNames()
 
@@ -55,7 +55,7 @@ const operator = computed(() => LOG_OPERATORS[props.condition.operatorId] ?? ope
 const codedOptions = computed(() => getCodedOptions(props.column.type) ?? [])
 
 const userOptions = computed(() =>
-  (users.value ?? []).map((user) => ({ value: user.id, label: user.name })),
+  users.value.map((user) => ({ value: user.id, label: user.name })),
 )
 
 const eventOptions = computed(() =>

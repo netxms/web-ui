@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
-import { useUsers, useUserGroups } from '@/queries/useUserQueries'
+import { useUserDirectory } from '@/queries/useUserQueries'
 
 // draft is a shared mutable object from usePropertyEditor — mutations are intentional
 /* eslint-disable vue/no-mutating-props */
@@ -13,14 +13,13 @@ const props = defineProps({
   sectionLabel: { type: String, required: true },
 })
 
-const { data: usersData } = useUsers()
-const { data: groupsData } = useUserGroups()
+const { users: usersData, groups: groupsData } = useUserDirectory()
 
 const filter = ref('')
 
 const allEntities = computed(() => [
-  ...(groupsData.value ?? []).map((g) => ({ id: g.id, name: g.name, kind: 'group' })),
-  ...(usersData.value ?? []).map((u) => ({ id: u.id, name: u.fullName || u.name, kind: 'user' })),
+  ...groupsData.value.map((g) => ({ id: g.id, name: g.name, kind: 'group' })),
+  ...usersData.value.map((u) => ({ id: u.id, name: u.fullName || u.name, kind: 'user' })),
 ])
 
 const entityMap = computed(() => {
