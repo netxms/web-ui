@@ -94,7 +94,7 @@ const NO_INFRASTRUCTURE_PROPERTIES_CLASSES = [
 const INFRASTRUCTURE_CONTEXTS = ['objectTree', 'templateTargets', 'interfaceTable', 'rack']
 
 // Views with a top-level menu slot or submenu of their own.
-const OPEN_EXCLUDED_VIEWS = ['properties', 'polls', 'script', 'topology']
+const OPEN_EXCLUDED_VIEWS = ['properties', 'polls', 'script', 'topology', 'mibExplorer']
 
 const SCRIPT_CLASSES = ['Node', 'Container', 'Collector']
 
@@ -466,6 +466,19 @@ const objectActions = [
           const viewId = useSshTerminalStore().openFromMenu(actionContext.object)
           openObjectView(actionContext.object, viewId)
         },
+      },
+      {
+        id: 'object.tools.mibExplorer',
+        label: 'MIB Explorer',
+        icon: 'pi pi-share-alt',
+        priority: 0,
+        objectClasses: ['Node'],
+        // What the walk needs. Legacy does not check it; without it the node's explorer could
+        // only browse the tree, which Tools > MIB Explorer does for everyone.
+        requiredObjectRight: 'READ_SNMP',
+        isApplicable: (ctx) => !!ctx.object?.capabilities?.isSnmp,
+        url: resolveHref(objectViewTarget(ctx.object, 'mibExplorer')),
+        command: ({ actionContext }) => openObjectView(actionContext.object, 'mibExplorer'),
       },
       {
         id: 'object.tools.deployPackage',

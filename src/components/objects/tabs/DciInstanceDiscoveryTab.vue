@@ -285,7 +285,8 @@ function setInstanceRetentionMode(mode) {
       v-model:visible="discoveryMibPickerVisible"
       :oid="discoveryPicker === 'mib' ? discoverySource : ''"
       header="Select Base OID"
-      walk
+      :walk-object-id="ownerObject?.class === 'Node' ? ownerObject.id : null"
+      :walk-snmp-agent="form.snmpAgentName?.trim() || null"
       @select="(oid) => (form.instanceDiscoveryData = oid)"
     />
   </div>

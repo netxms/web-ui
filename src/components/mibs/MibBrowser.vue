@@ -1,19 +1,16 @@
 <script setup>
-import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
-import InputText from 'primevue/inputtext'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
+import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import Skeleton from 'primevue/skeleton'
 import MibTreeNode from './MibTreeNode.vue'
 import { useMibChildren } from '@/queries/useMibQueries'
 
-defineProps({
+const props = defineProps({
+  /** Set from outside (a typed OID, a walk result), it is revealed: ancestors expand, row scrolls in. */
   selectedOid: { type: String, default: null },
 })
 
 const emit = defineEmits(['select'])
 
-const filter = ref('')
 const expandedOids = ref(new Set(['1', '1.3', '1.3.6', '1.3.6.1']))
 const focusedOid = ref(null)
 
@@ -21,18 +18,6 @@ const focusedOid = ref(null)
 const { data: rootChildren, isLoading: isRootLoading } = useMibChildren(ref(''))
 
 const OID_PATTERN = /^\d[\d.]*$/
-
-watch(filter, (value) => {
-  const v = value.trim()
-  if (!v) return
-  if (OID_PATTERN.test(v)) {
-    const parts = v.split('.')
-    const prefixes = parts.map((_, i) => parts.slice(0, i + 1).join('.'))
-    const next = new Set(expandedOids.value)
-    prefixes.forEach((p) => next.add(p))
-    expandedOids.value = next
-  }
-})
 
 function toggle(oid) {
   const next = new Set(expandedOids.value)
@@ -71,7 +56,48 @@ function focusItemByOid(oid) {
 // once it appears.
 let pendingObserver = null
 
-onBeforeUnmount(() => pendingObserver?.disconnect())
+let revealObserver = null
+let revealTimeout = null
+
+function stopRevealing() {
+  revealObserver?.disconnect()
+  revealObserver = null
+  clearTimeout(revealTimeout)
+}
+
+onBeforeUnmount(() => {
+  pendingObserver?.disconnect()
+  stopRevealing()
+})
+
+// Each level renders after its own children query, so the row can appear several fetches later.
+function scrollIntoViewWhenRendered(oid) {
+  stopRevealing()
+  const tryScroll = () => {
+    const el = treeScrollRef.value?.querySelector(`[data-oid="${oid}"]`)
+    if (!el) return false
+    el.scrollIntoView({ block: 'nearest' })
+    return true
+  }
+  if (tryScroll() || !treeScrollRef.value) return
+  revealObserver = new MutationObserver(() => tryScroll() && stopRevealing())
+  revealObserver.observe(treeScrollRef.value, { childList: true, subtree: true })
+  revealTimeout = setTimeout(stopRevealing, 5000)
+}
+
+watch(
+  () => props.selectedOid,
+  (oid) => {
+    if (!oid || !OID_PATTERN.test(oid)) return
+    const parts = oid.split('.')
+    const next = new Set(expandedOids.value)
+    for (let i = 1; i < parts.length; i++) next.add(parts.slice(0, i).join('.'))
+    if (next.size !== expandedOids.value.size) expandedOids.value = next
+    focusedOid.value = oid
+    nextTick(() => scrollIntoViewWhenRendered(oid))
+  },
+  { immediate: true },
+)
 
 function focusFirstChildOf(parentOid) {
   function tryFocus() {
@@ -153,28 +179,10 @@ function onKeyDown(event) {
     }
   }
 }
-
-const nameFilter = computed(() => {
-  const v = filter.value.trim().toLowerCase()
-  if (!v || OID_PATTERN.test(v)) return ''
-  return v
-})
 </script>
 
 <template>
   <div class="mib-browser">
-    <div class="browser-toolbar">
-      <IconField>
-        <InputIcon class="pi pi-search" />
-        <InputText
-          v-model="filter"
-          data-filter-input
-          placeholder="Filter by name or OID..."
-          size="small"
-          class="browser-filter"
-        />
-      </IconField>
-    </div>
     <div
       ref="treeScrollRef"
       class="browser-scroll"
@@ -202,7 +210,6 @@ const nameFilter = computed(() => {
         :selected-oid="selectedOid"
         :focused-oid="focusedOid"
         :expanded-oids="expandedOids"
-        :name-filter="nameFilter"
         @toggle="toggle"
         @select="selectNode"
         @focus="handleFocus"
@@ -217,17 +224,6 @@ const nameFilter = computed(() => {
   flex-direction: column;
   height: 100%;
   min-height: 0;
-}
-
-.browser-toolbar {
-  padding: 0.5rem;
-  border-bottom: 1px solid var(--p-surface-border);
-  background: var(--p-surface-card);
-  flex-shrink: 0;
-}
-
-.browser-filter {
-  width: 100%;
 }
 
 .browser-scroll {

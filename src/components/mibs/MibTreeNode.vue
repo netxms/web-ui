@@ -18,7 +18,8 @@ const isExpanded = computed(() => props.expandedOids.has(props.oid))
 const isSelected = computed(() => props.selectedOid === props.oid)
 const isFocused = computed(() => props.focusedOid === props.oid)
 
-const enabledOid = computed(() => (isExpanded.value ? props.oid : null))
+// A revealed selection expands every prefix, leaves included; those have nothing to load.
+const enabledOid = computed(() => (isExpanded.value && props.hasChildren ? props.oid : null))
 const { data: children, isFetching } = useMibChildren(enabledOid)
 
 function toggle(event) {

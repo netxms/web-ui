@@ -440,6 +440,31 @@ export function updateObjectSnmpConfig(id, payload) {
   return patch(`/v1/objects/${id}/snmp`, payload)
 }
 
+/**
+ * Start a streamed walk of the MIB subtree under `oid`: 202 `{oid, token, expiresIn, wsUrl}`.
+ * The walk starts once `wsUrl` is connected (`openOutputStream`) and is aborted when that socket
+ * closes. Needs OBJECT_ACCESS_READ_SNMP; 400 with `reason` for a non-node, a node without SNMP or
+ * an unknown additional agent.
+ *
+ * @param {number} objectId - node id
+ * @param {object} options
+ * @param {string} options.oid - numeric, without a leading dot
+ * @param {string|null} [options.snmpAgentName] - additional SNMP agent; the primary one if omitted
+ * @param {number} [options.limit] - variables; 0 or omitted is unlimited
+ */
+export function startSnmpWalk(objectId, { oid, snmpAgentName, limit }) {
+  return post(
+    `/v1/objects/${objectId}/snmp-walk`,
+    {
+      oid,
+      stream: true,
+      ...(snmpAgentName ? { snmpAgentName } : {}),
+      ...(limit ? { limit } : {}),
+    },
+    { suppressForbidden: true },
+  )
+}
+
 export function updateObjectAutoBind(id, payload) {
   return patch(`/v1/objects/${id}/auto-bind`, payload)
 }

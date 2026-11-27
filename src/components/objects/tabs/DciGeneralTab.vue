@@ -183,6 +183,12 @@ const pickerObjectId = computed(() =>
   pollable.value && props.form.sourceNode ? props.form.sourceNode : props.objectId,
 )
 
+// Legacy walks the source node when one overrides the owner; a template has nothing to walk.
+const walkObjectId = computed(() => {
+  if (props.form.sourceNode) return props.form.sourceNode
+  return props.ownerObject?.class === 'Node' ? props.objectId : null
+})
+
 function openMetricPicker() {
   if (metricPicker.value === 'pending') {
     notifyNotImplemented(NODE_LIST_ORIGINS[props.form.origin].label)
@@ -565,7 +571,8 @@ const useCustomSnmpVersion = computed({
     <MibOidPickerDialog
       v-model:visible="mibPickerVisible"
       :oid="form.origin === 'snmp' ? form.name : ''"
-      walk
+      :walk-object-id="walkObjectId"
+      :walk-snmp-agent="form.snmpAgentName?.trim() || null"
       @select="onOidPicked"
     />
   </div>

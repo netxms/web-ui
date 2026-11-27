@@ -15,6 +15,7 @@ const READ_ONLY_POSTS = [
   /^\/v1\/objects\/search$/,
   /^\/v1\/objects\/\d+\/expand-text$/,
   /^\/v1\/objects\/\d+\/execute-dashboard-script$/,
+  /^\/v1\/objects\/\d+\/snmp-walk$/,
   /^\/v1\/data-collection\/current-values$/,
   /^\/v1\/logs\/[^/]+\/query$/,
   /^\/v1\/dci-summary-tables\/\d+\/query$/,

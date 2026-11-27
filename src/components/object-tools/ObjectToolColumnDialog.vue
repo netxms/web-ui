@@ -6,7 +6,7 @@ import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import MibBrowser from '@/components/mibs/MibBrowser.vue'
 import MibObjectDetails from '@/components/mibs/MibObjectDetails.vue'
-import { useMibNode } from '@/queries/useMibQueries'
+import { useClosestMibObject, useMibNode } from '@/queries/useMibQueries'
 import { COLUMN_FORMATS } from '@/utils/objectToolUtils'
 import LoadingState from '@/components/common/LoadingState.vue'
 
@@ -61,14 +61,17 @@ watch(
 
 const { data: mibNode } = useMibNode(selectedMibOid)
 
+// As in legacy, typing selects the deepest MIB object the OID falls under.
+const closestMibObject = useClosestMibObject(() => form.value.oid)
+
+watch(closestMibObject, (oid) => {
+  if (oid) selectedMibOid.value = oid
+})
+
 function onMibSelect(oid, name) {
   selectedMibOid.value = oid
   form.value.oid = oid
   if (!form.value.name) form.value.name = name
-}
-
-function onOidBlur() {
-  selectedMibOid.value = form.value.oid || null
 }
 
 function confirm() {
@@ -105,7 +108,7 @@ function cancel() {
             </div>
             <div class="form-field">
               <label for="col-oid">OID <span class="required">*</span></label>
-              <InputText id="col-oid" v-model="form.oid" class="form-input" @blur="onOidBlur" />
+              <InputText id="col-oid" v-model="form.oid" class="form-input" />
             </div>
             <div class="form-field">
               <label for="col-format">Format</label>

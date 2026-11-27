@@ -4,6 +4,7 @@ import { reactive, ref } from 'vue'
 import PrimeVue from 'primevue/config'
 import DciGeneralTab from '../DciGeneralTab.vue'
 import DciMetricPickerDialog from '../../DciMetricPickerDialog.vue'
+import MibOidPickerDialog from '@/components/mibs/MibOidPickerDialog.vue'
 import { notifyNotImplemented } from '@/utils/notImplemented'
 
 // PrimeVue's Select binds a matchMedia listener on mount; jsdom does not provide one.
@@ -35,7 +36,7 @@ const stubs = {
   ObjectPickerField: true,
 }
 
-function mountTab(formFields, dciType = 'item') {
+function mountTab(formFields, dciType = 'item', ownerObject = { id: 100, class: 'Node' }) {
   const form = reactive({
     origin: 'agent',
     name: '',
@@ -51,7 +52,7 @@ function mountTab(formFields, dciType = 'item') {
     ...formFields,
   })
   const wrapper = mount(DciGeneralTab, {
-    props: { form, dciType, objectId: 100, ownerObject: { id: 100, class: 'Node' } },
+    props: { form, dciType, objectId: 100, ownerObject },
     global: { plugins: [PrimeVue], stubs },
   })
   return { form, wrapper }
@@ -131,5 +132,27 @@ describe('DciGeneralTab metric picker', () => {
       description: 'CPU usage',
       dataType: 'float',
     })
+  })
+})
+
+describe('DciGeneralTab SNMP walk', () => {
+  it('walks the owner node through the additional agent the DCI names', () => {
+    const { wrapper } = mountTab({ origin: 'snmp', snmpAgentName: ' ups ' })
+
+    const dialog = wrapper.findComponent(MibOidPickerDialog)
+    expect(dialog.props('walkObjectId')).toBe(100)
+    expect(dialog.props('walkSnmpAgent')).toBe('ups')
+  })
+
+  it('walks the source node when one overrides the owner', () => {
+    const { wrapper } = mountTab({ origin: 'snmp', sourceNode: 200 })
+
+    expect(wrapper.findComponent(MibOidPickerDialog).props('walkObjectId')).toBe(200)
+  })
+
+  it('offers no walk on a template, which has nothing to walk', () => {
+    const { wrapper } = mountTab({ origin: 'snmp' }, 'item', { id: 100, class: 'Template' })
+
+    expect(wrapper.findComponent(MibOidPickerDialog).props('walkObjectId')).toBeNull()
   })
 })

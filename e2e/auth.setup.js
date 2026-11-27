@@ -11,6 +11,7 @@ const MOCK_TARGETS = {
   dciNode: 502,
   dhcpServer: 395,
   agentNode: 516,
+  snmpNode: 522,
 }
 
 /**
@@ -70,6 +71,7 @@ async function findTargets(page) {
       businessService: await first(9, 'BusinessService'),
       dhcpServer: (await queryObjects('type == NODE and $node.isDHCPServer'))[0]?.object?.id,
       agentNode: (await queryObjects('type == NODE and $node.isNativeAgent'))[0]?.object?.id,
+      snmpNode: (await queryObjects('type == NODE and $node.isSNMP'))[0]?.object?.id,
     }
   })
 }

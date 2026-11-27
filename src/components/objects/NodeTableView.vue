@@ -52,7 +52,7 @@ const props = defineProps({
   macField: { type: String, default: null },
   /**
    * More copy actions after "Copy row": `{ name: 'Serial number', field: 'serial' }` is
-   * "Copy serial number".
+   * "Copy serial number"; a leading acronym keeps its case ("Copy OID").
    * @type {import('vue').PropType<Array<{ name: string, field: string }>>}
    */
   copyItems: { type: Array, default: () => [] },
@@ -160,7 +160,7 @@ const contextMenuItems = computed(() => {
   }
   for (const { name, field } of props.copyItems) {
     items.push({
-      label: `Copy ${name.toLowerCase()}`,
+      label: `Copy ${/^[A-Z]{2}/.test(name) ? name : name.charAt(0).toLowerCase() + name.slice(1)}`,
       icon: 'pi pi-copy',
       disabled: row?.[field] == null || row?.[field] === '',
       command: () => copy(row?.[field], name),

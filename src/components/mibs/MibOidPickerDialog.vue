@@ -5,20 +5,24 @@ import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import MibBrowser from './MibBrowser.vue'
 import MibObjectDetails from './MibObjectDetails.vue'
+import SnmpWalkDialog from './SnmpWalkDialog.vue'
 import FormField from '@/components/common/FormField.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
-import { useMibNode } from '@/queries/useMibQueries'
+import { useClosestMibObject, useMibNode } from '@/queries/useMibQueries'
 import { normalizeOid, oidError } from '@/utils/snmpOid'
-import { notifyNotImplemented } from '@/utils/notImplemented'
 
-// `select` carries the OID and, when the loaded MIBs describe it, its MIB node.
+// `select` carries the OID and, when the loaded MIBs describe it, its MIB node: the OID's own, or
+// for an instance (`ifInOctets.3`, typed or picked from a walk) its scalar's or column's, which
+// legacy fills the DCI from.
 const props = defineProps({
   visible: { type: Boolean, required: true },
   /** OID to start from; anything that does not parse starts the dialog empty. */
   oid: { type: String, default: '' },
   header: { type: String, default: 'Select MIB Object' },
-  /** Legacy's "Walk..." button; a not-implemented placeholder (no SNMP walk in the WebAPI). */
-  walk: { type: Boolean, default: false },
+  /** Node the "Walk..." button walks the typed OID on; no button without one. */
+  walkObjectId: { type: Number, default: null },
+  /** Additional SNMP agent for the walk; the node's primary one when empty. */
+  walkSnmpAgent: { type: String, default: null },
 })
 
 const emit = defineEmits(['update:visible', 'select'])
@@ -26,8 +30,17 @@ const emit = defineEmits(['update:visible', 'select'])
 const text = ref('')
 const error = ref('')
 const selectedMibOid = ref(null)
+const walkVisible = ref(false)
+const walkOid = ref('')
 
 const { data: mibNode, isFetching: isNodeFetching } = useMibNode(selectedMibOid)
+
+// As in legacy, typing selects the deepest MIB object the OID falls under.
+const closestMibObject = useClosestMibObject(text)
+
+watch(closestMibObject, (oid) => {
+  if (oid) selectedMibOid.value = oid
+})
 
 function parsedOrNull(value) {
   return oidError(value) ? null : normalizeOid(value)
@@ -51,15 +64,31 @@ function onMibSelect(oid) {
   selectedMibOid.value = oid
 }
 
-function onTextBlur() {
-  selectedMibOid.value = parsedOrNull(text.value)
+function openWalk() {
+  error.value = oidError(text.value)
+  if (error.value) return
+  walkOid.value = normalizeOid(text.value)
+  walkVisible.value = true
+}
+
+/** @param {import('@/composables/useSnmpWalk').SnmpWalkRow} row */
+function onWalkSelect(row) {
+  text.value = row.oid
+  error.value = ''
+  if (row.objectOid) selectedMibOid.value = row.objectOid
+}
+
+/** A broader ancestor (`ifEntry`, `enterprises`) would name the DCI after a whole subtree. */
+function describes(node, oid) {
+  if (!node) return false
+  return node.oid === oid || (oid.startsWith(`${node.oid}.`) && !node.children?.length)
 }
 
 function confirm() {
   error.value = oidError(text.value)
   if (error.value) return
   const oid = normalizeOid(text.value)
-  emit('select', oid, mibNode.value?.oid === oid ? mibNode.value : null)
+  emit('select', oid, describes(mibNode.value, oid) ? mibNode.value : null)
   emit('update:visible', false)
 }
 </script>
@@ -95,7 +124,6 @@ function confirm() {
             spellcheck="false"
             class="oid-input"
             @input="error = ''"
-            @blur="onTextBlur"
             @keydown.enter.prevent="confirm"
           />
         </FormField>
@@ -113,18 +141,28 @@ function confirm() {
 
     <template #footer>
       <Button
-        v-if="walk"
+        v-if="walkObjectId"
         label="Walk..."
         icon="pi pi-sitemap"
         severity="secondary"
         outlined
         class="walk-button"
-        @click="notifyNotImplemented('SNMP walk')"
+        :disabled="!text.trim()"
+        @click="openWalk"
       />
       <Button label="Cancel" severity="secondary" text @click="emit('update:visible', false)" />
       <Button label="OK" icon="pi pi-check" :disabled="!text.trim()" @click="confirm" />
     </template>
   </Dialog>
+
+  <SnmpWalkDialog
+    v-if="walkObjectId"
+    v-model:visible="walkVisible"
+    :object-id="walkObjectId"
+    :snmp-agent-name="walkSnmpAgent"
+    :oid="walkOid"
+    @select="onWalkSelect"
+  />
 </template>
 
 <style scoped>

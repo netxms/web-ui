@@ -271,6 +271,14 @@ export const OBJECT_VIEW_GROUPS = {
         icon: 'pi pi-sync',
         objectClasses: INFRASTRUCTURE_POLLABLE_CLASSES,
       },
+      // Legacy's condition (Node.hasSnmpAgent).
+      {
+        id: 'mibExplorer',
+        label: 'MIB Explorer',
+        icon: 'pi pi-share-alt',
+        objectClasses: ['Node'],
+        objectFilter: (obj) => !!obj?.capabilities?.isSnmp,
+      },
     ],
   },
 }

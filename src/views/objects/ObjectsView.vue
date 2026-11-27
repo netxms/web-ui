@@ -1179,10 +1179,17 @@ const treeContextMenuItems = computed(() => {
   return injectToolsIntoMenu(items, toolsContent)
 })
 
-const { menuItems: staticMenuItems } = useActions(
-  computed(() => selectionStore.primaryContext),
-  { domains: ['object'] },
-)
+// Tree entries are summaries without `capabilities` and `platformName`; the open object's document
+// supplies them, so Tools items gated on them (screenshot, agent log, MIB Explorer) can show.
+const headerActionContext = computed(() => {
+  const ctx = selectionStore.primaryContext
+  const details = resolvedObjectDetails.value
+  if (!ctx?.object || !details || String(details.id) !== String(ctx.object.id)) return ctx
+  const { capabilities, platformName } = details
+  return { ...ctx, object: { ...ctx.object, capabilities, platformName } }
+})
+
+const { menuItems: staticMenuItems } = useActions(headerActionContext, { domains: ['object'] })
 
 // F2 renames the object the view shows, from anywhere in the perspective; Del and Enter act on
 // the tree row and stay confined to the tree, or Del in a DCI table would delete the object.
@@ -1385,6 +1392,7 @@ const viewComponents = {
   templates: () => import('./subviews/TemplatesView.vue'),
   script: () => import('./subviews/ScriptView.vue'),
   polls: () => import('./subviews/PollsView.vue'),
+  mibExplorer: () => import('./subviews/MibExplorerView.vue'),
   statusMap: () => import('./subviews/StatusMapView.vue'),
   summaryTables: () => import('./subviews/SummaryTablesView.vue'),
   logs: () => import('./subviews/ObjectLogsView.vue'),

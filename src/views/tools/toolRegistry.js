@@ -54,8 +54,7 @@ export const TOOLS = [
     label: 'MIB Explorer',
     icon: 'pi pi-share-alt',
     family: 'explore',
-    // Walking a live node needs an SNMP walk/get endpoint that does not exist yet.
-    description: 'Browse the SNMP MIB tree and inspect OID definitions.',
+    description: 'Browse the SNMP MIB tree, inspect OID definitions and walk a subtree on a node.',
     component: defineAsyncComponent(() => import('@/views/tools/MibExplorerView.vue')),
   },
   {
