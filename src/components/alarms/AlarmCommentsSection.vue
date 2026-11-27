@@ -1,12 +1,12 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, defineAsyncComponent, watch } from 'vue'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
-import Textarea from 'primevue/textarea'
 import Skeleton from 'primevue/skeleton'
 import QueryErrorState from '@/components/common/QueryErrorState.vue'
+import { renderCommentsMarkdown } from '@/utils/commentsUtils'
 import { formatDateTimeMedium } from '@/utils/timeFormat'
 import {
   useAlarmComments,
@@ -14,6 +14,11 @@ import {
   useUpdateAlarmComment,
   useDeleteAlarmComment,
 } from '@/queries/useAlarmQueries'
+
+// Async: only the comment dialog needs CodeMirror, not every alarm details view.
+const MarkdownCommentEditor = defineAsyncComponent(
+  () => import('@/components/common/MarkdownCommentEditor.vue'),
+)
 
 const props = defineProps({
   alarmId: { type: Number, required: true },
@@ -37,6 +42,9 @@ const editingId = ref(null) // null => creating a new comment
 const draftText = ref('')
 const isSaving = computed(() => isCreating.value || isUpdating.value)
 const canSave = computed(() => draftText.value.trim().length > 0)
+
+const editor = ref(null)
+watch(editor, (instance) => instance?.focus(), { flush: 'post' })
 
 function openAdd() {
   editingId.value = null
@@ -154,7 +162,7 @@ function formatDate(value) {
             />
           </span>
         </div>
-        <p class="comment-text">{{ comment.text }}</p>
+        <div class="comment-text ai-markdown" v-html="renderCommentsMarkdown(comment.text)" />
       </li>
     </ul>
 
@@ -162,17 +170,18 @@ function formatDate(value) {
       v-model:visible="dialogVisible"
       :header="editingId == null ? 'Add Comment' : 'Edit Comment'"
       modal
-      :style="{ width: '32rem' }"
+      :style="{ width: '52rem' }"
+      :breakpoints="{ '900px': '95vw' }"
       :draggable="false"
     >
-      <Textarea
-        v-model="draftText"
-        auto-resize
-        rows="6"
-        class="comment-input"
-        placeholder="Comment text"
-        autofocus
-      />
+      <div class="comment-editor">
+        <MarkdownCommentEditor
+          ref="editor"
+          v-model="draftText"
+          placeholder="Comment text. Supports Markdown formatting."
+          fill
+        />
+      </div>
       <template #footer>
         <Button
           label="Cancel"
@@ -264,13 +273,30 @@ function formatDate(value) {
 }
 
 .comment-text {
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
   font-size: 0.875rem;
+  line-height: 1.5;
 }
 
-.comment-input {
-  width: 100%;
+/* Inside the comment list's own <li>, browsers would start the markers at the nested style. */
+.comment-text :deep(ul) {
+  list-style-type: disc;
+}
+
+.comment-text :deep(ul ul) {
+  list-style-type: circle;
+}
+
+.comment-text :deep(ul ul ul) {
+  list-style-type: square;
+}
+
+/* Fixed, so the editor's toolbar stays in view and long text scrolls under it. */
+.comment-editor {
+  display: flex;
+  flex-direction: column;
+  height: min(30rem, 60vh);
 }
 </style>
+
+<style src="@/assets/styles/ai-markdown.css" />

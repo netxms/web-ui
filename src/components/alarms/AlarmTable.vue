@@ -2,6 +2,7 @@
 import { formatDateTimeShort } from '@/utils/timeFormat'
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import AlarmAiCommentDialog from '@/components/alarms/AlarmAiCommentDialog.vue'
 import AlarmIconLabel from '@/components/alarms/AlarmIconLabel.vue'
 import Button from 'primevue/button'
 import Skeleton from 'primevue/skeleton'
@@ -375,6 +376,14 @@ function onIncidentCreated(incident) {
   router.push(incidentTarget(incident.id))
 }
 
+const aiCommentVisible = ref(false)
+const aiCommentAlarm = ref(null)
+
+function openAiComment(alarm) {
+  aiCommentAlarm.value = alarm
+  aiCommentVisible.value = true
+}
+
 const contextMenu = ref()
 
 const {
@@ -392,6 +401,7 @@ const {
   objectTargetFor: (alarm) => objectTargetForAlarm(alarm),
   onOpenDetails: (alarm) => emit('open-details', alarm),
   onCreateIncident: openCreateIncident,
+  onAskAssistant: openAiComment,
   onExport: exportCsv,
 })
 
@@ -690,6 +700,12 @@ function onActionsClick(event, rowData) {
       :preset-title="incidentPreset.title"
       :source-alarm-id="incidentSourceAlarmId"
       @created="onIncidentCreated"
+    />
+
+    <AlarmAiCommentDialog
+      v-model:visible="aiCommentVisible"
+      :alarm="aiCommentAlarm"
+      :source-name="aiCommentAlarm ? String(displaySourceName(aiCommentAlarm)) : ''"
     />
   </div>
 </template>

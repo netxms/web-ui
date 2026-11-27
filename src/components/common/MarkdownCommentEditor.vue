@@ -27,6 +27,8 @@ const props = defineProps({
   placeholder: { type: String, default: 'Add comments... Supports Markdown formatting.' },
   /** Grow to fill the parent's height. */
   fill: { type: Boolean, default: false },
+  /** 'preview' opens on the rendered text, for text that is read before it is edited. */
+  initialMode: { type: String, default: 'live' },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -53,7 +55,7 @@ const MODE_OPTIONS = [
   { label: 'Live', value: 'live' },
   { label: 'Preview', value: 'preview' },
 ]
-const mode = ref('live')
+const mode = ref(props.initialMode)
 
 const { extensions: liveMarkdownExtensions } = useLiveMarkdownDecorations()
 
@@ -74,6 +76,15 @@ function handleReady({ view }) {
 }
 
 const renderedHtml = computed(() => renderCommentsMarkdown(props.modelValue))
+
+const previewEl = ref(null)
+
+function focus() {
+  if (mode.value === 'preview') previewEl.value?.focus()
+  else cmView.value?.focus()
+}
+
+defineExpose({ focus })
 
 const hintExpanded = ref(false)
 
@@ -207,9 +218,14 @@ const FORMAT_ACTIONS = [
           @update:model-value="emit('update:modelValue', $event)"
         />
 
+        <!-- Focusable: with `fill` it scrolls on its own. -->
         <div
           v-if="mode === 'preview'"
+          ref="previewEl"
           class="md-preview"
+          role="region"
+          aria-label="Preview"
+          tabindex="0"
           :class="{ 'is-empty': !modelValue }"
           v-html="modelValue ? renderedHtml : 'Nothing to preview yet.'"
         />
@@ -392,6 +408,15 @@ const FORMAT_ACTIONS = [
   color: var(--p-text-color);
   font-size: 0.9375rem;
   line-height: 1.6;
+}
+
+.md-preview:focus {
+  outline: none;
+}
+
+.md-preview:focus-visible {
+  outline: 2px solid var(--p-primary-color);
+  outline-offset: -2px;
 }
 
 .md-preview.is-empty {

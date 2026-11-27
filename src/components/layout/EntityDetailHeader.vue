@@ -44,11 +44,13 @@ const emit = defineEmits(['back'])
 </template>
 
 <style scoped>
+/* Wraps, so actions that do not fit go to their own line rather than squeezing out the title. */
 .entity-detail-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.5rem 1rem;
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid var(--p-surface-border);
   background: var(--p-surface-card);
@@ -92,8 +94,10 @@ const emit = defineEmits(['back'])
 
 .entity-detail-header-actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
   gap: 0.25rem;
-  flex-shrink: 0;
+  margin-inline-start: auto;
 }
 </style>

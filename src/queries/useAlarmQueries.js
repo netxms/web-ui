@@ -142,6 +142,13 @@ export function useAlarmEvents(id) {
   })
 }
 
+/** Invalidates nothing: the server does not save the comment, `useCreateAlarmComment` does. */
+export function useAlarmAiComment() {
+  return useMutation({
+    mutationFn: ({ alarmId, signal }) => alarmsApi.requestAlarmAiComment(alarmId, { signal }),
+  })
+}
+
 export function useCreateAlarmComment() {
   const queryClient = useQueryClient()
   return useMutation({

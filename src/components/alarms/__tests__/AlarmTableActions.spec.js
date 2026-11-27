@@ -18,7 +18,9 @@ import {
   labels,
   item,
   resetHarness,
+  AiCommentDialogStub,
 } from './alarmTableHarness'
+import { useAuthStore } from '@/stores/authStore'
 
 beforeEach(resetHarness)
 
@@ -217,18 +219,68 @@ describe('AlarmTable Object submenu', () => {
   })
 })
 
-describe('AlarmTable Ask AI assistant', () => {
-  it('is left out without the AI component', async () => {
+describe('AlarmTable AI assistant items', () => {
+  const grantAi = () => {
+    useAuthStore().user = { systemAccessRights: String(1n << 53n) }
+  }
+
+  it('are left out without the AI component', async () => {
+    grantAi()
     const items = await openMenu(mountTable(), 0)
 
     expect(item(items, 'alarm.askAi')).toBeUndefined()
+    expect(item(items, 'alarm.discussAi')).toBeUndefined()
   })
 
-  it('opens the chat and asks about the alarm with its object as context', async () => {
+  it('are left out without the right to use the assistant', async () => {
     aiAvailable.value = true
     const items = await openMenu(mountTable(), 0)
 
+    expect(item(items, 'alarm.askAi')).toBeUndefined()
+    expect(item(items, 'alarm.discussAi')).toBeUndefined()
+  })
+
+  it('follow Create incident, on one alarm only', async () => {
+    aiAvailable.value = true
+    grantAi()
+    const wrapper = mountTable()
+
+    const names = labels(await openMenu(wrapper, 0))
+    const incident = names.indexOf('Create incident')
+    expect(names.slice(incident, incident + 3)).toEqual([
+      'Create incident',
+      'Ask AI assistant...',
+      'Discuss in AI chat',
+    ])
+
+    await select(wrapper, 0, 1)
+    const items = await openMenu(wrapper, 0)
+    expect(item(items, 'alarm.askAi')).toBeUndefined()
+    expect(item(items, 'alarm.discussAi')).toBeUndefined()
+  })
+
+  it('Ask AI assistant opens the suggested-comment dialog on the alarm', async () => {
+    aiAvailable.value = true
+    grantAi()
+    const wrapper = mountTable()
+    const items = await openMenu(wrapper, 0)
+
     item(items, 'alarm.askAi').command()
+    await nextTick()
+
+    const dialog = wrapper.findComponent(AiCommentDialogStub)
+    expect(dialog.props('visible')).toBe(true)
+    expect(dialog.props('alarm').id).toBe(1)
+    expect(dialog.props('sourceName')).toBe('node-1')
+    expect(sendMessage).not.toHaveBeenCalled()
+  })
+
+  it('Discuss in AI chat opens the chat on the alarm, with its object as context', async () => {
+    aiAvailable.value = true
+    grantAi()
+    const items = await openMenu(mountTable(), 0)
+
+    item(items, 'alarm.discussAi').command()
 
     expect(isAiChatOpen.value).toBe(true)
     const [prompt, context] = sendMessage.mock.calls[0]

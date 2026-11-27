@@ -10,6 +10,8 @@ import { AUTH_FILE, BLOCKED_LOG, TEST_PREFIX, useMocks } from './support.js'
 const READ_ONLY_POSTS = [
   /^\/v1\/login$/,
   /^\/v1\/logout$/,
+  // Saves nothing: the comment is only returned. Tool calls run with the test account's rights.
+  /^\/v1\/alarms\/\d+\/ai-comment$/,
   /^\/v1\/objects\/details$/,
   /^\/v1\/objects\/query$/,
   /^\/v1\/objects\/search$/,

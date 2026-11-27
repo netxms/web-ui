@@ -110,6 +110,13 @@ export const ToolDialogStub = defineComponent({
   template: '<div class="tool-dialog-stub" />',
 })
 
+export const AiCommentDialogStub = defineComponent({
+  name: 'AlarmAiCommentDialog',
+  props: ['visible', 'alarm', 'sourceName'],
+  emits: ['update:visible'],
+  template: '<div class="ai-comment-dialog-stub" />',
+})
+
 export const IconStub = defineComponent({
   name: 'ObjectIcon',
   props: ['object'],
@@ -144,6 +151,7 @@ export function mountTable(props = {}) {
         ActionContextMenu: MenuStub,
         ToolInputDialog: ToolDialogStub,
         CreateIncidentDialog: true,
+        AlarmAiCommentDialog: AiCommentDialogStub,
         ObjectIcon: IconStub,
         Paginator: true,
       },

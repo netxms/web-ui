@@ -76,6 +76,7 @@ function mountTable(props = {}) {
         ActionContextMenu: true,
         CreateIncidentDialog: true,
         ToolInputDialog: true,
+        AlarmAiCommentDialog: true,
       },
       config: {
         globalProperties: {

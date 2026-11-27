@@ -69,6 +69,23 @@ export function terminateAlarm(id, options) {
   return post(`/v1/alarms/${id}/terminate`, undefined, options)
 }
 
+/**
+ * The AI assistant's suggested comment, not saved. Synchronous and slow: the assistant may call
+ * tools (with the caller's rights) first, and an abort does not stop it on the server. 503 is this
+ * endpoint's own answer (no AI, or no reply), not a dead server; the caller renders 403 inline.
+ *
+ * @param {number} id
+ * @param {{ signal?: AbortSignal }} [options]
+ * @returns {Promise<{ comment: string }>}
+ */
+export function requestAlarmAiComment(id, { signal } = {}) {
+  return post(`/v1/alarms/${id}/ai-comment`, undefined, {
+    signal,
+    suppressForbidden: true,
+    suppressUnavailable: true,
+  })
+}
+
 export function getAlarmComments(id) {
   return get(`/v1/alarms/${id}/comments`)
 }

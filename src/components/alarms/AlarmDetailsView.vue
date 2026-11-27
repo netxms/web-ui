@@ -1,8 +1,9 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
+import AlarmAiCommentDialog from '@/components/alarms/AlarmAiCommentDialog.vue'
 import AlarmIconLabel from '@/components/alarms/AlarmIconLabel.vue'
 import Skeleton from 'primevue/skeleton'
 import EntityDetailHeader from '@/components/layout/EntityDetailHeader.vue'
@@ -31,6 +32,9 @@ import {
   normalizeState,
 } from '@/utils/alarmDisplay'
 import { formatDateTimeMedium } from '@/utils/timeFormat'
+import { SERVER_COMPONENTS } from '@/config/serverComponents'
+import { usePermissions } from '@/composables/usePermissions'
+import { useServerComponents } from '@/composables/useServerComponents'
 
 const props = defineProps({
   alarmId: { type: Number, required: true },
@@ -70,6 +74,13 @@ const can = computed(() =>
 
 // Parity with legacy: comments are read-only once the alarm is terminated.
 const canEditComments = computed(() => currentState.value !== 'terminated')
+
+const { has: hasServerComponent } = useServerComponents()
+const { can: canUse } = usePermissions()
+const canAskAssistant = computed(
+  () => hasServerComponent(SERVER_COMPONENTS.AI_ASSISTANT) && canUse.value.useAiAssistant,
+)
+const aiCommentVisible = ref(false)
 
 function rowField(key) {
   return props.row?.[key] ?? null
@@ -138,6 +149,16 @@ const hasHistoryData = computed(() => (historyData.value?.values?.length ?? 0) >
   <div class="alarm-detail-view" :class="{ embedded }">
     <EntityDetailHeader :title="title" :subtitle="subtitle" @back="emit('back')">
       <template #actions>
+        <Button
+          v-if="canAskAssistant"
+          label="Ask AI assistant"
+          icon="pi pi-sparkles"
+          size="small"
+          severity="secondary"
+          outlined
+          :disabled="!canEditComments"
+          @click="aiCommentVisible = true"
+        />
         <Button
           label="Acknowledge"
           icon="pi pi-check"
@@ -313,6 +334,13 @@ const hasHistoryData = computed(() => (historyData.value?.values?.length ?? 0) >
         </template>
       </InfoCard>
     </div>
+
+    <AlarmAiCommentDialog
+      v-if="alarm"
+      v-model:visible="aiCommentVisible"
+      :alarm="alarm"
+      :source-name="String(sourceObject?.name ?? sourceName)"
+    />
   </div>
 </template>
 

@@ -6,6 +6,7 @@ import { useAiChat } from '@/composables/useAiChat'
 import { useLayout } from '@/composables/useLayout'
 import { useObjectActionMenu } from '@/composables/useObjectActionMenu'
 import { useObjectIcons } from '@/composables/useObjectIcons'
+import { usePermissions } from '@/composables/usePermissions'
 import { useServerComponents } from '@/composables/useServerComponents'
 import { useToolExecution } from '@/composables/useToolExecution'
 import { useAlarmDci } from '@/queries/useAlarmQueries'
@@ -94,6 +95,7 @@ async function copyText(text, message) {
  * @param {(alarm: object) => object} options.objectTargetFor - route of the alarm's source
  * @param {(alarm: object) => void} options.onOpenDetails
  * @param {(alarm: object) => void} options.onCreateIncident
+ * @param {(alarm: object) => void} options.onAskAssistant - opens the suggested-comment dialog
  * @param {(alarms: object[]) => void} options.onExport
  */
 export function useAlarmContextMenu({
@@ -104,10 +106,12 @@ export function useAlarmContextMenu({
   objectTargetFor,
   onOpenDetails,
   onCreateIncident,
+  onAskAssistant,
   onExport,
 }) {
   const router = useRouter()
   const { has } = useServerComponents()
+  const { can } = usePermissions()
   const chat = useAiChat()
   const { isAiChatOpen } = useLayout()
   const { executeTool } = useToolExecution()
@@ -271,7 +275,7 @@ export function useAlarmContextMenu({
     ]
   }
 
-  function askAssistant(alarm) {
+  function discussInChat(alarm) {
     const name = names.sourceName(alarm)
     isAiChatOpen.value = true
     chat.sendMessage(alarmAssistantPrompt(alarm, name), {
@@ -291,14 +295,22 @@ export function useAlarmContextMenu({
         command: () => onCreateIncident(alarm),
       },
     ]
-    if (has(SERVER_COMPONENTS.AI_ASSISTANT)) {
-      items.push({
-        id: 'alarm.askAi',
-        label: 'Ask AI assistant...',
-        icon: 'pi pi-sparkles',
-        disabled: chat.isThinking.value,
-        command: () => askAssistant(alarm),
-      })
+    if (has(SERVER_COMPONENTS.AI_ASSISTANT) && can.value.useAiAssistant) {
+      items.push(
+        {
+          id: 'alarm.askAi',
+          label: 'Ask AI assistant...',
+          icon: 'pi pi-sparkles',
+          command: () => onAskAssistant(alarm),
+        },
+        {
+          id: 'alarm.discussAi',
+          label: 'Discuss in AI chat',
+          icon: 'pi pi-comments',
+          disabled: chat.isThinking.value,
+          command: () => discussInChat(alarm),
+        },
+      )
     }
     return items
   }
