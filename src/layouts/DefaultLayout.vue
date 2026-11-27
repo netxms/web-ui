@@ -10,12 +10,14 @@ import ObjectIconPreviewBar from '@/components/objects/ObjectIconPreviewBar.vue'
 import GlobalSearch from '@/components/search/GlobalSearch.vue'
 import { useLayout } from '@/composables/useLayout'
 import { useAlarmFeed } from '@/composables/useAlarmFeed'
+import { useObjectStatusSync } from '@/composables/useObjectStatusSync'
 import { useRegionFocus } from '@/composables/useRegionFocus'
 import { useFilterShortcut } from '@/composables/useFilterShortcut'
 import { useModuleRuntime } from '@/modules'
 import { provideObjectIcons } from '@/composables/useObjectIcons'
 
 useAlarmFeed()
+useObjectStatusSync()
 
 // One shared custom-icon registry for the signed-in session instead of one per row.
 provideObjectIcons()
